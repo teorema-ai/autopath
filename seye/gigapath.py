@@ -311,6 +311,8 @@ class IMGS(Datablock):
             if self.debug:
                 print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
             # if necessary, generate blank annotations
+            #DEBUG
+            pdb.set_trace()
             self.filesystem.rm(os.path.join(root, 'annotations.csv'))
             self.project(scope, roots).create_blank_annotations()
             #HACK: eliminate duplicate patient/slide
