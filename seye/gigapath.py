@@ -297,7 +297,7 @@ class IMGS(Datablock):
         if topic == 'sources':
             return super().valid(scope, roots, 'slide_source_map')
         if topic == 'dataset':
-            return super().valid(scope, roots, 'dataset')
+            return super().valid(scope, roots, 'project')
         return super().valid(scope, roots, topic)
 
     def build(self, scope, roots):
