@@ -16,10 +16,12 @@
         export VERSION=v1
     ```
     > GIGAPATH-PANCAN
-        * EMBEDDINGS: CPTAC
+        * CPTAC
             ```
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
                 export CPIMGS="DBX('gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
+                dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).intent()"
+                dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).extent()"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$CPIMGS.read('project')"
                 dbx.print "$CPIMGS.read('dataset')"
@@ -27,21 +29,43 @@
                 dbx.print "$CPIMGS.read('dataset').manifest()"
                 dbx.print "$CPIMGS.read('slides')"
 
-                export CPBAGS="DBX('pancan_gigapath.BAGS', 'CPBAGS', repo='${PANCAN_GIGAPATH_REPO}', revision='pancan-gigapath/cptac/${VERSION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
+                export CPBAGS="DBX('gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='gigapath/pancan${VERSION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
                 dbx.print "$CPBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
 
-                export CPEMBS="DBX('pancan_gigapath.EMBS', 'CPEMBS', repo='${PANCAN_GIGAPATH_REPO}', revision='pancan-gigapath/cptac/${VERSION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
+                export CPEMBS="DBX('gigapath.EMBS', 'CPEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
                 dbx.print "$CPEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$CPEMBS.EMBS(verbose=True).Databuilder(throw=True).read()"
 
-                export CPEVAL="DBX('pancan_gigapath.DEVALUATOR', 'CPEVAL', repo='${PANCAN_GIGAPATH_REPO}', revision='pancan-gigapath/cptac/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_sources'), n_bins=4)"
+                export CPEVAL="DBX('gigapath.DEVALUATOR', 'CPEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_sources'), n_bins=4)"
                 dbx.print "$CPEVAL.DEVAL(verbose=True).Databuilder(throw=True).register()"
                 dbx.print "$CPEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
 
                 #dbx.print "DBX.Transcribe($CPIMGS, $CPBAGS, $CPEMBS, with_build=True)"
             ```
-    > LEGACY
-        See github.com/pearson-laboratory/quantum/pancan_gigapath
+        * TCGA
+                ```
+                    export CUDA_VISIBLE_DEVICES=0,1,2,3
+                    export TCIMGS="DBX('gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
+                    dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
+                    dbx.print "$TCIMGS.read('project')"
+                    dbx.print "$TCIMGS.read('dataset')"
+                    dbx.print "$TCIMGS.read('dataset').summary()"
+                    dbx.print "$TCIMGS.read('dataset').manifest()"
+                    dbx.print "$TCIMGS.read('slides')"
+
+                    export TCBAGS="DBX('gigapath.BAGS', 'TCBAGS', repo='${SEYE}', revision='gigapath/pancan${VERSION}').SCOPE(dataset=$TCIMGS.READ('dataset'))"
+                    dbx.print "$TCBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
+
+                    export TCEMBS="DBX('gigapath.EMBS', 'TCEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$TCIMGS.READ('slides'), bags=$TCBAGS.READ())"
+                    dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
+                    dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).read()"
+
+                    export TCEVAL="DBX('gigapath.DEVALUATOR', 'TCEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$TCEMBS.READ(), slide_sources=$TCIMGS.READ('slide_sources'), n_bins=4)"
+                    dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).register()"
+                    dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
+
+                    #dbx.print "DBX.Transcribe($TCIMGS, $TCBAGS, $TCEMBS, with_build=True)"
+                ```
 """
 
 
