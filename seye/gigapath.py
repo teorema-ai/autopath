@@ -342,7 +342,7 @@ class IMGS(Datablock):
         settings_path = os.path.join(root, 'settings.json')
         with self.filesystem.open(settings_path, 'r') as f:
             settings = json.load(f)
-        settings['name'] = "gigapath-pancan"
+        settings['name'] = f"gigapath-pancan-{scope.origin.lower()}"
         # insert `list(datasets.keys())` into {PROJECT}/settings.json:sources. 
         # remember to double-quote all source names
         settings['sources'] = list(datasets.keys())
