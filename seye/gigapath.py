@@ -43,29 +43,29 @@
                 #dbx.print "DBX.Transcribe($CPIMGS, $CPBAGS, $CPEMBS, with_build=True)"
             ```
         * TCGA
-                ```
-                    export CUDA_VISIBLE_DEVICES=0,1,2,3
-                    export TCIMGS="DBX('seye.gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
-                    dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
-                    dbx.print "$TCIMGS.read('project')"
-                    dbx.print "$TCIMGS.read('dataset')"
-                    dbx.print "$TCIMGS.read('dataset').summary()"
-                    dbx.print "$TCIMGS.read('dataset').manifest()"
-                    dbx.print "$TCIMGS.read('slides')"
+            ```
+                export CUDA_VISIBLE_DEVICES=0,1,2,3
+                export TCIMGS="DBX('seye.gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
+                dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
+                dbx.print "$TCIMGS.read('project')"
+                dbx.print "$TCIMGS.read('dataset')"
+                dbx.print "$TCIMGS.read('dataset').summary()"
+                dbx.print "$TCIMGS.read('dataset').manifest()"
+                dbx.print "$TCIMGS.read('slides')"
 
-                    export TCBAGS="DBX('gigapath.BAGS', 'TCBAGS', repo='${SEYE}', revision='gigapath/pancan${VERSION}').SCOPE(dataset=$TCIMGS.READ('dataset'))"
-                    dbx.print "$TCBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
+                export TCBAGS="DBX('gigapath.BAGS', 'TCBAGS', repo='${SEYE}', revision='gigapath/pancan${VERSION}').SCOPE(dataset=$TCIMGS.READ('dataset'))"
+                dbx.print "$TCBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
 
-                    export TCEMBS="DBX('gigapath.EMBS', 'TCEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$TCIMGS.READ('slides'), bags=$TCBAGS.READ())"
-                    dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
-                    dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).read()"
+                export TCEMBS="DBX('gigapath.EMBS', 'TCEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$TCIMGS.READ('slides'), bags=$TCBAGS.READ())"
+                dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
+                dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).read()"
 
-                    export TCEVAL="DBX('gigapath.DEVALUATOR', 'TCEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$TCEMBS.READ(), slide_sources=$TCIMGS.READ('slide_sources'), n_bins=4)"
-                    dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).register()"
-                    dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
+                export TCEVAL="DBX('gigapath.DEVALUATOR', 'TCEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$TCEMBS.READ(), slide_sources=$TCIMGS.READ('slide_sources'), n_bins=4)"
+                dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).register()"
+                dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
 
-                    #dbx.print "DBX.Transcribe($TCIMGS, $TCBAGS, $TCEMBS, with_build=True)"
-                ```
+                #dbx.print "DBX.Transcribe($TCIMGS, $TCBAGS, $TCEMBS, with_build=True)"
+            ```
 """
 
 
