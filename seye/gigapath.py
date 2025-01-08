@@ -259,71 +259,66 @@ class IMGS(Datablock):
         return self.project(scope, roots).dataset(tile_px=scope.tile_px, tile_um=scope.tile_um)
 
     def build(self, scope, roots):
-        if not self.valid(scope, roots, 'project'):
-            root = roots['project']
-            if not self.filesystem.isfile(os.path.join(root, 'settings.json')) or \
-               not self.filesystem.isfile(os.path.join(root, 'datasets.json')) or \
-               not self.filesystem.isfile(os.path.join(root, 'annotations.csv')):
-                sf.create_project(root=root)
-                if scope.origin == 'TCGA':
-                    slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
-                    slide_paths = {
-                        basename: path for basename, path in slide_folders.items() 
-                            if basename.startswith('TCGA-') and basename.find('test') == -1
-                    }
-                elif scope.origin == 'CPTAC':
-                    if self.debug:
-                        print(f"DEBUG: IMGS: build: building project from scope.slides: {scope.slides}") 
-                    slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
-                    if self.debug:
-                        print(f"DEBUG: IMGS: build: computed slide_folders: {slide_folders}")
-                    slide_paths = {}
-                    for basename, path in slide_folders.items():
-                        images = os.path.join(path, 'images')
-                        #gcs will return True to isdir(path) for any extant path, it seems
-                        if self.filesystem.exists(images) and not self.filesystem.isfile(images) and\
-                            basename.find('TEST') == -1:
-                            slide_paths[basename] = path
-                    if self.debug:
-                        print(f"DEBUG: IMGS: build: computed slide_paths: {slide_paths}")
-                else:
-                    raise ValueError(f"Unknown slide origin: '{scope.origin}'")
-                datasets = {
-                        basename: {'slides': os.path.join(path, 'images'),
-                                   'tfrecords': os.path.join(path, 'tfrecords'),
-                                   'roi': os.path.join(path, 'ROI')
-                                } 
-                                for basename, path in slide_paths.items()
+        root = roots['project']
+        if not self.filesystem.isfile(os.path.join(root, 'settings.json')) or \
+            not self.filesystem.isfile(os.path.join(root, 'datasets.json')) or \
+            not self.filesystem.isfile(os.path.join(root, 'annotations.csv')):
+            sf.create_project(root=root)
+            if scope.origin == 'TCGA':
+                slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
+                slide_paths = {
+                    basename: path for basename, path in slide_folders.items() 
+                        if basename.startswith('TCGA-') and basename.find('test') == -1
                 }
-                datasets_path = os.path.join(root, 'datasets.json')
-                with self.filesystem.open(datasets_path, 'w') as f:
-                    json.dump(datasets, f)
-                
+            elif scope.origin == 'CPTAC':
                 if self.debug:
-                    print(f"DEBUG: IMGS: build: wrote datasets to path {datasets_path}:\n{datasets}")
-                
-                settings_path = os.path.join(root, 'settings.json')
-                with self.filesystem.open(settings_path, 'r') as f:
-                    settings = json.load(f)
-                settings['name'] = "gigapath-pancan"
-                # insert `list(datasets.keys())` into {PROJECT}/settings.json:sources. 
-                # remember to double-quote all source names
-                settings['sources'] = list(datasets.keys())
-                with self.filesystem.open(settings_path, 'w') as f:
-                    json.dump(settings, f)
-
+                    print(f"DEBUG: IMGS: build: building project from scope.slides: {scope.slides}") 
+                slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
                 if self.debug:
-                    print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
-
-                # if necessary, generate blank annotations
-                self.filesystem.rm(os.path.join(root, 'annotations.csv'))
-                self._project.create_blank_annotations()
-                #HACK: eliminate duplicate patient/slide
-                with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'r') as f:
-                    ann = pd.read_csv(f)
-                    ann = ann.set_index('patient').groupby(level=0).last().reset_index()
-                with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'w') as f:
-                    ann.to_csv(f)
+                    print(f"DEBUG: IMGS: build: computed slide_folders: {slide_folders}")
+                slide_paths = {}
+                for basename, path in slide_folders.items():
+                    images = os.path.join(path, 'images')
+                    #gcs will return True to isdir(path) for any extant path, it seems
+                    if self.filesystem.exists(images) and not self.filesystem.isfile(images) and\
+                        basename.find('TEST') == -1:
+                        slide_paths[basename] = path
+                if self.debug:
+                    print(f"DEBUG: IMGS: build: computed slide_paths: {slide_paths}")
+            else:
+                raise ValueError(f"Unknown slide origin: '{scope.origin}'")
+            datasets = {
+                    basename: {'slides': os.path.join(path, 'images'),
+                                'tfrecords': os.path.join(path, 'tfrecords'),
+                                'roi': os.path.join(path, 'ROI')
+                            } 
+                            for basename, path in slide_paths.items()
+            }
+            datasets_path = os.path.join(root, 'datasets.json')
+            with self.filesystem.open(datasets_path, 'w') as f:
+                json.dump(datasets, f)
+            if self.debug:
+                print(f"DEBUG: IMGS: build: wrote datasets to path {datasets_path}:\n{datasets}")
+            settings_path = os.path.join(root, 'settings.json')
+            with self.filesystem.open(settings_path, 'r') as f:
+                settings = json.load(f)
+            settings['name'] = "gigapath-pancan"
+            # insert `list(datasets.keys())` into {PROJECT}/settings.json:sources. 
+            # remember to double-quote all source names
+            settings['sources'] = list(datasets.keys())
+            with self.filesystem.open(settings_path, 'w') as f:
+                json.dump(settings, f)
+            if self.debug:
+                print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
+            # if necessary, generate blank annotations
+            self.filesystem.rm(os.path.join(root, 'annotations.csv'))
+            self._project.create_blank_annotations()
+            #HACK: eliminate duplicate patient/slide
+            with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'r') as f:
+                ann = pd.read_csv(f)
+                ann = ann.set_index('patient').groupby(level=0).last().reset_index()
+            with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'w') as f:
+                ann.to_csv(f)
 
         if (not self.valid(scope, roots, 'slides')        or
             not self.valid(scope, roots, 'slide_paths')   or 
