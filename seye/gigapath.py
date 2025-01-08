@@ -362,12 +362,12 @@ class IMGS(Datablock):
             if self.debug:
                     print(f"DEBUG: IMGS: build: slide_sources: {slide_sources}")
             if self.verbose:
-                print(f"TILES: Extracting tiles: started at {datetime.datetime.now()}")
-            scope.dataset.extract_tiles(skip_extracted=not self.force_extract)
-            if self.verbose:
-                print(f"TILES: Extracting tiles: finished at {datetime.datetime.now()}")
+                    print(f"IMGS: build: generating slides, slide_paths, slide_sources, source_slides: finished at {datetime.datetime.now()}")
         if self.verbose:
-                print(f"IMGS: build: generating slides, slide_paths, slide_sources, source_slides: finished at {datetime.datetime.now()}")
+            print(f"TILES: Extracting tiles: started at {datetime.datetime.now()}")
+        scope.dataset.extract_tiles(skip_extracted=not self.force_extract)
+        if self.verbose:
+            print(f"TILES: Extracting tiles: finished at {datetime.datetime.now()}")
         
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
