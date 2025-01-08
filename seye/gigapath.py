@@ -312,14 +312,16 @@ class IMGS(Datablock):
                 print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
             # if necessary, generate blank annotations
             #DEBUG
-            pdb.set_trace()
-            self.filesystem.rm(os.path.join(root, 'annotations.csv'))
+            #pdb.set_trace()
+            annf = os.path.join(root, 'annotations.csv')
+            if self.filesystem.isfile(annf)
+            self.filesystem.rm(annf)
             self.project(scope, roots).create_blank_annotations()
             #HACK: eliminate duplicate patient/slide
             with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'r') as f:
                 ann = pd.read_csv(f)
                 ann = ann.set_index('patient').groupby(level=0).last().reset_index()
-            with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'w') as f:
+            with self.filesystem.open(annf, 'w') as f:
                 ann.to_csv(f)
 
         if (not self.valid(scope, roots, 'slides')        or
