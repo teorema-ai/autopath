@@ -296,119 +296,127 @@ class IMGS(Datablock):
 
     def build(self, scope, roots):
         root = roots['project']
+        '''
+        #TODO: #REMOVE
         if not self.filesystem.isfile(os.path.join(root, 'settings.json')) or \
             not self.filesystem.isfile(os.path.join(root, 'datasets.json')) or \
             not self.filesystem.isfile(os.path.join(root, 'annotations.csv')):
-            sf.create_project(root=root)
-            if scope.origin == 'TCGA':
-                slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
-                slide_paths = {
-                    basename: path for basename, path in slide_folders.items() 
-                        if basename.startswith('TCGA-') and basename.find('test') == -1
-                }
-            elif scope.origin == 'CPTAC':
-                if self.debug:
-                    print(f"DEBUG: IMGS: build: building project from scope.slides: {scope.slides}") 
-                slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
-                if self.debug:
-                    print(f"DEBUG: IMGS: build: computed slide_folders: {slide_folders}")
-                slide_paths = {}
-                for basename, path in slide_folders.items():
-                    images = os.path.join(path, 'images')
-                    #gcs will return True to isdir(path) for any extant path, it seems
-                    if self.filesystem.exists(images) and not self.filesystem.isfile(images) and\
-                        basename.find('TEST') == -1:
-                        slide_paths[basename] = path
-                if self.debug:
-                    print(f"DEBUG: IMGS: build: computed slide_paths: {slide_paths}")
-            else:
-                raise ValueError(f"Unknown slide origin: '{scope.origin}'")
-            datasets = {
-                    basename: {'slides': os.path.join(path, 'images'),
-                                'tfrecords': os.path.join(path, 'tfrecords'),
-                                'roi': os.path.join(path, 'ROI')
-                            } 
-                            for basename, path in slide_paths.items()
+        '''
+        sf.create_project(root=root)
+        if scope.origin == 'TCGA':
+            slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
+            slide_paths = {
+                basename: path for basename, path in slide_folders.items() 
+                    if basename.startswith('TCGA-') and basename.find('test') == -1
             }
-            datasets_path = os.path.join(root, 'datasets.json')
-            with self.filesystem.open(datasets_path, 'w') as f:
-                json.dump(datasets, f)
+        elif scope.origin == 'CPTAC':
             if self.debug:
-                print(f"DEBUG: IMGS: build: wrote datasets to path {datasets_path}:\n{datasets}")
-            settings_path = os.path.join(root, 'settings.json')
-            with self.filesystem.open(settings_path, 'r') as f:
-                settings = json.load(f)
-            settings['name'] = "gigapath-pancan"
-            # insert `list(datasets.keys())` into {PROJECT}/settings.json:sources. 
-            # remember to double-quote all source names
-            settings['sources'] = list(datasets.keys())
-            with self.filesystem.open(settings_path, 'w') as f:
-                json.dump(settings, f)
+                print(f"DEBUG: IMGS: build: building project from scope.slides: {scope.slides}") 
+            slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
             if self.debug:
-                print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
-            # if necessary, generate blank annotations
-            #DEBUG
-            #pdb.set_trace()
-            annf = os.path.join(root, 'annotations.csv')
-            if not self.filesystem.isfile(annf):
-                #self.filesystem.rm(annf)
-                self.project(scope, roots).create_blank_annotations()
-            #HACK: eliminate duplicate patient/slide
-            with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'r') as f:
-                ann = pd.read_csv(f)
-                ann = ann.set_index('patient').groupby(level=0).last().reset_index()
-            with self.filesystem.open(annf, 'w') as f:
-                ann.to_csv(f)
-
+                print(f"DEBUG: IMGS: build: computed slide_folders: {slide_folders}")
+            slide_paths = {}
+            for basename, path in slide_folders.items():
+                images = os.path.join(path, 'images')
+                #gcs will return True to isdir(path) for any extant path, it seems
+                if self.filesystem.exists(images) and not self.filesystem.isfile(images) and\
+                    basename.find('TEST') == -1:
+                    slide_paths[basename] = path
+            if self.debug:
+                print(f"DEBUG: IMGS: build: computed slide_paths: {slide_paths}")
+        else:
+            raise ValueError(f"Unknown slide origin: '{scope.origin}'")
+        datasets = {
+                basename: {'slides': os.path.join(path, 'images'),
+                            'tfrecords': os.path.join(path, 'tfrecords'),
+                            'roi': os.path.join(path, 'ROI')
+                        } 
+                        for basename, path in slide_paths.items()
+        }
+        datasets_path = os.path.join(root, 'datasets.json')
+        with self.filesystem.open(datasets_path, 'w') as f:
+            json.dump(datasets, f)
+        if self.debug:
+            print(f"DEBUG: IMGS: build: wrote datasets to path {datasets_path}:\n{datasets}")
+        settings_path = os.path.join(root, 'settings.json')
+        with self.filesystem.open(settings_path, 'r') as f:
+            settings = json.load(f)
+        settings['name'] = "gigapath-pancan"
+        # insert `list(datasets.keys())` into {PROJECT}/settings.json:sources. 
+        # remember to double-quote all source names
+        settings['sources'] = list(datasets.keys())
+        with self.filesystem.open(settings_path, 'w') as f:
+            json.dump(settings, f)
+        if self.debug:
+            print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
+        # if necessary, generate blank annotations
+        #DEBUG
+        #pdb.set_trace()
+        annf = os.path.join(root, 'annotations.csv')
+        if not self.filesystem.isfile(annf):
+            #self.filesystem.rm(annf)
+            self.project(scope, roots).create_blank_annotations()
+        #HACK: eliminate duplicate patient/slide
+        with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'r') as f:
+            ann = pd.read_csv(f)
+            ann = ann.set_index('patient').groupby(level=0).last().reset_index()
+        with self.filesystem.open(annf, 'w') as f:
+            ann.to_csv(f)
+        '''
+        #TODO: #REMOVE
         if (
             not self.valid(scope, roots, 'slide_path_map')      or 
             not self.valid(scope, roots, 'slide_source_map')    or 
             not self.valid(scope, roots, 'source_slides_map')
         ):
-            if self.verbose:
-                print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: BEGIN: {datetime.datetime.now()}")
-            slide_source_map = {}
-            source_slides_map = {}
-            slide_path_map = {}
-            sources = self.dataset(scope, roots).sources
-            for source, paths in sources.items():
-                for path in self.filesystem.ls(paths['slides']):
-                    basename = os.path.basename(path)
-                    slide, ext = os.path.splitext(basename)
-                    if ext == '.svs': # exclude . and ..
-                        slide_path_map[slide] = path
-                        slide_source_map[slide] = source
-                        if source not in source_slides_map:
-                            source_slides_map[source] = [slide]
-                        else:
-                            source_slides_map[source].append(slide)
-            with self.filesystem.open(self.path(scope, roots, 'slide_path_map'), 'w') as f:
-                json.dump(slide_path_map, f)
-            with self.filesystem.open(self.path(scope, roots, 'slide_source_map'), 'w') as f:
-                json.dump(slide_source_map, f)
-            with self.filesystem.open(self.path(scope, roots, 'source_slides_map'), 'w') as f:
-                json.dump(source_slides_map, f)
-            if self.verbose:
-                print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: END: {datetime.datetime.now()}")
+        '''
+        if self.verbose:
+            print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: BEGIN: {datetime.datetime.now()}")
+        slide_source_map = {}
+        source_slides_map = {}
+        slide_path_map = {}
+        sources = self.dataset(scope, roots).sources
+        for source, paths in sources.items():
+            for path in self.filesystem.ls(paths['slides']):
+                basename = os.path.basename(path)
+                slide, ext = os.path.splitext(basename)
+                if ext == '.svs': # exclude . and ..
+                    slide_path_map[slide] = path
+                    slide_source_map[slide] = source
+                    if source not in source_slides_map:
+                        source_slides_map[source] = [slide]
+                    else:
+                        source_slides_map[source].append(slide)
+        with self.filesystem.open(self.path(scope, roots, 'slide_path_map'), 'w') as f:
+            json.dump(slide_path_map, f)
+        with self.filesystem.open(self.path(scope, roots, 'slide_source_map'), 'w') as f:
+            json.dump(slide_source_map, f)
+        with self.filesystem.open(self.path(scope, roots, 'source_slides_map'), 'w') as f:
+            json.dump(source_slides_map, f)
+        if self.verbose:
+            print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: END: {datetime.datetime.now()}")
         #
+        '''
+        #TODO: #REMOVE
         if not self.valid(scope, roots, 'slide_tile_path_map'):
-            if self.verbose:
-                print(f"IMGS: Extracting tiles: BEING: {datetime.datetime.now()}")
-            self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
-            if self.verbose:
-                print(f"IMGS: Extracting tiles: END: {datetime.datetime.now()}")
-            #
-            if self.verbose:
-                print(f"IMGS: build: generating tiles and slide_tile_path_map: BEGIN: {datetime.datetime.now()}")
-            tile_paths = self.dataset(scope, roots).tfrecords()
-            slide_tile_path_map = {
-                os.path.splitext(os.path.basename(path))[0]: path
-                for path in tile_paths
-            }
-            with self.filesystem.open(self.path(scope, roots, 'slide_tile_path_map'), 'w') as f:
-                json.dump(slide_tile_path_map, f)
-            if self.verbose:
-                print(f"IMGS: build: generating tiles and slide_tile_path_map: END: {datetime.datetime.now()}")
+        '''
+        if self.verbose:
+            print(f"IMGS: Extracting tiles: BEING: {datetime.datetime.now()}")
+        self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
+        if self.verbose:
+            print(f"IMGS: Extracting tiles: END: {datetime.datetime.now()}")
+        #
+        if self.verbose:
+            print(f"IMGS: build: generating tiles and slide_tile_path_map: BEGIN: {datetime.datetime.now()}")
+        tile_paths = self.dataset(scope, roots).tfrecords()
+        slide_tile_path_map = {
+            os.path.splitext(os.path.basename(path))[0]: path
+            for path in tile_paths
+        }
+        with self.filesystem.open(self.path(scope, roots, 'slide_tile_path_map'), 'w') as f:
+            json.dump(slide_tile_path_map, f)
+        if self.verbose:
+            print(f"IMGS: build: generating tiles and slide_tile_path_map: END: {datetime.datetime.now()}")
 
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
