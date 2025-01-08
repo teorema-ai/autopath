@@ -314,8 +314,8 @@ class IMGS(Datablock):
             #DEBUG
             #pdb.set_trace()
             annf = os.path.join(root, 'annotations.csv')
-            if self.filesystem.isfile(annf)
-            self.filesystem.rm(annf)
+            if self.filesystem.isfile(annf):
+                self.filesystem.rm(annf)
             self.project(scope, roots).create_blank_annotations()
             #HACK: eliminate duplicate patient/slide
             with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'r') as f:
