@@ -287,6 +287,7 @@ class IMGS(Datablock):
 
     def __init__(self, *args, force_extract: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
+        assert 'local' in self.filesystem.protocol, f"Nonlocal filesystem {self.filesystem}" 
         self.force_extract = force_extract
 
     def project(self, scope, roots):
@@ -352,7 +353,7 @@ class IMGS(Datablock):
             print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
         # if necessary, generate blank annotations
         #DEBUG
-        #pdb.set_trace()
+        pdb.set_trace()
         annotationsf = os.path.join(root, 'annotations.csv')
         self.filesystem.rm(annotationsf)
         self.project(scope, roots).create_blank_annotations()
