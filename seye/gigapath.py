@@ -352,7 +352,7 @@ class IMGS(Datablock):
             print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
         # if necessary, generate blank annotations
         #DEBUG
-        #pdb.set_trace()
+        pdb.set_trace()
         annf = os.path.join(root, 'annotations.csv')
         if not self.filesystem.isfile(annf):
             #self.filesystem.rm(annf)
