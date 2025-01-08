@@ -276,6 +276,7 @@ class IMGS(Datablock):
               'project': 'settings.json',
               'dataset': '.dataset',
               'slides': 'slides.json',
+              'sources': '.sources',
               'slide_path_map': 'slide_path_map.json',
               'slide_source_map': 'slide_source_map.json',
               'source_slides_map': 'source_slides_map.json',
