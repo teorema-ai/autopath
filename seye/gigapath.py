@@ -57,7 +57,7 @@
                 dbx.print "$CPIMGS.read('dataset').manifest()"
                 dbx.print "$CPIMGS.read('slides')"
 
-                export CPBAGS="DBX('seye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='gigapath/pancan${VERSION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
+                export CPBAGS="DBX('seye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
                 dbx.print "$CPBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
 
                 export CPEMBS="DBX('seye.gigapath.EMBS', 'CPEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
