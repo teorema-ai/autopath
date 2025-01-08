@@ -275,8 +275,8 @@ class IMGS(Datablock):
     TOPICS = {
               'project': 'settings.json',
               'dataset': '.dataset',
-              'slides': 'slides.json',
               'sources': '.sources',
+              'slides': '.slides',
               'slide_path_map': 'slide_path_map.json',
               'slide_source_map': 'slide_source_map.json',
               'source_slides_map': 'source_slides_map.json',
@@ -294,6 +294,8 @@ class IMGS(Datablock):
         return self.project(scope, roots).dataset(tile_px=scope.tile_px, tile_um=scope.tile_um)
 
     def valid(self, scope, roots, topic):
+        if topic == 'slides':
+            return super().valid(scope, roots, 'slide_source_map')
         if topic == 'sources':
             return super().valid(scope, roots, 'slide_source_map')
         if topic == 'dataset':
@@ -434,6 +436,9 @@ class IMGS(Datablock):
         if topic == 'slide_path_map':
             with self.filesystem.open(self.path(scope, roots, 'slide_path_map'), 'r') as f:
                 return json.load(f)
+
+        if topic == 'slides':
+            return list(self.read(scope, roots, 'slide_source_map').keys())
 
         if topic == 'sources':
             return list(set(self.read(scope, roots, 'slide_source_map').values()))
