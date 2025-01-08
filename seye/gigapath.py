@@ -305,7 +305,7 @@ class IMGS(Datablock):
                 settings_path = os.path.join(root, 'settings.json')
                 with self.filesystem.open(settings_path, 'r') as f:
                     settings = json.load(f)
-                settings['name'] = "pancan-gigapath"
+                settings['name'] = "gigapath-pancan"
                 # insert `list(datasets.keys())` into {PROJECT}/settings.json:sources. 
                 # remember to double-quote all source names
                 settings['sources'] = list(datasets.keys())
@@ -337,7 +337,7 @@ class IMGS(Datablock):
             slide_paths = {}
             sources = self.dataset(scope, roots).sources
             #DEBUG
-            pdb.set_trace()
+            #pdb.set_trace()
             for source, paths in sources.items():
                 for path in self.filesystem.ls(paths['slides']):
                     basename = os.path.basename(path)
