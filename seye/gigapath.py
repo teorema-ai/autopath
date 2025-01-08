@@ -287,7 +287,6 @@ class IMGS(Datablock):
 
     def __init__(self, *args, force_extract: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
-        assert 'local' in self.filesystem.protocol, f"Nonlocal filesystem {self.filesystem}" 
         self.force_extract = force_extract
 
     def project(self, scope, roots):
@@ -304,7 +303,7 @@ class IMGS(Datablock):
             not self.filesystem.isfile(os.path.join(root, 'datasets.json')) or \
             not self.filesystem.isfile(os.path.join(root, 'annotations.csv')):
         '''
-        sf.create_project(root=root)
+        project = sf.create_project(root=root)
         if scope.origin == 'TCGA':
             slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
             slide_paths = {
@@ -353,10 +352,10 @@ class IMGS(Datablock):
             print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
         # if necessary, generate blank annotations
         #DEBUG
-        pdb.set_trace()
+        #pdb.set_trace()
         annotationsf = os.path.join(root, 'annotations.csv')
         self.filesystem.rm(annotationsf)
-        self.project(scope, roots).create_blank_annotations()
+        project.create_blank_annotations()
         #HACK: eliminate duplicate patient/slide
         with self.filesystem.open(annotationsf, 'r') as f:
             annotations = pd.read_csv(f)
