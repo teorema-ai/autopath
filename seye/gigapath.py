@@ -405,7 +405,7 @@ class IMGS(Datablock):
                     if ext == '.svs': # exclude . and ..
                         slide_path_map[slide] = path
                         slide_source_map[slide] = source
-                        if source not in source_slide_map:
+                        if source not in source_slides_map:
                             source_slides_map[source] = [slide]
                         else:
                             source_slides_map[source].append(slide)
