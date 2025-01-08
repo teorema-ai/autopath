@@ -312,7 +312,7 @@ class IMGS(Datablock):
                 print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
             # if necessary, generate blank annotations
             self.filesystem.rm(os.path.join(root, 'annotations.csv'))
-            self.project.create_blank_annotations()
+            self.project(scope, roots).create_blank_annotations()
             #HACK: eliminate duplicate patient/slide
             with self.filesystem.open(os.path.join(root, 'annotations.csv'), 'r') as f:
                 ann = pd.read_csv(f)
