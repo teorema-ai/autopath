@@ -44,6 +44,10 @@
         export VERSION=v1
     ```
     > GIGAPATH-PANCAN
+        * ALL
+            ```
+                dbx.print "DBX.show_datablocks()
+            ```
         * CPTAC
             ```
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
@@ -51,6 +55,7 @@
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).intent"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).extent"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
+                dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).show_records()"
                 dbx.print "$CPIMGS.read('project')"
                 dbx.print "$CPIMGS.read('dataset')"
                 dbx.print "$CPIMGS.read('dataset').summary()"
