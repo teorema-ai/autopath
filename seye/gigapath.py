@@ -374,25 +374,22 @@ class IMGS(Datablock):
         '''
               'project': 'settings.json',
               'dataset': '.dataset',
-              'slides': 'slides.json',
               'slide_path_map': 'slide_path_map.json',
               'slide_source_map': 'slide_source_map.json',
               'source_slide_map': 'source_slide_map.json',
-              'slide_paths': '.slide_paths',
-              'slide_sources': '.slide_sources',
               'slide_tile_path_map': 'slide_tile_path_map.json',
+              'slides': '.slides',
+              'sources': '.sources',
+              
         '''
 
-        if (not self.valid(scope, roots, 'slides')              or
+        if (
             not self.valid(scope, roots, 'slide_path_map')      or 
             not self.valid(scope, roots, 'slide_source_map')    or 
-            not self.valid(scope, roots, 'source_slides_map')   or
-            not self.valid(scope, roots, 'slide_paths')         or
-            not self.valid(scope, roots, 'slide_sources')       or
-            not self.valid(scope, roots, 'slide_tile_path_map')
+            not self.valid(scope, roots, 'source_slides_map')
         ):
             if self.verbose:
-                print(f"IMGS: build: generating slides, slide_path_map, slide_source_map, source_slides_map, slide_tile_path_map: BEGIN: {datetime.datetime.now()}")
+                print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: BEGIN: {datetime.datetime.now()}")
             slide_source_map = {}
             source_slides_map = {}
             slide_path_map = {}
@@ -408,9 +405,6 @@ class IMGS(Datablock):
                             source_slides_map[source] = [slide]
                         else:
                             source_slides_map[source].append(slide)
-            slides = list(slide_path_map.keys())
-            with self.filesystem.open(self.path(scope, roots, 'slides'), 'w') as f:
-                json.dump(slides, f)
             with self.filesystem.open(self.path(scope, roots, 'slide_path_map'), 'w') as f:
                 json.dump(slide_path_map, f)
             with self.filesystem.open(self.path(scope, roots, 'slide_source_map'), 'w') as f:
@@ -418,23 +412,25 @@ class IMGS(Datablock):
             with self.filesystem.open(self.path(scope, roots, 'source_slides_map'), 'w') as f:
                 json.dump(source_slides_map, f)
             if self.verbose:
-                print(f"IMGS: build: generating slides, slide_path_map, slide_source_map, source_slides_map: END: {datetime.datetime.now()}")
-        if self.verbose:
-            print(f"TILES: Extracting tiles: BEING: {datetime.datetime.now()}")
-        self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
-        if self.verbose:
-            print(f"TILES: Extracting tiles: END: {datetime.datetime.now()}")
+                print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: END: {datetime.datetime.now()}")
         #
-        if self.verbose:
-            print(f"IMGS: build: generating tiles and slide_tile_path_map: BEGIN: {datetime.datetime.now()}")
-        tile_paths = self.dataset(scope, roots).tfrecords()
-        slide_tile_path_map = {
-            os.path.splitext(os.path.basename(path))[0]: path
-        }
-        with self.filesystem.open(self.path(scope, roots, 'slide_tile_path_map'), 'w') as f:
-            json.dump(slide_tile_path_map, f)
-        if self.verbose:
-            print(f"IMGS: build: generating tiles and slide_tile_path_map: END: {datetime.datetime.now()}")
+        if not self.valid(scope, roots, 'slide_tile_path_map'):
+            if self.verbose:
+                print(f"IMGS: Extracting tiles: BEING: {datetime.datetime.now()}")
+            self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
+            if self.verbose:
+                print(f"IMGS: Extracting tiles: END: {datetime.datetime.now()}")
+            #
+            if self.verbose:
+                print(f"IMGS: build: generating tiles and slide_tile_path_map: BEGIN: {datetime.datetime.now()}")
+            tile_paths = self.dataset(scope, roots).tfrecords()
+            slide_tile_path_map = {
+                os.path.splitext(os.path.basename(path))[0]: path
+            }
+            with self.filesystem.open(self.path(scope, roots, 'slide_tile_path_map'), 'w') as f:
+                json.dump(slide_tile_path_map, f)
+            if self.verbose:
+                print(f"IMGS: build: generating tiles and slide_tile_path_map: END: {datetime.datetime.now()}")
 
         
     def read(self, scope, roots, topic):
@@ -460,14 +456,10 @@ class IMGS(Datablock):
                 return json.load(f)
     
         if topic == 'slides':
-            with self.filesystem.open(self.path(scope, roots, 'slides'), 'r') as f:
-                return json.load(f)
+            return list(self.read(scope, roots, 'slide_source_map').keys())
 
-        if topic == 'slide_paths':
-            return list(self.read(scope, roots, 'slide_paths').values())
-
-        if topic == 'slide_sources':
-            return list(self.read(scope, roots, 'slide_sources').values())
+        if topic == 'sources':
+            return list(set(self.read(scope, roots, 'slide_source_map').values()))
 
         if topic == 'slide_tile_path_map':
             with self.filesystem.open(self.path(scope, roots, 'slide_tile_path_map'), 'r') as f:
