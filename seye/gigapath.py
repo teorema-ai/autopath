@@ -265,7 +265,7 @@ class IMGS(Datablock):
                not self.filesystem.isfile(os.path.join(root, 'datasets.json')) or \
                not self.filesystem.isfile(os.path.join(root, 'annotations.csv')):
                 sf.create_project(root=root)
-                if self.scope.origin == 'TCGA':
+                if scope.origin == 'TCGA':
                     slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
                     slide_paths = {
                         basename: path for basename, path in slide_folders.items() 
