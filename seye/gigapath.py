@@ -61,12 +61,12 @@
                 dbx.print "$CPIMGS.read('dataset').summary()"
                 dbx.print "$CPIMGS.read('dataset').manifest()"
                 dbx.print "$CPIMGS.read('slides')"
+                dbx.print "$CPIMGS.read('slide_path_map')"
+                dbx.print "$CPIMGS.read('slide_source_map')"
+                dbx.print "$CPIMGS.read('slide_slide_map')"
                 dbx.print "$CPIMGS.read('slide_paths')"
                 dbx.print "$CPIMGS.read('slide_sources')"
-                dbx.print "$CPIMGS.read('slide_slides')"
-                dbx.print "$CPIMGS.read('paths')"
-                dbx.print "$CPIMGS.read('sources')"
-                dbx.print "$CPIMGS.read('tiles')"
+                dbx.print "$CPIMGS.read('tile_paths')"
 
                 export CPBAGS="DBX('seye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
                 dbx.print "$CPBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
@@ -273,15 +273,16 @@ class IMGS(Datablock):
         slides: str
         origin: str = 'TCGA'
 
-    TOPICS = {'project': 'settings.json',
+    TOPICS = {
+              'project': 'settings.json',
               'dataset': '.dataset',
               'slides': 'slides.json',
-              'slide_paths': 'slide_paths.json',
-              'slide_sources': 'slide_sources.json',
-              'source_slides': 'source_slides.json',
-              'paths': '.paths',
-              'sources': '.sources',
-              'tiles': '.tiles',
+              'slide_path_map': 'slide_path_map.json',
+              'slide_source_map': 'slide_source_map.json',
+              'source_slides_map': 'source_slides_map.json',
+              'slide_paths': '.slide_paths',
+              'slide_sources': '.slide_sources',
+              'tile_paths': 'tile_paths.json',
     }
 
     def __init__(self, *args, force_extract: bool = False, **kwargs):
@@ -371,51 +372,61 @@ class IMGS(Datablock):
             with self.filesystem.open(annf, 'w') as f:
                 ann.to_csv(f)
 
-        if (not self.valid(scope, roots, 'slides')        or
-            not self.valid(scope, roots, 'slide_paths')   or 
-            not self.valid(scope, roots, 'slide_sources') or 
-            not self.valid(scope, roots, 'source_slides')
+        '''
+              'project': 'settings.json',
+              'dataset': '.dataset',
+              'slides': 'slides.json',
+              'slide_path_map': 'slide_path_map.json',
+              'slide_source_map': 'slide_source_map.json',
+              'source_slide_map': 'source_slide_map.json',
+              'slide_paths': '.slide_paths',
+              'slide_sources': '.slide_sources',
+              'tile_paths': 'tile_paths.json',
+        '''
+
+        if (not self.valid(scope, roots, 'slides')           or
+            not self.valid(scope, roots, 'slide_path_map')   or 
+            not self.valid(scope, roots, 'slide_source_map') or 
+            not self.valid(scope, roots, 'source_slides_map') or
+            not self.valid(scope, roots, 'slide_paths')      or
+            not self.valid(scope, roots, 'slide_sources')    or
+            not self.valid(scope, roots, 'tile_paths')
         ):
             if self.verbose:
-                print(f"IMGS: build: generating slides, slide_paths, slide_sources, source_slides: started at {datetime.datetime.now()}")
-            slide_sources = {}
-            source_slides = {}
-            slide_paths = {}
+                print(f"IMGS: build: generating slides, slide_path_map, slide_source_map, source_slides_map: BEGIN: {datetime.datetime.now()}")
+            slide_source_map = {}
+            source_slides_map = {}
+            slide_path_map = {}
             sources = self.dataset(scope, roots).sources
-            #DEBUG
-            #pdb.set_trace()
             for source, paths in sources.items():
                 for path in self.filesystem.ls(paths['slides']):
                     basename = os.path.basename(path)
                     slide, ext = os.path.splitext(basename)
                     if ext == '.svs': # exclude . and ..
-                        slide_paths[slide] = path
-                        slide_sources[slide] = source
-                        if source not in source_slides:
-                            source_slides[source] = [slide]
+                        slide_path_map[slide] = path
+                        slide_source_map[slide] = source
+                        if source not in source_slide_map:
+                            source_slides_map[source] = [slide]
                         else:
-                            source_slides[source].append(slide)
+                            source_slides_map[source].append(slide)
             slides = list(slide_paths.keys())
             with self.filesystem.open(self.path(scope, roots, 'slides'), 'w') as f:
                 json.dump(slides, f)
-            with self.filesystem.open(self.path(scope, roots, 'slide_paths'), 'w') as f:
-                json.dump(slide_paths, f)
-            with self.filesystem.open(self.path(scope, roots, 'slide_sources'), 'w') as f:
-                json.dump(slide_sources, f)
-            with self.filesystem.open(self.path(scope, roots, 'source_slides'), 'w') as f:
-                json.dump(source_slides, f)
+            with self.filesystem.open(self.path(scope, roots, 'slide_path_map'), 'w') as f:
+                json.dump(slide_path_map, f)
+            with self.filesystem.open(self.path(scope, roots, 'slide_source_map'), 'w') as f:
+                json.dump(slide_source_map, f)
+            with self.filesystem.open(self.path(scope, roots, 'source_slides_map'), 'w') as f:
+                json.dump(source_slides_map, f)
             if self.verbose:
-                    print(f"IMGS: build: generating slide_sources: finished at {datetime.datetime.now()}")
-            if self.debug:
-                    print(f"DEBUG: IMGS: build: slide_sources: {slide_sources}")
+                    print(f"IMGS: build: generating slide_source_map: finished at {datetime.datetime.now()}")
             if self.verbose:
-                    print(f"IMGS: build: generating slides, slide_paths, slide_sources, source_slides: finished at {datetime.datetime.now()}")
+                print(f"IMGS: build: generating slides, slide_path_map, slide_source_map, source_slides_map: END: {datetime.datetime.now()}")
         if self.verbose:
-            print(f"TILES: Extracting tiles: started at {datetime.datetime.now()}")
+            print(f"TILES: Extracting tiles: BEING: {datetime.datetime.now()}")
         self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
-        #self.dataset(scope, roots).extract_tiles()
         if self.verbose:
-            print(f"TILES: Extracting tiles: finished at {datetime.datetime.now()}")
+            print(f"TILES: Extracting tiles: END: {datetime.datetime.now()}")
         
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
@@ -427,26 +438,26 @@ class IMGS(Datablock):
         if topic == 'dataset':
             return self.dataset(scope, roots)
 
-        if topic == 'slide_sources':
-            with self.filesystem.open(self.path(scope, roots, 'slide_sources'), 'r') as f:
+        if topic == 'slide_source_map':
+            with self.filesystem.open(self.path(scope, roots, 'slide_source_map'), 'r') as f:
                 return json.load(f)
 
-        if topic == 'source_slides':
-            with self.filesystem.open(self.path(scope, roots, 'source_slides'), 'r') as f:
+        if topic == 'source_slides_map':
+            with self.filesystem.open(self.path(scope, roots, 'source_slides_map'), 'r') as f:
                 return json.load(f)
     
-        if topic == 'slide_paths':
-            with self.filesystem.open(self.path(scope, roots, 'slide_paths'), 'r') as f:
+        if topic == 'slide_path_map':
+            with self.filesystem.open(self.path(scope, roots, 'slide_path_map'), 'r') as f:
                 return json.load(f)
     
         if topic == 'slides':
             with self.filesystem.open(self.path(scope, roots, 'slides'), 'r') as f:
                 return json.load(f)
 
-        if topic == 'paths':
+        if topic == 'slide_paths':
             return list(self.read(scope, roots, 'slide_paths').values())
 
-        if topic == 'sources':
+        if topic == 'slide_sources':
             return list(self.read(scope, roots, 'slide_sources').values())
 
         if topic == 'tiles':
