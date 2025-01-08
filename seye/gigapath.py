@@ -336,6 +336,8 @@ class IMGS(Datablock):
             source_slides = {}
             slide_paths = {}
             sources = self.dataset(scope, roots).sources
+            #DEBUG
+            pdb.set_trace()
             for source, paths in sources.items():
                 for path in self.filesystem.ls(paths['slides']):
                     basename = os.path.basename(path)
