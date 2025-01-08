@@ -296,13 +296,17 @@ class IMGS(Datablock):
         return self.project(scope, roots).dataset(tile_px=scope.tile_px, tile_um=scope.tile_um)
 
     def build(self, scope, roots):
+        """
+            Notes: sf.Project creation process is a bit tricky, hence, the precise control flow
+            required below:
+                . Default Project construction will create skeleton config json files, and we rely
+                on that to build the correct config structure, overriding only parts of it.
+                . We rely on replacing settings.json with correct slide sources, and then recreating
+                a Project instance to parse the sources for us.
+                . At the same time, this instantiation will recreate annotations.csv (if we remove it first)
+                with correct slide ids obtained from the prepositioned settings.json.
+        """
         root = roots['project']
-        '''
-        #TODO: #REMOVE
-        if not self.filesystem.isfile(os.path.join(root, 'settings.json')) or \
-            not self.filesystem.isfile(os.path.join(root, 'datasets.json')) or \
-            not self.filesystem.isfile(os.path.join(root, 'annotations.csv')):
-        '''
         sf.create_project(root=root)
         if scope.origin == 'TCGA':
             slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
@@ -350,9 +354,6 @@ class IMGS(Datablock):
             json.dump(settings, f)
         if self.debug:
             print(f"DEBUG: IMGS: build: wrote settings to path {settings_path}:\n{datasets}")
-        # if necessary, generate blank annotations
-        #DEBUG
-        #pdb.set_trace()
         project = self.project(scope, roots)
         annotationsf = os.path.join(root, 'annotations.csv')
         self.filesystem.rm(annotationsf)
@@ -363,14 +364,6 @@ class IMGS(Datablock):
             annotations = annotations.set_index('patient').groupby(level=0).last().reset_index()
         with self.filesystem.open(annotationsf, 'w') as f:
             annotations.to_csv(f)
-        '''
-        #TODO: #REMOVE
-        if (
-            not self.valid(scope, roots, 'slide_path_map')      or 
-            not self.valid(scope, roots, 'slide_source_map')    or 
-            not self.valid(scope, roots, 'source_slides_map')
-        ):
-        '''
         if self.verbose:
             print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: BEGIN: {datetime.datetime.now()}")
         slide_source_map = {}
@@ -397,10 +390,6 @@ class IMGS(Datablock):
         if self.verbose:
             print(f"IMGS: build: generating slide_path_map, slide_source_map, source_slides_map: END: {datetime.datetime.now()}")
         #
-        '''
-        #TODO: #REMOVE
-        if not self.valid(scope, roots, 'slide_tile_path_map'):
-        '''
         if self.verbose:
             print(f"IMGS: Extracting tiles: BEING: {datetime.datetime.now()}")
         self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract_tiles)
