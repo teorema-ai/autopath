@@ -365,7 +365,8 @@ class IMGS(Datablock):
                     print(f"IMGS: build: generating slides, slide_paths, slide_sources, source_slides: finished at {datetime.datetime.now()}")
         if self.verbose:
             print(f"TILES: Extracting tiles: started at {datetime.datetime.now()}")
-        self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
+        #self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
+        self.dataset(scope, roots).extract_tiles()
         if self.verbose:
             print(f"TILES: Extracting tiles: finished at {datetime.datetime.now()}")
         
