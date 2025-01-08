@@ -19,7 +19,7 @@
         * CPTAC
             ```
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
-                export CPIMGS="DBX('gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
+                export CPIMGS="DBX('seye.gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).intent()"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).extent()"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
@@ -46,7 +46,7 @@
                 ```
                     export CUDA_VISIBLE_DEVICES=0,1,2,3
                     export TCIMGS="DBX('seye.gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
-                    dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
+                    dbx.print "$TCIMGS.Datablock(verbose=True).Databuilder(throw=True).build()"
                     dbx.print "$TCIMGS.read('project')"
                     dbx.print "$TCIMGS.read('dataset')"
                     dbx.print "$TCIMGS.read('dataset').summary()"
