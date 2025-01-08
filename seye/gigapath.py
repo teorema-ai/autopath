@@ -409,7 +409,7 @@ class IMGS(Datablock):
                             source_slides_map[source] = [slide]
                         else:
                             source_slides_map[source].append(slide)
-            slides = list(slide_paths.keys())
+            slides = list(slide_path_map.keys())
             with self.filesystem.open(self.path(scope, roots, 'slides'), 'w') as f:
                 json.dump(slides, f)
             with self.filesystem.open(self.path(scope, roots, 'slide_path_map'), 'w') as f:
