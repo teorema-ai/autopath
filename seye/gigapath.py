@@ -92,7 +92,6 @@
                 dbx.print "$TCIMGS.read('dataset')"
                 dbx.print "$TCIMGS.read('dataset').summary()"
                 dbx.print "$TCIMGS.read('dataset').manifest()"
-                dbx.print "$TCIMGS.read('slides')"
 
                 export TCBAGS="DBX('seye.gigapath.BAGS', 'TCBAGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(dataset=$TCIMGS.READ('dataset'))"
                 dbx.print "$TCBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).intent"
