@@ -45,7 +45,7 @@
         * TCGA
                 ```
                     export CUDA_VISIBLE_DEVICES=0,1,2,3
-                    export TCIMGS="DBX('gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
+                    export TCIMGS="DBX('seye.gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
                     dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
                     dbx.print "$TCIMGS.read('project')"
                     dbx.print "$TCIMGS.read('dataset')"
