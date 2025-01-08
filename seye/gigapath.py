@@ -288,18 +288,7 @@ class IMGS(Datablock):
         super().__init__(*args, **kwargs)
         self.force_extract = force_extract
 
-    def slide_paths(self, scope, roots):
-        dataset = self.dataset(scope, roots)
-        # Iterate through each slide.
-        slide_paths = list(dataset.slide_paths())
-        
-        if self.verbose:
-            print(f"Obtained {len(slide_paths)} paths")
-        return slide_paths
-
     def project(self, scope, roots):
-        #DEBUG
-        #pdb.set_trace()
         return sf.Project(roots['project'])
 
     def dataset(self, scope, roots):
@@ -371,18 +360,6 @@ class IMGS(Datablock):
             with self.filesystem.open(annf, 'w') as f:
                 ann.to_csv(f)
 
-        '''
-              'project': 'settings.json',
-              'dataset': '.dataset',
-              'slide_path_map': 'slide_path_map.json',
-              'slide_source_map': 'slide_source_map.json',
-              'source_slide_map': 'source_slide_map.json',
-              'slide_tile_path_map': 'slide_tile_path_map.json',
-              'slides': '.slides',
-              'sources': '.sources',
-              
-        '''
-
         if (
             not self.valid(scope, roots, 'slide_path_map')      or 
             not self.valid(scope, roots, 'slide_source_map')    or 
@@ -426,13 +403,13 @@ class IMGS(Datablock):
             tile_paths = self.dataset(scope, roots).tfrecords()
             slide_tile_path_map = {
                 os.path.splitext(os.path.basename(path))[0]: path
+                for path in tile_paths
             }
             with self.filesystem.open(self.path(scope, roots, 'slide_tile_path_map'), 'w') as f:
                 json.dump(slide_tile_path_map, f)
             if self.verbose:
                 print(f"IMGS: build: generating tiles and slide_tile_path_map: END: {datetime.datetime.now()}")
 
-        
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
             raise ValueError(f"Unknown topic {repr(topic)}: expected one of {self.TOPICS}")
