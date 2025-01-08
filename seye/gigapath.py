@@ -303,8 +303,7 @@ class IMGS(Datablock):
             not self.filesystem.isfile(os.path.join(root, 'datasets.json')) or \
             not self.filesystem.isfile(os.path.join(root, 'annotations.csv')):
         '''
-        #TODO: #REMOVE
-        #project = sf.create_project(root=root)
+        sf.create_project(root=root)
         if scope.origin == 'TCGA':
             slide_folders = {os.path.basename(d): d for d in self.filesystem.ls(scope.slides)}
             slide_paths = {
@@ -354,9 +353,10 @@ class IMGS(Datablock):
         # if necessary, generate blank annotations
         #DEBUG
         #pdb.set_trace()
+        project = self.project(scope, roots)
         annotationsf = os.path.join(root, 'annotations.csv')
         self.filesystem.rm(annotationsf)
-        self.project.create_blank_annotations()
+        project.create_blank_annotations()
         #HACK: eliminate duplicate patient/slide
         with self.filesystem.open(annotationsf, 'r') as f:
             annotations = pd.read_csv(f)
