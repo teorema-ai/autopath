@@ -360,7 +360,7 @@ class IMGS(Datablock):
             if self.verbose:
                     print(f"IMGS: build: generating slide_sources: finished at {datetime.datetime.now()}")
             if self.debug:
-                    print(f"DEBUG: IMGS: build: slide_source_map: {_slide_source_map}")
+                    print(f"DEBUG: IMGS: build: slide_sources: {slide_sources}")
             if self.verbose:
                 print(f"TILES: Extracting tiles: started at {datetime.datetime.now()}")
             scope.dataset.extract_tiles(skip_extracted=not self.force_extract)
