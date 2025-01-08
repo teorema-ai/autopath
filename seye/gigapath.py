@@ -285,9 +285,9 @@ class IMGS(Datablock):
               'slide_tile_path_map': 'slide_tile_path_map.json',
     }
 
-    def __init__(self, *args, force_extract: bool = False, **kwargs):
+    def __init__(self, *args, force_extract_tiles: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.force_extract = force_extract
+        self.force_extract_tiles = force_extract_tiles
 
     def project(self, scope, roots):
         return sf.Project(roots['project'])
@@ -403,7 +403,7 @@ class IMGS(Datablock):
         '''
         if self.verbose:
             print(f"IMGS: Extracting tiles: BEING: {datetime.datetime.now()}")
-        self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract)
+        self.dataset(scope, roots).extract_tiles(skip_extracted=not self.force_extract_tiles)
         if self.verbose:
             print(f"IMGS: Extracting tiles: END: {datetime.datetime.now()}")
         #
