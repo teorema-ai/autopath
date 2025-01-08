@@ -335,7 +335,8 @@ class IMGS(Datablock):
             slide_sources = {}
             source_slides = {}
             slide_paths = {}
-            for source, paths in self.dataset(scope, roots).sources.items():
+            sources = self.dataset(scope, roots).sources
+            for source, paths in sources.items():
                 for path in self.filesystem.ls(paths['slides']):
                     basename = os.path.basename(path)
                     slide, ext = os.path.splitext(basename)
