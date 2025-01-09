@@ -66,7 +66,7 @@
                 dbx.print "$CPIMGS.read('slides')"
                 dbx.print "$CPIMGS.read('slide_path_map')"
                 dbx.print "$CPIMGS.read('slide_source_map')"
-                dbx.print "$CPIMGS.read('slide_slide_map')"
+                dbx.print "$CPIMGS.read('source_slides_map')"
                 dbx.print "$CPIMGS.read('slide_paths')"
                 dbx.print "$CPIMGS.read('slide_sources')"
                 dbx.print "$CPIMGS.read('tile_paths')"
