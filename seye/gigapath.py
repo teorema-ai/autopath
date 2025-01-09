@@ -68,7 +68,7 @@
                 dbx.print "$CPIMGS.read('slide_path_map')"
                 dbx.print "$CPIMGS.read('slide_source_map')"
                 dbx.print "$CPIMGS.read('source_slides_map')"
-                dbx.print "$CPIMGS.read('tile_paths')"
+                dbx.print "$CPIMGS.read('slide_tile_path_map')"
 
                 export CPBAGS="DBX('seye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
                 dbx.print "$CPBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
