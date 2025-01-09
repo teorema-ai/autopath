@@ -56,6 +56,7 @@
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).extent"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$CPIMGS.show_records()"
+                dbx.print "$CPIMGS.show_record()"
                 dbx.print "$CPIMGS.extent"
                 dbx.print "$CPIMGS.shortfall"
                 dbx.print "$CPIMGS.read('project')"
