@@ -77,6 +77,7 @@
 
                 export CPEMBS="DBX('seye.gigapath.EMBS', 'CPEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
                 dbx.print "$CPEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
+                dbx.print "$CPEMBS.extent"
                 dbx.print "$CPEMBS.read()"
 
                 export CPEVAL="DBX('seye.gigapath.DEVALUATOR', 'CPEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
