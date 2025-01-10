@@ -623,6 +623,8 @@ class DEVALUATOR(Datablock, Evaluator):
         self.debug = debug
         
     def build(self, scope, roots):
+        #DEBUG
+        pdb.set_trace()
         # labels
         labels = pd.DataFrame({'labels': [scope.slide_sources[s] for s in scope.features.index]})
         labels_path = self.path(scope, roots, 'labels')
