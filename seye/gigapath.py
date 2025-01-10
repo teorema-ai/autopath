@@ -81,8 +81,8 @@
                 dbx.print "$CPEMBS.read()"
 
                 export CPDEVAL="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
-                dbx.print "$CPDEVAL.register()"
-                dbx.print "$CPDEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
+                dbx.print "$CPDEVAL.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
+                dbx.print "$CPDEVAL.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
 
                 #dbx.print "DBX.Transcribe($CPIMGS, $CPBAGS, $CPEMBS, with_build=True)"
             ```
