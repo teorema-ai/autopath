@@ -84,6 +84,10 @@
                 dbx.print "$CPDEVAL.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
                 dbx.print "$CPDEVAL.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
 
+                export CPDEVAL100="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL100', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=100)"
+                dbx.print "$CPDEVAL100.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
+                dbx.print "$CPDEVAL100.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
+
                 #dbx.print "DBX.Transcribe($CPIMGS, $CPBAGS, $CPEMBS, with_build=True)"
             ```
         * TCGA
