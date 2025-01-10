@@ -655,7 +655,7 @@ class DEVALUATOR(Datablock, Evaluator):
             print(f"DEVALUATOR: wrote {len(discretized_features)} discretized_features to {discretized_features_path}")
         
         # evaluation_reports
-        evaluation_reports = self.evaluate_features2(
+        continuous, discretized = self.evaluate_features2(
             (scope.features, labels), 
             (discretized_features, labels),
             fraction=scope.evaluation_fraction,
@@ -663,6 +663,7 @@ class DEVALUATOR(Datablock, Evaluator):
             label2='discretized',
             verbose=self.verbose,
         )
+        evaluation_reports = {'continuous': continuous, 'discretized': discretized}
         evaluation_reports_path = self.path(scope, roots, 'evaluation_reports')
         with self.filesystem.open(evaluation_reports_path, 'wb') as f:
             pickle.dump(evaluation_reports, f)
