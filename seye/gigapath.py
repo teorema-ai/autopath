@@ -636,7 +636,7 @@ class DEVALUATOR(Datablock, Evaluator):
         cdf = torch.tensor(np.percentile(scope.features, quantiles, axis=0))
         cdf_path = self.path(scope, roots, 'cdf')
         with self.filesystem.open(cdf_path, 'wb') as f:
-            cdf.save(f)
+            torch.save(cdf, f)
         if self.verbose:
             print(f"DEVALUATOR: wrote cdf Tensor of shape {cdf.shape} to {cdf_path}")
 
