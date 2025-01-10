@@ -80,9 +80,9 @@
                 dbx.print "$CPEMBS.extent"
                 dbx.print "$CPEMBS.read()"
 
-                export CPDEVAL="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
-                dbx.print "$CPDEVAL.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
-                dbx.print "$CPDEVAL.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
+                export CPDEVAL4="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL4', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
+                dbx.print "$CPDEVAL4.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
+                dbx.print "$CPDEVAL4.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
 
                 export CPDEVAL100="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL100', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=100)"
                 dbx.print "$CPDEVAL100.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
@@ -610,7 +610,7 @@ class DEVALUATOR(Datablock, Evaluator):
         'discretized_features': 'discretized_features.pt',
         'cdf_umap': 'cdf_umap.png',
         'discretized_features_umap': 'discretized_features_umap.png',
-        'evaluation_reports': '.evaluation_reports',
+        'evaluation_reports': 'evaluation_reports.pkl',
     }
 
     def __init__(self,
@@ -664,32 +664,8 @@ class DEVALUATOR(Datablock, Evaluator):
             verbose=self.verbose,
         )
         evaluation_reports_path = self.path(scope, roots, 'evaluation_reports')
-        with self.filesystem.open(evaluation_reports_path, 'w') as f:
-            f.write(evaluation_reports)
-
-        # discretized_features_umap
-        discretized_umap_path = self.path(scope, roots, 'discretized_features_umap')
-        self.plot_features_umap(
-            (discretized_features, labels),
-            title="discretized_features", 
-            fraction=scope.umap_fraction,
-            output_path=discretized_umap_path,
-            verbose=self.verbose,
-        )
-        if self.verbose:
-            print(f"DEVALUATOR: wrote discretized_features_umap plot to {discretized_features_umap_path}")
-        
-        # cdf_umap
-        cdf_umap_path = self.path(scope, roots, 'cdf_umap')
-        self.plot_features_umap(
-            (cdf, labels),
-            title="cdf", 
-            fraction=scope.umap_fraction,
-            output_path=cdf_path,
-            verbose=self.verbose,
-        )
-        if self.verbose:
-            print(f"DEVALUATOR: wrote cdf_umap plot to {cdf_umap_path}")
+        with self.filesystem.open(evaluation_reports_path, 'wb') as f:
+            pickle.dump(evaluation_reports, f)
 
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
@@ -711,11 +687,7 @@ class DEVALUATOR(Datablock, Evaluator):
             result = cdf
         if topic == 'evaluation_reports':
             evaluation_reports_path = self.path(scope, roots, 'evaluation_reports')
-            with self.filesystem.open(evaluation_reports_path, 'r') as f:
-                evaluation_reports = f.readlines()
+            with self.filesystem.open(evaluation_reports_path, 'rb') as f:
+                evaluation_reports = pickle.load(f)
             result = evaluation_reports
-        if topic == 'discretized_features_umap':
-            result = self.path(scope, roots, 'discretized_features_umap')
-        if topic == 'cdf_umap':
-            result = self.path(scope, roots, 'cdf_umap')
         return result
