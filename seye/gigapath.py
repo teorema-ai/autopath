@@ -39,9 +39,9 @@
             scancel $SLURM_JOBID
     > SETUP:
     ```
-        export SEYE=$HOME/seye
+        export SEYE="${HOME}/seye"
         export DATALAKE="/mnt/labshare/PANCAN-GIGAPATH"
-        export VERSION=v1
+        export VERSION="v1"
     ```
     > GIGAPATH-PANCAN
         * ALL
