@@ -80,9 +80,9 @@
                 dbx.print "$CPEMBS.extent"
                 dbx.print "$CPEMBS.read()"
 
-                export CPEVAL="DBX('seye.gigapath.DEVALUATOR', 'CPEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
-                dbx.print "$CPEVAL.DEVAL(verbose=True).Databuilder(throw=True).register()"
-                dbx.print "$CPEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
+                export CPDEVAL="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
+                dbx.print "$CPDEVAL.register()"
+                dbx.print "$CPDEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
 
                 #dbx.print "DBX.Transcribe($CPIMGS, $CPBAGS, $CPEMBS, with_build=True)"
             ```
@@ -604,8 +604,9 @@ class DEVALUATOR(Datablock, Evaluator):
         'labels': 'labels.parquet',
         'cdf': 'cdf.parquet',
         'discretized_features': 'discretized_features.pt',
-        'umap': 'discretized_features_umap.png',
-        'reports': '.evaluation_reports',
+        'cdf_umap': 'cdf_umap.png',
+        'discretized_features_umap': 'discretized_features_umap.png',
+        'evaluation_reports': '.evaluation_reports',
     }
 
     def __init__(self,
@@ -615,6 +616,8 @@ class DEVALUATOR(Datablock, Evaluator):
         debug: bool = False,
     ):
         self.filesystem = filesystem
+        assert 'local' in self.filesystem.protocol, \
+            f"Nonlocal filesystem is not supported: filesystem.protocol: {filesystem.protocol}"
 
         self.verbose = verbose
         self.debug = debug
@@ -628,6 +631,15 @@ class DEVALUATOR(Datablock, Evaluator):
         if self.verbose:
             print(f"DEVAL: wrote {len(labels)} labels to {labels_path}")
 
+        # cdf
+        quantiles = np.arange(0.0, 1.0, 1.0/scope.n_bins)
+        cdf = torch.tensor(np.percentile(scope.features, quantiles, axis=0))
+        cdf_path = self.path(scope, roots, 'cdf')
+        with self.filesystem.open(cdf_path, 'wb') as f:
+            cdf.to_parquet(f)
+        if self.verbose:
+            print(f"DEVAL: wrote cdf frame of len {len(cdf)} to {cdf_path}")
+
         # discretized_features
         discretized_features = torch.Tensor(self.discretize_features(scope.features, scope.n_bins))
         discretized_features_path = self.path(scope, roots, 'discretized_features')
@@ -636,27 +648,42 @@ class DEVALUATOR(Datablock, Evaluator):
         if self.verbose:
             print(f"DEVAL: wrote {len(discretized_features)} discretized_features to {discretized_features_path}")
         
-        #TODO: #FIX
-        #TODO: check that this file system is local; others are not supported
-        '''
-        umap_path = self.path(scope, roots, 'umap')
+        # discretized_features_umap
+        discretized_umap_path = self.path(scope, roots, 'discretized_features_umap')
         self.plot_features_umap(
             (discretized_features, labels),
             title="discretized_features", 
             fraction=scope.umap_fraction,
-            output_path=umap_path,
+            output_path=discretized_umap_path,
             verbose=self.verbose,
         )
         if self.verbose:
-            print(f"DEVAL: wrote discretized_features umap plot to {umap_path}")
-        '''
+            print(f"DEVAL: wrote discretized_features_umap plot to {discretized_features_umap_path}")
+        # cdf_umap
+        cdf_umap_path = self.path(scope, roots, 'cdf_umap')
+        self.plot_features_umap(
+            (cdf, labels),
+            title="cdf", 
+            fraction=scope.umap_fraction,
+            output_path=cdf_path,
+            verbose=self.verbose,
+        )
+        if self.verbose:
+            print(f"DEVAL: wrote cdf_umap plot to {cdf_umap_path}")
 
-    def valid(self, scope, roots, topic):
-        if topic == 'reports':
-            return super().valid(scope, roots, 'labels',) and\
-                    super().valid(scope, roots, 'discretized_features')
-        else:
-            return super().valid(scope, roots, topic)
+        # evaluation_reports
+        evaluation_reports = self.evaluate_features2(
+            (scope.features, labels), 
+            (discretized_features, labels),
+            fraction=scope.evaluation_fraction,
+            label1='continuous',
+            label2='discretized',
+            verbose=self.verbose,
+        )
+        evaluation_reports_path = self.path(scope, roots, 'evaluation_reports')
+        with self.filesystem.open(evaluation_reports_path, 'w') as f:
+            f.write(evaluation_reports)
+
 
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
@@ -671,18 +698,18 @@ class DEVALUATOR(Datablock, Evaluator):
             with self.filesystem.open(discretized_features_path, 'rb') as f:
                 discretized_features = torch.load(f).numpy()
             result = discretized_features
-        if topic == 'reports':
-            discretized_features = self.read(scope, roots, 'discretized_features')
-            labels = self.read(scope, roots, 'labels')
-            evaluation_reports = self.evaluate_features2(
-                (scope.features, labels), 
-                (discretized_features, labels),
-                fraction=scope.evaluation_fraction,
-                label1='continuous',
-                label2='discretized',
-                verbose=self.verbose,
-            )
+        if topic == 'cdf':
+            cdf_path = self.path(scope, roots, 'cdf')
+            with self.filesystem.open(cdf_path, 'rb') as f:
+                cdf = torch.load(f).numpy()
+            result = cdf
+        if topic == 'evaluation_reports':
+            evaluation_reports_path = self.path(scope, roots, 'evaluation_reports')
+            with self.filesystem.open(evaluation_reports_path, 'r') as f:
+                evaluation_reports = f.readlines()
             result = evaluation_reports
-        if topic == 'umap':
-            result = self.path(scope, roots, 'umap')
+        if topic == 'discretized_features_umap':
+            result = self.path(scope, roots, 'discretized_features_umap')
+        if topic == 'cdf_umap':
+            result = self.path(scope, roots, 'cdf_umap')
         return result
