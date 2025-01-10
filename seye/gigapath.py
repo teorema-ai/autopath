@@ -648,29 +648,6 @@ class DEVALUATOR(Datablock, Evaluator):
         if self.verbose:
             print(f"DEVALUATOR: wrote {len(discretized_features)} discretized_features to {discretized_features_path}")
         
-        # discretized_features_umap
-        discretized_umap_path = self.path(scope, roots, 'discretized_features_umap')
-        self.plot_features_umap(
-            (discretized_features, labels),
-            title="discretized_features", 
-            fraction=scope.umap_fraction,
-            output_path=discretized_umap_path,
-            verbose=self.verbose,
-        )
-        if self.verbose:
-            print(f"DEVALUATOR: wrote discretized_features_umap plot to {discretized_features_umap_path}")
-        # cdf_umap
-        cdf_umap_path = self.path(scope, roots, 'cdf_umap')
-        self.plot_features_umap(
-            (cdf, labels),
-            title="cdf", 
-            fraction=scope.umap_fraction,
-            output_path=cdf_path,
-            verbose=self.verbose,
-        )
-        if self.verbose:
-            print(f"DEVALUATOR: wrote cdf_umap plot to {cdf_umap_path}")
-
         # evaluation_reports
         evaluation_reports = self.evaluate_features2(
             (scope.features, labels), 
@@ -684,6 +661,29 @@ class DEVALUATOR(Datablock, Evaluator):
         with self.filesystem.open(evaluation_reports_path, 'w') as f:
             f.write(evaluation_reports)
 
+        # discretized_features_umap
+        discretized_umap_path = self.path(scope, roots, 'discretized_features_umap')
+        self.plot_features_umap(
+            (discretized_features, labels),
+            title="discretized_features", 
+            fraction=scope.umap_fraction,
+            output_path=discretized_umap_path,
+            verbose=self.verbose,
+        )
+        if self.verbose:
+            print(f"DEVALUATOR: wrote discretized_features_umap plot to {discretized_features_umap_path}")
+        
+        # cdf_umap
+        cdf_umap_path = self.path(scope, roots, 'cdf_umap')
+        self.plot_features_umap(
+            (cdf, labels),
+            title="cdf", 
+            fraction=scope.umap_fraction,
+            output_path=cdf_path,
+            verbose=self.verbose,
+        )
+        if self.verbose:
+            print(f"DEVALUATOR: wrote cdf_umap plot to {cdf_umap_path}")
 
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
