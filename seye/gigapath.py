@@ -602,7 +602,7 @@ class DEVALUATOR(Datablock, Evaluator):
 
     TOPICS = {
         'labels': 'labels.parquet',
-        'cdf': 'cdf.parquet',
+        'cdf': 'cdf.pt',
         'discretized_features': 'discretized_features.pt',
         'cdf_umap': 'cdf_umap.png',
         'discretized_features_umap': 'discretized_features_umap.png',
@@ -629,16 +629,16 @@ class DEVALUATOR(Datablock, Evaluator):
         with self.filesystem.open(labels_path, 'wb') as f:
             labels.to_parquet(f)
         if self.verbose:
-            print(f"DEVAL: wrote {len(labels)} labels to {labels_path}")
+            print(f"DEVALUATOR: wrote {len(labels)} labels to {labels_path}")
 
         # cdf
         quantiles = np.arange(0.0, 1.0, 1.0/scope.n_bins)
         cdf = torch.tensor(np.percentile(scope.features, quantiles, axis=0))
         cdf_path = self.path(scope, roots, 'cdf')
         with self.filesystem.open(cdf_path, 'wb') as f:
-            cdf.to_parquet(f)
+            cdf.save(f)
         if self.verbose:
-            print(f"DEVAL: wrote cdf frame of len {len(cdf)} to {cdf_path}")
+            print(f"DEVALUATOR: wrote cdf Tensor of shape {cdf.shape} to {cdf_path}")
 
         # discretized_features
         discretized_features = torch.Tensor(self.discretize_features(scope.features, scope.n_bins))
@@ -646,7 +646,7 @@ class DEVALUATOR(Datablock, Evaluator):
         with self.filesystem.open(discretized_features_path, 'wb') as f:
             torch.save(discretized_features, f)
         if self.verbose:
-            print(f"DEVAL: wrote {len(discretized_features)} discretized_features to {discretized_features_path}")
+            print(f"DEVALUATOR: wrote {len(discretized_features)} discretized_features to {discretized_features_path}")
         
         # discretized_features_umap
         discretized_umap_path = self.path(scope, roots, 'discretized_features_umap')
@@ -658,7 +658,7 @@ class DEVALUATOR(Datablock, Evaluator):
             verbose=self.verbose,
         )
         if self.verbose:
-            print(f"DEVAL: wrote discretized_features_umap plot to {discretized_features_umap_path}")
+            print(f"DEVALUATOR: wrote discretized_features_umap plot to {discretized_features_umap_path}")
         # cdf_umap
         cdf_umap_path = self.path(scope, roots, 'cdf_umap')
         self.plot_features_umap(
@@ -669,7 +669,7 @@ class DEVALUATOR(Datablock, Evaluator):
             verbose=self.verbose,
         )
         if self.verbose:
-            print(f"DEVAL: wrote cdf_umap plot to {cdf_umap_path}")
+            print(f"DEVALUATOR: wrote cdf_umap plot to {cdf_umap_path}")
 
         # evaluation_reports
         evaluation_reports = self.evaluate_features2(
