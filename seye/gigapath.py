@@ -601,9 +601,10 @@ class DEVALUATOR(Datablock, Evaluator):
         umap_fraction: float = 0.01
 
     TOPICS = {
-        'labels': 'pancan_cptac_labels.parquet',
-        'discretized_features': 'pancan_cptac_discretized_features.pt',
-        'umap': 'pancan_cptac_discretized_features_umap.png',
+        'labels': 'labels.parquet',
+        'cdf': 'cdf.parquet',
+        'discretized_features': 'discretized_features.pt',
+        'umap': 'discretized_features_umap.png',
         'reports': '.evaluation_reports',
     }
 
@@ -636,7 +637,7 @@ class DEVALUATOR(Datablock, Evaluator):
             print(f"DEVAL: wrote {len(discretized_features)} discretized_features to {discretized_features_path}")
         
         #TODO: #FIX
-        #TODO: check that this file system is local; other are not supported
+        #TODO: check that this file system is local; others are not supported
         '''
         umap_path = self.path(scope, roots, 'umap')
         self.plot_features_umap(
@@ -649,6 +650,13 @@ class DEVALUATOR(Datablock, Evaluator):
         if self.verbose:
             print(f"DEVAL: wrote discretized_features umap plot to {umap_path}")
         '''
+
+    def valid(self, scope, roots, topic):
+        if topic == 'reports':
+            return super().valid(scope, roots, 'labels',) and\
+                    super().valid(scope, roots, 'discretized_features')
+        else:
+            return super().valid(scope, roots, topic)
 
     def read(self, scope, roots, topic):
         if topic not in self.TOPICS:
