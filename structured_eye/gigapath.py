@@ -41,17 +41,15 @@
     ```
         export SEYE="${HOME}/seye"
         export DATALAKE="/mnt/labshare/PANCAN-GIGAPATH"
-        export VERSION="v1"
+        export REVISION="gigapath/pancan/v1"
     ```
     > GIGAPATH-PANCAN
-        * ALL
-            ```
-                dbx.print "DBX.show_datablocks()
-            ```
         * CPTAC
             ```
+                dbx.print "DBX.show_datablocks()
+
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
-                export CPIMGS="DBX('seye.gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
+                CPIMGS="DBX('seye.gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='${REVISION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).intent"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).extent"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
@@ -70,21 +68,21 @@
                 dbx.print "$CPIMGS.read('source_slides_map')"
                 dbx.print "$CPIMGS.read('slide_tile_path_map')"
 
-                export CPBAGS="DBX('seye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
+                CPBAGS="DBX('seye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='${REVISION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
                 dbx.print "$CPBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$CPBAGS.extent"
                 dbx.print "$CPBAGS.read()"
 
-                export CPEMBS="DBX('seye.gigapath.EMBS', 'CPEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
+                CPEMBS="DBX('seye.gigapath.EMBS', 'CPEMBS', repo='${SEYE}', revision='${REVISION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
                 dbx.print "$CPEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$CPEMBS.extent"
                 dbx.print "$CPEMBS.read()"
 
-                export CPDEVAL4="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL4', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
+                CPDEVAL4="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL4', repo='${SEYE}', revision='${REVISION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
                 dbx.print "$CPDEVAL4.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
                 dbx.print "$CPDEVAL4.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
 
-                export CPDEVAL100="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL100', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=100)"
+                CPDEVAL100="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL100', repo='${SEYE}', revision='${REVISION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=100)"
                 dbx.print "$CPDEVAL100.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
                 dbx.print "$CPDEVAL100.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
 
@@ -92,6 +90,8 @@
             ```
         * TCGA
             ```
+                dbx.print "DBX.show_datablocks()
+                
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
                 export TCIMGS="DBX('seye.gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
                 dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).intent"
