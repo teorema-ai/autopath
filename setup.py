@@ -14,7 +14,7 @@ def get_requirements():
     
 
 setuptools.setup(
-    name="seye",
+    name="structured_eye",
     version="0.0.1",
     author="Dmitry Karpeyev",
     author_email="dmitry.karpeyev@gmail.com",
