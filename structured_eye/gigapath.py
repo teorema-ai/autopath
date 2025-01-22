@@ -175,7 +175,7 @@ class Evaluator:
 
     @staticmethod
     def split_train_test(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], 
-                         y: Union[np.ndarray, list, torch.Tensor, pd.DataFrame]|None = None, 
+                         y: Optional[Union[np.ndarray, list, torch.Tensor, pd.DataFrame]] = None, 
                          train_fraction:float=0.8
     ):
         #TODO: split_slides_labels_train_test() -> split_features_labels_train_test()
