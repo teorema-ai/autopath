@@ -175,18 +175,22 @@ class Evaluator:
 
     @staticmethod
     def split_train_test(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], 
-                         y: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], 
+                         y: Union[np.ndarray, list, torch.Tensor, pd.DataFrame]|None = None, 
                          train_fraction:float=0.8
     ):
         #TODO: split_slides_labels_train_test() -> split_features_labels_train_test()
         X = Evaluator.ndarray(X)
-        y = Evaluator.ndarray(y)
+        if y is not None:
+            y = Evaluator.ndarray(y)
         N = y.shape[0]
         permutation = permutation = np.random.permutation(range(N))
         n = int(math.floor(N*train_fraction))
         train = list(permutation[:n])
         test = list(permutation[n:])
-        return (X[train, :], y[train]), (X[test, :], y[test])
+        if y is not None:
+            return (X[train, :], y[train]), (X[test, :], y[test])
+        else:
+            return X[train, :], X[test, :]
 
     @staticmethod
     def evaluate_features(Xy: Tuple[Union[np.ndarray, list, torch.Tensor, pd.DataFrame], 
