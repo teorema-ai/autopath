@@ -68,22 +68,22 @@
                 dbx.print "$CPIMGS.read('source_slides_map')"
                 dbx.print "$CPIMGS.read('slide_tile_path_map')"
 
-                CPBAGS="DBX('seye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='${REVISION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
+                CPBAGS="DBX('structured_eye.gigapath.BAGS', 'CPBAGS', repo='${SEYE}', revision='${REVISION}').SCOPE(dataset=$CPIMGS.READ('dataset'))"
                 dbx.print "$CPBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$CPBAGS.extent"
                 dbx.print "$CPBAGS.read()"
 
-                CPEMBS="DBX('seye.gigapath.EMBS', 'CPEMBS', repo='${SEYE}', revision='${REVISION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
+                CPEMBS="DBX('structured_eye.gigapath.EMBS', 'CPEMBS', repo='${SEYE}', revision='${REVISION}').SCOPE(slides=$CPIMGS.READ('slides'), bags=$CPBAGS.READ())"
                 dbx.print "$CPEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$CPEMBS.extent"
                 dbx.print "$CPEMBS.read()"
 
-                CPDEVAL4="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL4', repo='${SEYE}', revision='${REVISION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
-                dbx.print "$CPDEVAL4.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
+                CPDEVAL4="DBX('structured_eye.gigapath.DEVALUATOR', 'CPDEVAL4', repo='${SEYE}', revision='${REVISION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=4)"
+                dbx.print "$CPDEVAL4.register()"
                 dbx.print "$CPDEVAL4.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
 
-                CPDEVAL100="DBX('seye.gigapath.DEVALUATOR', 'CPDEVAL100', repo='${SEYE}', revision='${REVISION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=100)"
-                dbx.print "$CPDEVAL100.DEVALUATOR(verbose=True).Databuilder(throw=True).register()"
+                CPDEVAL100="DBX('structured_eye.gigapath.DEVALUATOR', 'CPDEVAL100', repo='${SEYE}', revision='${REVISION}').SCOPE(features=$CPEMBS.READ(), slide_sources=$CPIMGS.READ('slide_source_map'), n_bins=100)"
+                dbx.print "$CPDEVAL100.register()"
                 dbx.print "$CPDEVAL100.DEVALUATOR(verbose=True).Databuilder(throw=True).build()"
 
                 #dbx.print "DBX.Transcribe($CPIMGS, $CPBAGS, $CPEMBS, with_build=True)"
@@ -93,7 +93,7 @@
                 dbx.print "DBX.show_datablocks()
                 
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
-                export TCIMGS="DBX('seye.gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
+                export TCIMGS="DBX('structured_eye.gigapath.IMGS', 'TCIMGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES'), origin='TCGA', tile_px=256, tile_um=256)"
                 dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).intent"
                 dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).extent"
                 dbx.print "$TCIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
@@ -102,16 +102,16 @@
                 dbx.print "$TCIMGS.read('dataset').summary()"
                 dbx.print "$TCIMGS.read('dataset').manifest()"
 
-                export TCBAGS="DBX('seye.gigapath.BAGS', 'TCBAGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(dataset=$TCIMGS.READ('dataset'))"
+                export TCBAGS="DBX('structured_eye.gigapath.BAGS', 'TCBAGS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(dataset=$TCIMGS.READ('dataset'))"
                 dbx.print "$TCBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).intent"
                 dbx.print "$TCBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).extent"
                 dbx.print "$TCBAGS.BAGS(num_gpus=4, verbose=True).Databuilder(throw=True).build()"
 
-                export TCEMBS="DBX('seye.gigapath.EMBS', 'TCEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$TCIMGS.READ('slides'), bags=$TCBAGS.READ())"
+                export TCEMBS="DBX('structured_eye.gigapath.EMBS', 'TCEMBS', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(slides=$TCIMGS.READ('slides'), bags=$TCBAGS.READ())"
                 dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).build()"
                 dbx.print "$TCEMBS.EMBS(verbose=True).Databuilder(throw=True).read()"
 
-                export TCEVAL="DBX('seye.gigapath.DEVALUATOR', 'TCEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$TCEMBS.READ(), slide_sources=$TCIMGS.READ('slide_sources'), n_bins=4)"
+                export TCEVAL="DBX('structured_eye.gigapath.DEVALUATOR', 'TCEVAL', repo='${SEYE}', revision='gigapath/pancan/${VERSION}').SCOPE(features=$TCEMBS.READ(), slide_sources=$TCIMGS.READ('slide_sources'), n_bins=4)"
                 dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).register()"
                 dbx.print "$TCEVAL.DEVAL(verbose=True).Databuilder(throw=True).build()"
 
