@@ -50,11 +50,11 @@
 
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
                 CPIMGS="DBX('structured_eye.gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='${REVISION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
-                dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).intent"
-                dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).extent"
+                dbx.print "$CPIMGS.intent"
+                dbx.print "$CPIMGS.extent"
                 dbx.print "$CPIMGS.IMGS(verbose=True).Databuilder(throw=True).build()"
-                dbx.print "$CPIMGS.show_records()"
-                dbx.print "$CPIMGS.show_record()"
+                dbx.print "$CPIMGS.show_exec_records()"
+                dbx.print "$CPIMGS.show_exec_record()"
                 dbx.print "$CPIMGS.extent"
                 dbx.print "$CPIMGS.shortfall"
                 dbx.print "$CPIMGS.read('project')"
