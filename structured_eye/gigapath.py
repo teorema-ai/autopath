@@ -46,7 +46,7 @@
     > GIGAPATH-PANCAN
         * CPTAC
             ```
-                dbx.print "DBX.show_datablocks()
+                dbx.print "DBX.show_datablocks()"
 
                 export CUDA_VISIBLE_DEVICES=0,1,2,3
                 CPIMGS="DBX('seye.gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='${REVISION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
