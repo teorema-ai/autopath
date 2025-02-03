@@ -39,6 +39,7 @@
             scancel $SLURM_JOBID
     > SETUP:
     ```
+        export HOME="${HOME}"
         export SEYE="${HOME}/structured-eye"
         export DATALAKE="/mnt/labshare/PANCAN-GIGAPATH"
         export REVISION="gigapath/pancan/v1"
@@ -48,7 +49,7 @@
             ```
                 dbx.print "DBX.show_datablocks()"
 
-                export CUDA_VISIBLE_DEVICES=0,1,2,3
+                export CUDA_VISIBLE_DEVICES="0,1,2,3"
                 CPIMGS="DBX('structured_eye.gigapath.IMGS', 'CPIMGS', repo='${SEYE}', revision='${REVISION}').SCOPE(slides=DBX.Path('/mnt/labshare/SLIDES/CPTAC_downloads'), origin='CPTAC', tile_px=256, tile_um=256)"
                 dbx.print "$CPIMGS.intent"
                 dbx.print "$CPIMGS.extent"
