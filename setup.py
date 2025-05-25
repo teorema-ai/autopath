@@ -14,11 +14,11 @@ def get_requirements():
     
 
 setuptools.setup(
-    name="structured_eye",
+    name="autoi",
     version="0.0.1",
     author="Dmitry Karpeyev",
     author_email="dmitry.karpeyev@gmail.com",
-    description="Structured inference models",
+    description="Automated inference models",
     packages=setuptools.find_packages(exclude=("test,")),
     classifiers=[
         "Programming Language :: Python :: 3",
