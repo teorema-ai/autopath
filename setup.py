@@ -18,12 +18,12 @@ setuptools.setup(
     version="0.0.1",
     author="Dmitry Karpeyev",
     author_email="dmitry.karpeyev@gmail.com",
-    description="Causal inference for multimodel cancer models: histo X mRNA x RNA x DNA (mutations)",
+    description="Structured inference models",
     packages=setuptools.find_packages(exclude=("test,")),
     classifiers=[
         "Programming Language :: Python :: 3",
     ],
     entry_points={'console_scripts': []},
-    python_requires='>=3.8',
+    python_requires='>=3.9',
     install_requires=get_requirements(),
 )
