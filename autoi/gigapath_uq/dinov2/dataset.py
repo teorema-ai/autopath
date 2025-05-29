@@ -1,16 +1,15 @@
 from dataclasses import dataclass
-from enum import Enum
 import itertools
-import logging
 from math import floor
 import os
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import Optional
 
 import fsspec
 import numpy as np
 
 import torch
 import torchvision
+from torch.utils.data import IterableDataset, ChainDataset
 
 import slideflow as sf
 
@@ -133,7 +132,21 @@ class GigapathBatch(Databatch):
         return datablocks
     
     def read(self, topic):
-        ...
+        return ChainDataset(self._shards(topic))
+
+    def _shards(self, topic):
+        class TensorSliceIterableDataset(IterableDataset):
+            def __init__(self, tensor: torch.Tensor):
+                super(TensorSliceIterableDataset).__init__()
+                self.tensor = tensor
+
+            def __iter__(self):
+                for i in range(self.tensor.shape[0]):
+                    yield self.tensor[i]
+            
+        for i, dbk in enumerate(self.datablocks()):
+            self.log.debug(f"using shard {i}")
+            yield TensorSliceIterableDataset(dbk.read(topic))
 
     def _is_tfrecords_dir(self, fs, d, resolution="256px_256um"):
         is_tf_records_dir = (
