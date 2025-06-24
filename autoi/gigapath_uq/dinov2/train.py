@@ -4,39 +4,112 @@
 # found in the LICENSE file in the root directory of this source tree.
 
 import argparse
+from functools import partial
 import logging
 import math
 import os
-from functools import partial
+import sys
+
+
 
 from fvcore.common.checkpoint import PeriodicCheckpointer
 import torch
 
-from dinov2.data import SamplerType, make_data_loader, make_dataset
+from dinov2.data import SamplerType, make_data_loader
 from dinov2.data import collate_data_and_cast, DataAugmentationDINO, MaskingGenerator
-import dinov2.distributed as distributed
+from dinov2 import distributed
 from dinov2.fsdp import FSDPCheckpointer
 from dinov2.logging import MetricLogger
-from dinov2.utils.config import setup
 from dinov2.utils.utils import CosineScheduler
 
-from dinov2.train.train import *
 from .ssl import SSL
 from .dataset import make_dataset
-from .config import setup
+from .cfg import make_cfg
 
 
 torch.backends.cuda.matmul.allow_tf32 = True  # PyTorch 1.12 sets this to False by default
 logger = logging.getLogger("dinov2")
 
 
-def do_train(cfg, model, resume=False):
+def build_optimizer(cfg, params_groups):
+    return torch.optim.AdamW(params_groups, betas=(cfg.optim.adamw_beta1, cfg.optim.adamw_beta2))
+
+
+def build_schedulers(cfg):
+    OFFICIAL_EPOCH_LENGTH = cfg.train.OFFICIAL_EPOCH_LENGTH
+    lr = dict(
+        base_value=cfg.optim["lr"],
+        final_value=cfg.optim["min_lr"],
+        total_iters=cfg.optim["epochs"] * OFFICIAL_EPOCH_LENGTH,
+        warmup_iters=cfg.optim["warmup_epochs"] * OFFICIAL_EPOCH_LENGTH,
+        start_warmup_value=0,
+    )
+    wd = dict(
+        base_value=cfg.optim["weight_decay"],
+        final_value=cfg.optim["weight_decay_end"],
+        total_iters=cfg.optim["epochs"] * OFFICIAL_EPOCH_LENGTH,
+    )
+    momentum = dict(
+        base_value=cfg.teacher["momentum_teacher"],
+        final_value=cfg.teacher["final_momentum_teacher"],
+        total_iters=cfg.optim["epochs"] * OFFICIAL_EPOCH_LENGTH,
+    )
+    teacher_temp = dict(
+        base_value=cfg.teacher["teacher_temp"],
+        final_value=cfg.teacher["teacher_temp"],
+        total_iters=cfg.teacher["warmup_teacher_temp_epochs"] * OFFICIAL_EPOCH_LENGTH,
+        warmup_iters=cfg.teacher["warmup_teacher_temp_epochs"] * OFFICIAL_EPOCH_LENGTH,
+        start_warmup_value=cfg.teacher["warmup_teacher_temp"],
+    )
+
+    lr_schedule = CosineScheduler(**lr)
+    wd_schedule = CosineScheduler(**wd)
+    momentum_schedule = CosineScheduler(**momentum)
+    teacher_temp_schedule = CosineScheduler(**teacher_temp)
+    last_layer_lr_schedule = CosineScheduler(**lr)
+
+    last_layer_lr_schedule.schedule[
+        : cfg.optim["freeze_last_layer_epochs"] * OFFICIAL_EPOCH_LENGTH
+    ] = 0  # mimicking the original schedules
+
+    logger.info("Schedulers ready.")
+
+    return (
+        lr_schedule,
+        wd_schedule,
+        momentum_schedule,
+        teacher_temp_schedule,
+        last_layer_lr_schedule,
+    )
+
+
+def apply_optim_scheduler(optimizer, lr, wd, last_layer_lr):
+    for param_group in optimizer.param_groups:
+        is_last_layer = param_group["is_last_layer"]
+        lr_multiplier = param_group["lr_multiplier"]
+        wd_multiplier = param_group["wd_multiplier"]
+        param_group["weight_decay"] = wd * wd_multiplier
+        param_group["lr"] = (last_layer_lr if is_last_layer else lr) * lr_multiplier
+
+
+def do_test(cfg, model, iteration):
+    new_state_dict = model.teacher.state_dict()
+
+    if distributed.is_main_process():
+        iterstring = str(iteration)
+        eval_dir = os.path.join(cfg.train.output_dir, "eval", iterstring)
+        os.makedirs(eval_dir, exist_ok=True)
+        # save teacher checkpoint
+        teacher_ckp_path = os.path.join(eval_dir, "teacher_checkpoint.pth")
+        torch.save({"teacher": new_state_dict}, teacher_ckp_path)
+
+
+def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     model.train()
     inputs_dtype = torch.half
     fp16_scaler = model.fp16_scaler  # for mixed precision training
 
     # setup optimizer
-
     optimizer = build_optimizer(cfg, model.get_params_groups())
     (
         lr_schedule,
@@ -91,10 +164,13 @@ def do_train(cfg, model, resume=False):
     # setup data loader
 
     dataset = make_dataset(
-        dataset_str=cfg.train.dataset_path,
+        dataset_path=cfg.train.dataset_path,
+        dataset_resolution=cfg.train.dataset_resolution,
+        dataset_split=cfg.train.dataset_split,
+        dataset_train_fraction=cfg.train.dataset_train_fraction,
         seed=cfg.train.dataset_seed,
-        transform=data_transform,
-        target_transform=lambda _: (),
+        verbose=verbose,
+        debug=debug,
     )
     # sampler_type = SamplerType.INFINITE
     sampler_type = SamplerType.SHARDED_INFINITE
@@ -194,8 +270,60 @@ def do_train(cfg, model, resume=False):
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
-def main(args):
-    cfg = setup(args)
+def main(argv=[]):
+    """
+        DEBUG:
+        > /home/t-9dkarp/miniconda3/envs/autoi/lib/python3.9/site-packages/omegaconf/omegaconf.py(189)load()
+            187 
+            188         if isinstance(file_, (str, pathlib.Path)):
+        --> 189             with io.open(os.path.abspath(file_), "r", encoding="utf-8") as f:
+            190                 obj = yaml.load(f, Loader=get_yaml_loader())
+            191         elif getattr(file_, "read", None):
+
+        ipdb>  args
+        file_ = ''
+        ipdb>  print(args)
+        *** NameError: name 'args' is not defined
+        ipdb>  up
+        > /home/t-9dkarp/autoi/autoi/gigapath_uq/dinov2/cfg.py(49)get_cfg_from_args()
+            47     args.opts += [f"train.output_dir={args.output_dir}"]
+            48     default_cfg = OmegaConf.create(DEFAULT_CFG)
+        ---> 49     cfg = OmegaConf.load(args.config_file)
+            50     cfg = OmegaConf.merge(default_cfg, cfg, OmegaConf.from_cli(args.opts))
+            51     return cfg
+
+        ipdb>  print(args)
+        Namespace(config_file='', no_resume=False, eval_only=False, eval='', opts=['train.output_dir=/home/t-9dkarp/autoi/notebooks'], output_dir='/home/t-9dkarp/autoi/notebooks')
+    """
+    parser = argparse.ArgumentParser("DINOv2 training",)
+    parser.add_argument("--config-file", default="", metavar="FILE", help="path to config file")
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Whether to not attempt to resume from the checkpoint directory. ",
+    )
+    parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
+    parser.add_argument("--eval", type=str, default="", help="Eval type to perform")
+    parser.add_argument(
+        "opts",
+        help="""
+                Modify config options at the end of the command. For Yacs configs, use
+                space-separated "PATH.KEY VALUE" pairs.
+                For python-based LazyConfig, use "path.key=value".
+        """.strip(),
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
+    parser.add_argument(
+        "--output-dir",
+        "--output_dir",
+        default="",
+        type=str,
+        help="Output directory to save logs and checkpoints",
+    )
+    args = parser.parse_args(argv)
+
+    cfg = make_cfg(args)
 
     model = SSL(cfg).to(torch.device("cuda"))
     model.prepare_for_distributed_training()
@@ -214,5 +342,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    args = get_args_parser(add_help=True).parse_args()
-    main(args)
+    main(sys.argv[1:])

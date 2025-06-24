@@ -21,7 +21,7 @@ import pdb
 import pickle
 import sys
 import time
-from typing import List, Dict, Optional, Union, Tuple
+from typing import List, Dict, Optional, Union, Tuple, Callable
 
 import fsspec
 
@@ -51,20 +51,17 @@ import torch.utils.checkpoint
 from torch.nn.init import trunc_normal_
 
 from timm.layers.mlp import GluMlp
-from timm.models.vision_transformer import Attention, Block
-from dinov2.layers import Mlp, PatchEmbed, SwiGLUFFNFused, MemEffAttention, NestedTensorBlock
+from timm.models.vision_transformer import Attention
+#from dinov2.layers.attention import Attention
+from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock
 from dinov2.layers.layer_scale import LayerScale
 from dinov2.models.vision_transformer import BlockChunk, DinoVisionTransformer
 
-from dbx.datablock import Datablock, Logger
 
-logger = logging.getLogger("gigapath_dinov2")
-
+logger = logging.getLogger("gigapath_uq_dinov2")
 
 
-
-
-class GigapathBlock(NestedTensorBlock):
+class GigapathTensorBlock(NestedTensorBlock):
     def __init__(
         self,
         *,
@@ -115,7 +112,9 @@ class GigapathVisionTransformer(DinoVisionTransformer):
     def __init__(
         self, 
         *,
-        block_cls: Callable = GigapathBlock,
+        drop_path_rate: float = 0.0,
+        drop_path_uniform: bool = False,
+        block_cls: Callable = GigapathTensorBlock,
     ):
         nn.Module.__init__(self)
         img_size = 224
@@ -124,8 +123,8 @@ class GigapathVisionTransformer(DinoVisionTransformer):
         embed_dim = 1536
         depth = 40
         num_heads = 24
-        drop_path_rate = 0.0
-        drop_path_uniform = False
+        drop_path_rate = drop_path_rate
+        drop_path_uniform = drop_path_uniform
         init_values = 1.0  # for layerscale: None or 0 => no layerscale
         embed_layer = PatchEmbed
         act_layer = nn.SiLU

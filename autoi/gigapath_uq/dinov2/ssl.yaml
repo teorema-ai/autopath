@@ -74,11 +74,12 @@ train:
   cache_dataset: true
   centering: "centering" # or "sinkhorn_knopp"
 student:
+  drop_path_rate: 0.3
+  drop_path_uniform: true
+  # all args below are hardcoded in GigapathVisionTransformer(), 
+  # since we are reading a pretrained prov-gigapath model
   arch: vit_large
   patch_size: 16
-  drop_path_rate: 0.3
-  layerscale: 1.0e-05
-  drop_path_uniform: true
   pretrained_weights: ''
   ffn_layer: "mlp"
   block_chunks: 0

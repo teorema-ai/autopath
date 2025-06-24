@@ -62,7 +62,7 @@ class GigapathShard(Datablock):
     
     def read(self, topic):
         path = self.path(topic)
-        return torch.load(path)
+        return torch.permute(torch.load(path), (2, 0, 1))
     
     def path(self, topic, *, index: bool = False, ensure: bool = True):
         path_ = super().path(topic)
@@ -111,7 +111,6 @@ class GigapathBatch(Databatch):
     class CONFIG:
         source: str = "/mnt/labshare/SLIDES/CPTAC_downloads"
         resolution: str ="256px_256um" # 256px_256um
-        split: str = "train"
         train_fraction: float = 0.8
         max_shards: Optional[int] = None
         seed: int = 42
@@ -171,4 +170,25 @@ class GigapathBatch(Databatch):
         return tfrecords_paths
 
     
-        
+def make_dataset(
+    dataset_path: str,
+    dataset_resolution: str,
+    dataset_split: str,
+    dataset_train_fraction: float,
+    dataset_seed: int,  
+    *,
+    verbose: bool = False,
+    debug: bool = False,
+):        
+    batch = GigapathBatch(
+        cfg=dict(
+            source=dataset_path,
+            resolution=dataset_resolution,
+            train_fraction=dataset_train_fraction,
+            seed=dataset_seed,
+        ),
+        verbose=verbose,
+        debug=debug,
+    )
+    dataset = batch.read(dataset_split.lower())
+    return dataset

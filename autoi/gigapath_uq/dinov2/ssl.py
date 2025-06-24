@@ -18,46 +18,32 @@ from dinov2.fsdp import get_fsdp_wrapper, ShardedGradScaler, get_fsdp_modules, r
 
 from dinov2.models.vision_transformer import BlockChunk
 
-
 try:
     from xformers.ops import fmha
 except ImportError:
     raise AssertionError("xFormers is required for training")
 
 
+from .features import GigapathVisionTransformer
+
+
 logger = logging.getLogger("dinov2")
 
 
-def build_model(args, only_teacher=False, img_size=224):
-    args.arch = args.arch.removesuffix("_memeff")
-    if "vit" in args.arch:
-        vit_kwargs = dict(
-            img_size=img_size,
-            patch_size=args.patch_size,
-            init_values=args.layerscale,
-            ffn_layer=args.ffn_layer,
-            block_chunks=args.block_chunks,
-            qkv_bias=args.qkv_bias,
-            proj_bias=args.proj_bias,
-            ffn_bias=args.ffn_bias,
-            num_register_tokens=args.num_register_tokens,
-            interpolate_offset=args.interpolate_offset,
-            interpolate_antialias=args.interpolate_antialias,
-        )
-        teacher = vits.__dict__[args.arch](**vit_kwargs)
-        if only_teacher:
-            return teacher, teacher.embed_dim
-        student = vits.__dict__[args.arch](
-            **vit_kwargs,
-            drop_path_rate=args.drop_path_rate,
-            drop_path_uniform=args.drop_path_uniform,
-        )
-        embed_dim = student.embed_dim
+def build_model(scfg, only_teacher=False):
+    teacher = GigapathVisionTransformer()
+    if only_teacher:
+        return teacher, teacher.embed_dim
+    student = GigapathVisionTransformer(
+        drop_path_rate=scfg.drop_path_rate,
+        drop_path_uniform=scfg.drop_path_uniform,
+    )
+    embed_dim = student.embed_dim
     return student, teacher, embed_dim
 
 
 def build_model_from_cfg(cfg, only_teacher=False):
-    return build_model(cfg.student, only_teacher=only_teacher, img_size=cfg.crops.global_crops_size)
+    return build_model(cfg.student, only_teacher=only_teacher,)
 
 
 class SSL(nn.Module):
@@ -152,7 +138,11 @@ class SSL(nn.Module):
         # there is no backpropagation through the teacher, so no need for gradients
         for p in self.teacher.parameters():
             p.requires_grad = False
-        logger.info(f"Student and Teacher are built: they are both {cfg.student.arch} network.")
+        logger.info(f"Student and Teacher are built")
+
+        #DEBUG
+        print(f"DEBUG: SSL: student: {self.student}")
+        print(f"DEBUG: SSL: teacher: {self.teacher}")
 
     def forward(self, inputs):
         raise NotImplementedError

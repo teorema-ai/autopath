@@ -27,3 +27,6 @@
         # on rhubarb: END
 
         scancel $SLURM_JOBID
+
+    # GPU
+    export CUDA_VISIBLE_DEVICES="3"

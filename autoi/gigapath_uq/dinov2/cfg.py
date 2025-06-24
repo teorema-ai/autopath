@@ -8,19 +8,17 @@ import logging
 import os
 
 from omegaconf import OmegaConf
-from pathlib
+import pathlib
 
-import dinov2.distributed as distributed
-from dinov2.logging import setup_logging
 from dinov2.utils import utils
+from dinov2 import distributed
+from dinov2.logging import setup_logging
 
 
 logger = logging.getLogger("dinov2")
 
-default_config = load_config("ssl")
 
-
-def load_config(config_name: str):
+def load_cfg(config_name: str):
     config_filename = config_name + ".yaml"
     return OmegaConf.load(pathlib.Path(__file__).parent.resolve() / config_filename)
 
@@ -36,7 +34,7 @@ def apply_scaling_rules_to_cfg(cfg):  # to fix
     return cfg
 
 
-def write_config(cfg, output_dir, name="config.yaml"):
+def write_cfg(cfg, output_dir, name="config.yaml"):
     logger.info(OmegaConf.to_yaml(cfg))
     saved_cfg_path = os.path.join(output_dir, name)
     with open(saved_cfg_path, "w") as f:
@@ -47,7 +45,7 @@ def write_config(cfg, output_dir, name="config.yaml"):
 def get_cfg_from_args(args):
     args.output_dir = os.path.abspath(args.output_dir)
     args.opts += [f"train.output_dir={args.output_dir}"]
-    default_cfg = OmegaConf.create(dinov2_default_config)
+    default_cfg = OmegaConf.create(DEFAULT_CFG)
     cfg = OmegaConf.load(args.config_file)
     cfg = OmegaConf.merge(default_cfg, cfg, OmegaConf.from_cli(args.opts))
     return cfg
@@ -67,7 +65,7 @@ def default_setup(args):
     logger.info("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
 
 
-def setup(args):
+def make_cfg(args):
     """
     Create configs and perform basic setups.
     """
@@ -75,5 +73,8 @@ def setup(args):
     os.makedirs(args.output_dir, exist_ok=True)
     default_setup(args)
     apply_scaling_rules_to_cfg(cfg)
-    write_config(cfg, args.output_dir)
+    write_cfg(cfg, args.output_dir)
     return cfg
+
+
+DEFAULT_CFG = load_cfg("ssl")
