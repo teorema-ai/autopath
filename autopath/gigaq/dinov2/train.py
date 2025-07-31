@@ -270,33 +270,9 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
-def main(argv=[]):
-    """
-        DEBUG:
-        > /home/t-9dkarp/miniconda3/envs/autoi/lib/python3.9/site-packages/omegaconf/omegaconf.py(189)load()
-            187 
-            188         if isinstance(file_, (str, pathlib.Path)):
-        --> 189             with io.open(os.path.abspath(file_), "r", encoding="utf-8") as f:
-            190                 obj = yaml.load(f, Loader=get_yaml_loader())
-            191         elif getattr(file_, "read", None):
-
-        ipdb>  args
-        file_ = ''
-        ipdb>  print(args)
-        *** NameError: name 'args' is not defined
-        ipdb>  up
-        > /home/t-9dkarp/autoi/autoi/gigapath_uq/dinov2/cfg.py(49)get_cfg_from_args()
-            47     args.opts += [f"train.output_dir={args.output_dir}"]
-            48     default_cfg = OmegaConf.create(DEFAULT_CFG)
-        ---> 49     cfg = OmegaConf.load(args.config_file)
-            50     cfg = OmegaConf.merge(default_cfg, cfg, OmegaConf.from_cli(args.opts))
-            51     return cfg
-
-        ipdb>  print(args)
-        Namespace(config_file='', no_resume=False, eval_only=False, eval='', opts=['train.output_dir=/home/t-9dkarp/autoi/notebooks'], output_dir='/home/t-9dkarp/autoi/notebooks')
-    """
+def make_args(argv=[]):
     parser = argparse.ArgumentParser("DINOv2 training",)
-    parser.add_argument("--config-file", default="", metavar="FILE", help="path to config file")
+    parser.add_argument("--config-file", default=None, metavar="FILE", help="path to config file")
     parser.add_argument(
         "--no-resume",
         action="store_true",
@@ -317,12 +293,17 @@ def main(argv=[]):
     parser.add_argument(
         "--output-dir",
         "--output_dir",
-        default="",
+        default=None,
         type=str,
         help="Output directory to save logs and checkpoints",
     )
     args = parser.parse_args(argv)
+    return args
 
+
+def main(argv=[]):
+    
+    args = make_args(argv)
     cfg = make_cfg(args)
 
     model = SSL(cfg).to(torch.device("cuda"))

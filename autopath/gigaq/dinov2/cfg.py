@@ -6,6 +6,8 @@
 import math
 import logging
 import os
+import sys
+
 
 from omegaconf import OmegaConf
 import pathlib
@@ -43,6 +45,10 @@ def write_cfg(cfg, output_dir, name="config.yaml"):
 
 
 def get_cfg_from_args(args):
+    if args.config_file is None:
+        args.config_file = os.path.join(os.path.dirname(sys.modules[__name__].__file__), 'ssl.yaml')
+    if args.output_dir is None:
+        args.output_dir = os.getcwd()
     args.output_dir = os.path.abspath(args.output_dir)
     args.opts += [f"train.output_dir={args.output_dir}"]
     default_cfg = OmegaConf.create(DEFAULT_CFG)
@@ -52,15 +58,18 @@ def get_cfg_from_args(args):
 
 
 def default_setup(args):
+    """
     distributed.enable(overwrite=True)
     seed = getattr(args, "seed", 0)
     rank = distributed.get_global_rank()
+    utils.fix_random_seeds(seed + rank)
+    """
 
     global logger
     setup_logging(output=args.output_dir, level=logging.INFO)
     logger = logging.getLogger("dinov2")
 
-    utils.fix_random_seeds(seed + rank)
+    
     logger.info("git:\n  {}\n".format(utils.get_sha()))
     logger.info("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
 

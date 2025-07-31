@@ -11,7 +11,7 @@
     # start an interactive job:
     ```
         # alloc
-        salloc --nodelist rhubarb -N 1 -n 1 --mem=64G
+        salloc --nodelist rhubarb -N 1 -n 1 --mem=8G
         # job params: OPTIONAL
         env | grep SLURM_
         env | grep SLURM_JOBID

@@ -21,12 +21,13 @@ logger = Logger()
 
 class GigapathShard(Datablock):
     TOPICS = {'train': None, 'test': None}
-    ROOT = "/mnt/labshare/GIGAPATH_UQ/dbx"
+    ROOT = "/mnt/labshare/PROJECTS/GIGAPATH_UQ/dbx"
 
     @dataclass
     class CONFIG:
         source: str = "/mnt/labshare/SLIDES/CPTAC_downloads/HNSCC/tfrecords/256px_256um/C3L-02621-23.tfrecords"
         train_fraction: float = 0.8
+        randomize: bool = False
         seed: Optional[int] = 42
 
     def __post_init__(self):
@@ -35,13 +36,17 @@ class GigapathShard(Datablock):
     def __build__(self):
         index = os.path.splitext(self.source)[0]+'.index.npz'
         dataset = self._get_dataset(tfrecords_path=self.source, index_path=index)
-        if self.seed is not None:
-            torch.manual_seed(self.seed)
         N = len(dataset)
         n = int(floor(N*self.train_fraction))
+        if self.randomize:
+            if self.seed is not None:
+                torch.manual_seed(self.seed)
+            train_indices = torch.tensor(np.random.choice(np.arange(N), size=(n,), replace=False))
+            test_indices = torch.tensor([i for i in range(N) if i not in train_indices])
+        else:
+            train_indices = torch.tensor(np.arange(n))
+            test_indices = torch.tensor(np.arange(n, N))
         self.log.verbose(f"computed {n}: train_indices len, and {N-n}:  test_indices len")
-        train_indices = torch.tensor(np.random.choice(np.arange(N), size=(n,), replace=False))
-        test_indices = torch.tensor([i for i in range(N) if i not in train_indices])
         train_subset = torch.stack(list(torch.utils.data.Subset(dataset, train_indices)))
         test_subset = torch.stack(list(torch.utils.data.Subset(dataset, test_indices)))
 
@@ -62,7 +67,8 @@ class GigapathShard(Datablock):
     
     def read(self, topic):
         path = self.path(topic)
-        return torch.permute(torch.load(path), (2, 0, 1))
+        images = torch.load(path)
+        return torch.permute(images, (0, 3, 1, 2))
     
     def path(self, topic, *, index: bool = False, ensure: bool = True):
         path_ = super().path(topic)
@@ -103,9 +109,9 @@ class GigapathShard(Datablock):
         return tensor
 
 
-class GigapathBatch(Databatch):
+class GigapathDatabatch(Databatch):
     TOPICS = {'train': 'train', 'test': 'test'}
-    ROOT = "/mnt/labshare/GIGAPATH_UQ/dbx"
+    ROOT = "/mnt/labshare/PROJECTS/GIGAPATH_UQ/dbx"
 
     @dataclass
     class CONFIG:
@@ -113,6 +119,7 @@ class GigapathBatch(Databatch):
         resolution: str ="256px_256um" # 256px_256um
         train_fraction: float = 0.8
         max_shards: Optional[int] = None
+        randomize: bool = False
         seed: int = 42
 
     def datablocks(self):
@@ -121,6 +128,7 @@ class GigapathBatch(Databatch):
             GigapathShard(
                 cfg=dict(source=tfrecords_path,
                          train_fraction=self.train_fraction,
+                         randomize=self.randomize,
                          seed=self.seed
                 ),
                 verbose=self.verbose,
@@ -129,6 +137,11 @@ class GigapathBatch(Databatch):
             for tfrecords_path in tfrecords_paths
         ]
         return datablocks
+
+    def __build__(self, *args, **kwargs):
+        super().__build__(*args, **kwargs)
+        self.leave_breadcrumbs()
+        return self
     
     def read(self, topic):
         return ChainDataset(self._shards(topic))
@@ -141,7 +154,7 @@ class GigapathBatch(Databatch):
 
             def __iter__(self):
                 for i in range(self.tensor.shape[0]):
-                    yield self.tensor[i]
+                    yield self.tensor[i], ()
             
         for i, dbk in enumerate(self.datablocks()):
             self.log.debug(f"using shard {i}")
@@ -171,24 +184,26 @@ class GigapathBatch(Databatch):
 
     
 def make_dataset(
-    dataset_path: str,
-    dataset_resolution: str,
-    dataset_split: str,
-    dataset_train_fraction: float,
-    dataset_seed: int,  
     *,
-    verbose: bool = False,
+    path: str = "/mnt/labshare/SLIDES/CPTAC_downloads",
+    resolution: str = "256px_256um", # 256px_256um,
+    split: str = "train",
+    train_fraction: float = 0.8,
+    randomize: bool = False,
+    seed: int = 42,  
+    verbose: bool = True,
     debug: bool = False,
 ):        
-    batch = GigapathBatch(
+    databatch = GigapathDatabatch(
         cfg=dict(
-            source=dataset_path,
-            resolution=dataset_resolution,
-            train_fraction=dataset_train_fraction,
-            seed=dataset_seed,
+            source=path,
+            resolution=resolution,
+            train_fraction=train_fraction,
+            randomize=randomize,
+            seed=seed,
         ),
         verbose=verbose,
         debug=debug,
     )
-    dataset = batch.read(dataset_split.lower())
+    dataset = databatch.build().read(split.lower())
     return dataset

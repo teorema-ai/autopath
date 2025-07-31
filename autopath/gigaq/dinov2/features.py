@@ -53,7 +53,7 @@ from torch.nn.init import trunc_normal_
 from timm.layers.mlp import GluMlp
 from timm.models.vision_transformer import Attention
 #from dinov2.layers.attention import Attention
-from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock
+from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock, DropPath
 from dinov2.layers.layer_scale import LayerScale
 from dinov2.models.vision_transformer import BlockChunk, DinoVisionTransformer
 
@@ -71,6 +71,7 @@ class GigapathTensorBlock(NestedTensorBlock):
         drop_path: float,
         act_layer: Callable[..., nn.Module] = nn.SiLU,
         norm_layer: Callable[..., nn.Module] = nn.LayerNorm,
+        attn_class: Callable[..., nn.Module] = Attention,
     ) -> None:
         nn.Module.__init__(self)
         # print(f"biases: qkv: {qkv_bias}, proj: {proj_bias}, ffn: {ffn_bias}")
@@ -81,7 +82,7 @@ class GigapathTensorBlock(NestedTensorBlock):
         attn_drop = 0.0
 
         self.norm1 = norm_layer(dim)
-        self.attn = Attention(
+        self.attn = attn_class(
             dim,
             num_heads=num_heads,
             qkv_bias=qkv_bias,
@@ -115,6 +116,7 @@ class GigapathVisionTransformer(DinoVisionTransformer):
         drop_path_rate: float = 0.0,
         drop_path_uniform: bool = False,
         block_cls: Callable = GigapathTensorBlock,
+        attention_class: Callable[..., nn.Module] = Attention,
     ):
         nn.Module.__init__(self)
         img_size = 224
@@ -166,6 +168,7 @@ class GigapathVisionTransformer(DinoVisionTransformer):
                 drop_path=dpr[i],
                 norm_layer=norm_layer,
                 act_layer=act_layer,
+                attn_class=attention_class,
                 init_values=init_values,
             )
             for i in range(depth)
@@ -191,26 +194,40 @@ class GigapathVisionTransformer(DinoVisionTransformer):
 
     def prepare_tokens_with_masks(self, x, masks=None):
         """
-            Make it match timm.VisionTransformer
+            For training we cannot use the timm.VisionTransformer code, 
+            but must use the original dinov2 code.
         """
+        '''
+        #timm:
         x = self.patch_embed(x)
         x = torch.cat((self.cls_token.expand(x.shape[0], -1, -1), x), dim=1)
         x = x + self.pos_embed
         return x
-        pos_embed2 = (pos_embed2 + fe2.pos_embed)
-        
+        '''
         B, nc, w, h = x.shape
-        
+        x = self.patch_embed(x)
         if masks is not None:
             x = torch.where(masks.unsqueeze(-1), self.mask_token.to(x.dtype).unsqueeze(0), x)
+
         x = torch.cat((self.cls_token.expand(x.shape[0], -1, -1), x), dim=1)
-        x = x + self.pos_embed
+        x = x + self.interpolate_pos_encoding(x, w, h)
+
+        if self.register_tokens is not None:
+            x = torch.cat(
+                (
+                    x[:, :1],
+                    self.register_tokens.expand(x.shape[0], -1, -1),
+                    x[:, 1:],
+                ),
+                dim=1,
+            )
+
         return x
 
 
 def gigapath_tile_feature_extractor(
     *, 
-    type: str = 'prov-gigapath', # or 'dinov2'
+    type: str = 'dinov2', # or 'prov-gigapath'
     weights: str = None,
     cache: str = None,
     tile_encoder_snapshot: str = "8d2b1d2e65832e16bf9ff100a081acf6170a44ca",
@@ -218,6 +235,9 @@ def gigapath_tile_feature_extractor(
     device: str = 'cuda',
     resize: int = 256,
     center_crop: int = 224,
+    drop_path_rate: float = 0.0,
+    drop_path_uniform: bool = False,
+    attention_class: Callable[..., nn.Module] = Attention,
     **kwargs,
 ):
     os.environ['HF_TOKEN'] = hf_token
@@ -236,7 +256,11 @@ def gigapath_tile_feature_extractor(
             model.load_state_dict(td, strict=True)
     elif type == 'dinov2':
         layerscale = 1.0e-5
-        model = GigapathVisionTransformer()
+        model = GigapathVisionTransformer(
+            drop_path_rate=drop_path_rate, 
+            drop_path_uniform=drop_path_uniform,
+            attention_class=attention_class,
+        )
         state_dict = None
         if weights is not None:
             state_dict = torch.load(weights, map_location=device)

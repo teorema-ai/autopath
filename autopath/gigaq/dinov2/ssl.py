@@ -12,6 +12,8 @@ from torch import nn
 from dinov2.loss import DINOLoss, iBOTPatchLoss, KoLeoLoss
 
 from dinov2.layers import DINOHead
+#from timm.models.vision_transformer import Attention
+from dinov2.layers.attention import Attention, MemEffAttention
 from dinov2.utils.utils import has_batchnorms
 from dinov2.utils.param_groups import get_params_groups_with_decay, fuse_params_groups
 from dinov2.fsdp import get_fsdp_wrapper, ShardedGradScaler, get_fsdp_modules, reshard_fsdp_model
@@ -24,30 +26,44 @@ except ImportError:
     raise AssertionError("xFormers is required for training")
 
 
-from .features import GigapathVisionTransformer
+from .features import GigapathVisionTransformer, gigapath_tile_feature_extractor
 
 
 logger = logging.getLogger("dinov2")
 
 
-def build_model(scfg, only_teacher=False):
-    teacher = GigapathVisionTransformer()
+def build_model(scfg, * , device='cuda', only_teacher=False, load_state: bool = True):
+    teacher = gigapath_tile_feature_extractor(
+            device=device, 
+            load_state=load_state, 
+            attention_class=MemEffAttention
+    )
     if only_teacher:
         return teacher, teacher.embed_dim
+    
+    student = gigapath_tile_feature_extractor(
+        device=device, 
+        load_state=load_state,
+        #attention_class=Attention,
+        attention_class=MemEffAttention,
+    )
+    """
+    #TODO: RESET drop_path_rate and drop_path_uniform as below? Do we need this for RoB distillation?
     student = GigapathVisionTransformer(
         drop_path_rate=scfg.drop_path_rate,
         drop_path_uniform=scfg.drop_path_uniform,
     )
+    """
     embed_dim = student.embed_dim
     return student, teacher, embed_dim
 
 
-def build_model_from_cfg(cfg, only_teacher=False):
-    return build_model(cfg.student, only_teacher=only_teacher,)
+def build_model_from_cfg(cfg, *, device='cuda', only_teacher=False):
+    return build_model(cfg.student, only_teacher=only_teacher, device=device)
 
 
 class SSL(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, *, device:str = 'cuda'):
         super().__init__()
         self.cfg = cfg
         self.fp16_scaler = ShardedGradScaler() if cfg.compute_precision.grad_scaler else None
@@ -55,7 +71,7 @@ class SSL(nn.Module):
         student_model_dict = dict()
         teacher_model_dict = dict()
 
-        student_backbone, teacher_backbone, embed_dim = build_model_from_cfg(cfg)
+        student_backbone, teacher_backbone, embed_dim = build_model_from_cfg(cfg, device=device)
         student_model_dict["backbone"] = student_backbone
         teacher_model_dict["backbone"] = teacher_backbone
         logger.info(f"OPTIONS -- architecture : embed_dim: {embed_dim}")
@@ -90,7 +106,7 @@ class SSL(nn.Module):
                 bottleneck_dim=cfg.dino.head_bottleneck_dim,
                 nlayers=cfg.dino.head_nlayers,
             )
-            self.dino_loss = DINOLoss(self.dino_out_dim)
+            self.dino_loss = DINOLoss(self.dino_out_dim).to(device)
             if self.do_koleo:
                 logger.info("OPTIONS -- DINO -- applying KOLEO regularization")
                 self.koleo_loss = KoLeoLoss()
@@ -99,8 +115,8 @@ class SSL(nn.Module):
             logger.info("OPTIONS -- DINO -- not using DINO")
 
         if self.do_dino or self.do_ibot:
-            student_model_dict["dino_head"] = dino_head()
-            teacher_model_dict["dino_head"] = dino_head()
+            student_model_dict["dino_head"] = dino_head().to(torch.float16).to(device)
+            teacher_model_dict["dino_head"] = dino_head().to(torch.float16).to(device)
 
         logger.info("OPTIONS -- IBOT")
         logger.info(f"OPTIONS -- IBOT -- loss_weight: {cfg.ibot.loss_weight}")
@@ -111,7 +127,7 @@ class SSL(nn.Module):
             assert max(cfg.ibot.mask_ratio_min_max) > 0, "please provide a positive mask ratio tuple for ibot"
             assert cfg.ibot.mask_sample_probability > 0, "please provide a positive mask probability for ibot"
             self.ibot_out_dim = cfg.ibot.head_n_prototypes if self.ibot_separate_head else cfg.dino.head_n_prototypes
-            self.ibot_patch_loss = iBOTPatchLoss(self.ibot_out_dim)
+            self.ibot_patch_loss = iBOTPatchLoss(self.ibot_out_dim).to(device)
             if self.ibot_separate_head:
                 logger.info(f"OPTIONS -- IBOT -- loss_weight: {cfg.ibot.loss_weight}")
                 logger.info(f"OPTIONS -- IBOT -- head_n_prototypes: {cfg.ibot.head_n_prototypes}")
@@ -130,7 +146,8 @@ class SSL(nn.Module):
             else:
                 logger.info("OPTIONS -- IBOT -- head shared with DINO")
 
-        self.need_to_synchronize_fsdp_streams = True
+        #self.need_to_synchronize_fsdp_streams = True #DEBUG
+        self.need_to_synchronize_fsdp_streams = False
 
         self.student = nn.ModuleDict(student_model_dict)
         self.teacher = nn.ModuleDict(teacher_model_dict)
@@ -139,10 +156,6 @@ class SSL(nn.Module):
         for p in self.teacher.parameters():
             p.requires_grad = False
         logger.info(f"Student and Teacher are built")
-
-        #DEBUG
-        print(f"DEBUG: SSL: student: {self.student}")
-        print(f"DEBUG: SSL: teacher: {self.teacher}")
 
     def forward(self, inputs):
         raise NotImplementedError
@@ -158,15 +171,15 @@ class SSL(nn.Module):
         assert n_global_crops == 2
         n_local_crops = self.cfg.crops.local_crops_number
 
-        global_crops = images["collated_global_crops"].cuda(non_blocking=True)
-        local_crops = images["collated_local_crops"].cuda(non_blocking=True)
+        global_crops = images["collated_global_crops"].to(torch.float16).cuda(non_blocking=True)
+        local_crops = images["collated_local_crops"].to(torch.float16).cuda(non_blocking=True)
 
         masks = images["collated_masks"].cuda(non_blocking=True)
         mask_indices_list = images["mask_indices_list"].cuda(non_blocking=True)
         n_masked_patches_tensor = images["n_masked_patches"].cuda(non_blocking=True)
         n_masked_patches = mask_indices_list.shape[0]
         upperbound = images["upperbound"]
-        masks_weight = images["masks_weight"].cuda(non_blocking=True)
+        masks_weight = images["masks_weight"].to(torch.float16).cuda(non_blocking=True)
 
         n_local_crops_loss_terms = max(n_local_crops * n_global_crops, 1)
         n_global_crops_loss_terms = (n_global_crops - 1) * n_global_crops
@@ -181,7 +194,7 @@ class SSL(nn.Module):
         @torch.no_grad()
         def get_teacher_output():
             x, n_global_crops_teacher = global_crops, n_global_crops
-            teacher_backbone_output_dict = self.teacher.backbone(x, is_training=True)
+            teacher_backbone_output_dict = self.teacher.backbone.half().cuda()(x, is_training=True)
             teacher_cls_tokens = teacher_backbone_output_dict["x_norm_clstoken"]
             teacher_cls_tokens = teacher_cls_tokens.chunk(n_global_crops_teacher)
             # watch out: these are chunked and cat'd in reverse so A is matched to B in the global crops dino loss
@@ -251,12 +264,12 @@ class SSL(nn.Module):
             return teacher_dino_softmaxed_centered_list, masked_teacher_ibot_softmaxed_centered
 
         teacher_dino_softmaxed_centered_list, masked_teacher_ibot_softmaxed_centered = get_teacher_output()
-        reshard_fsdp_model(self.teacher)
+        #reshard_fsdp_model(self.teacher) #DEBUG
 
         loss_dict = {}
 
         loss_accumulator = 0  # for backprop
-        student_global_backbone_output_dict, student_local_backbone_output_dict = self.student.backbone(
+        student_global_backbone_output_dict, student_local_backbone_output_dict = self.student.backbone.half().cuda()(
             [global_crops, local_crops], masks=[masks, None], is_training=True
         )
 
@@ -287,7 +300,7 @@ class SSL(nn.Module):
 
         # 2: run
         _attn_bias, cat_inputs = fmha.BlockDiagonalMask.from_tensor_list(inputs_for_student_head_list)
-        outputs_list = _attn_bias.split(self.student.dino_head(cat_inputs))
+        outputs_list = _attn_bias.split(self.student.dino_head.cuda()(cat_inputs))
 
         # 3a: local crops cls tokens
         student_local_cls_tokens_after_head = outputs_list.pop(0).squeeze(0)
