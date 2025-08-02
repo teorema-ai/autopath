@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import functools
 import itertools
 from math import floor
 import os
@@ -15,8 +16,20 @@ import slideflow as sf
 
 from dbx import Logger, Datablock, Databatch
 
+from dinov2.data import collate_data_and_cast, MaskingGenerator
+from .augmentations import DataAugmentationDINO
+
 
 logger = Logger()
+
+
+class TFRecordDataset(sf.io.TFRecordDataset):
+        def __init__(self, tfrecords_path, index_path, transform):
+            self.index = np.load(index_path)['arr_0']
+            super().__init__(tfrecords_path, self.index, transform=transform)
+
+        def __len__(self):
+            return len(self.index)
 
 
 class GigapathShard(Datablock):
@@ -64,6 +77,14 @@ class GigapathShard(Datablock):
         np.savez(test_index_path, test_indices)
         logger.verbose(f"Wrote test dataset to {test_pt_path=} and {test_index_path=}")
         return self
+
+    def index(self, topic):
+        index = np.load(self.path(topic, index=True))['arr_0']
+        return index
+
+    @functools.lru_cache(maxsize=None)
+    def size(self, topic):
+        return len(self.index(topic))
     
     def read(self, topic):
         path = self.path(topic)
@@ -85,14 +106,6 @@ class GigapathShard(Datablock):
         resolution, records = tail.split('/')
         slide, _  = os.path.splitext(records)
         return cancer, resolution, slide
-
-    class TFRecordDataset(sf.io.TFRecordDataset):
-        def __init__(self, tfrecords_path, index_path, transform):
-            self.index = np.load(index_path)['arr_0']
-            super().__init__(tfrecords_path, self.index, transform=transform)
-
-        def __len__(self):
-            return len(self.index)
 
     def _get_dataset(self, tfrecords_path: str, index_path: str) -> torch.Tensor:
         parser = sf.io.get_tfrecord_parser(
@@ -142,11 +155,8 @@ class GigapathDatabatch(Databatch):
         super().__build__(*args, **kwargs)
         self.leave_breadcrumbs()
         return self
-    
-    def read(self, topic):
-        return ChainDataset(self._shards(topic))
 
-    def _shards(self, topic):
+    def read(self, topic):
         class TensorSliceIterableDataset(IterableDataset):
             def __init__(self, tensor: torch.Tensor):
                 super(TensorSliceIterableDataset).__init__()
@@ -182,18 +192,43 @@ class GigapathDatabatch(Databatch):
             tfrecords_paths = tfrecords_paths[:self.max_shards]
         return tfrecords_paths
 
+
+class GigapathDataset(IterableDataset):
+    def __init__(self, databatch, *, split, transform=None):
+        self.databatch = databatch
+        self.split = split
+        self.transform = transform
+        self.target_transform = None
+
+    def __iter__(self):
+        shards = self.databatch.build().read(self.split.lower())
+        chain_dataset = ChainDataset(shards)
+        for sample, target in chain_dataset:
+            if self.transform is not None:
+                sample = self.transform(sample)
+            yield sample, target
+
+    @functools.lru_cache(maxsize=1)
+    def __len__(self):
+        return sum(dbk.size(self.split) for dbk in self.databatch.datablocks())
+
     
 def make_dataset(
     *,
     path: str = "/mnt/labshare/SLIDES/CPTAC_downloads",
     resolution: str = "256px_256um", # 256px_256um,
+    global_crops_scale=[0.32, 1.0],
+    local_crops_scale=[0.05, 0.32],
+    local_crops_number=8,
+    global_crops_size=224,
+    local_crops_size=96,
     split: str = "train",
     train_fraction: float = 0.8,
     randomize: bool = False,
     seed: int = 42,  
     verbose: bool = True,
     debug: bool = False,
-):        
+):     
     databatch = GigapathDatabatch(
         cfg=dict(
             source=path,
@@ -205,5 +240,12 @@ def make_dataset(
         verbose=verbose,
         debug=debug,
     )
-    dataset = databatch.build().read(split.lower())
+    transform = DataAugmentationDINO(
+        global_crops_scale,
+        local_crops_scale,
+        local_crops_number,
+        global_crops_size=global_crops_size,
+        local_crops_size=local_crops_size,
+    )
+    dataset = GigapathDataset(databatch, split=split, transform=transform)
     return dataset
