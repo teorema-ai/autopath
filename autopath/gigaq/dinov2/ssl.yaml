@@ -60,8 +60,7 @@ ibot:
   head_hidden_dim: 2048
 train:
   batch_size_per_gpu: 64
-  #dataset_path: ImageNet:split=TRAIN
-  dataset_path: "/mnt/lab/labshare/SLIDES/CPTAC_downloads"
+  dataset_path: "/mnt/labshare/SLIDES/CPTAC_downloads"
   dataset_resolution: "256x256" # 256px_256um
   dataset_split: "TRAIN"
   dataset_train_fraction: 0.8

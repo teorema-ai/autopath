@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Any, TypeVar, Optional, Callable, List
 
 
 import torch
@@ -10,6 +11,7 @@ from dinov2.data import (
     MaskingGenerator,
 )
 
+T = TypeVar("T")
 
 def make_dataloader(
     dataset,
@@ -18,9 +20,14 @@ def make_dataloader(
     student_patch_size: int = 16,
     ibot_mask_ratio_min_max: list[float] = [0.1, 0.5],
     ibot_mask_sample_probability: float = 0.5,
-    train_batch_size_per_gpu: int = 4,
-    train_num_workers: int = 1,
+    batch_size: int = 4,
+    num_workers: int = 1,
     start_iter: int = 0,
+    shuffle: bool = True,
+    sampler_type: Optional[SamplerType] = SamplerType.INFINITE,
+    sampler_advance: int = 0,
+    collate_fn: Optional[Callable[[List[T]], Any]] = None,
+    drop_last: bool = True,
     inputs_dtype: str = torch.half,
 ):
     img_size = global_crops_size
@@ -41,14 +48,14 @@ def make_dataloader(
     sampler_type = SamplerType.SHARDED_INFINITE
     data_loader = make_data_loader(
         dataset=dataset,
-        batch_size=train_batch_size_per_gpu,
-        num_workers=train_num_workers,
-        shuffle=True,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=shuffle,
         seed=start_iter,  # TODO: Fix this -- cfg.train.seed
-        #sampler_type=sampler_type,
+        #sampler_type=sampler_type, #TODO: FIX
         sampler_type=None,
-        sampler_advance=0,  # TODO(qas): fix this -- start_iter * cfg.train.batch_size_per_gpu,
-        drop_last=True,
+        sampler_advance=sampler_advance,  # TODO(qas): fix this -- start_iter * cfg.train.batch_size_per_gpu,
+        drop_last=drop_last,
         collate_fn=collate_fn,
     )
     return data_loader

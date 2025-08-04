@@ -16,6 +16,7 @@ from dinov2.layers import DINOHead
 from dinov2.layers.attention import Attention, MemEffAttention
 from dinov2.utils.utils import has_batchnorms
 from dinov2.utils.param_groups import get_params_groups_with_decay, fuse_params_groups
+from . import distributed
 from dinov2.fsdp import get_fsdp_wrapper, ShardedGradScaler, get_fsdp_modules, reshard_fsdp_model
 
 from dinov2.models.vision_transformer import BlockChunk
@@ -26,14 +27,14 @@ except ImportError:
     raise AssertionError("xFormers is required for training")
 
 
-from .features import GigapathVisionTransformer, gigapath_tile_feature_extractor
+from .models import GigapathVisionTransformer, gigapath_tile_backbone
 
 
 logger = logging.getLogger("dinov2")
 
 
 def build_model(scfg, * , device='cuda', only_teacher=False, load_state: bool = True):
-    teacher = gigapath_tile_feature_extractor(
+    teacher = gigapath_tile_backbone(
             device=device, 
             load_state=load_state, 
             attention_class=MemEffAttention
@@ -41,7 +42,7 @@ def build_model(scfg, * , device='cuda', only_teacher=False, load_state: bool = 
     if only_teacher:
         return teacher, teacher.embed_dim
     
-    student = gigapath_tile_feature_extractor(
+    student = gigapath_tile_backbone(
         device=device, 
         load_state=load_state,
         #attention_class=Attention,
@@ -63,9 +64,10 @@ def build_model_from_cfg(cfg, *, device='cuda', only_teacher=False):
 
 
 class SSL(nn.Module):
-    def __init__(self, cfg, *, device:str = 'cuda'):
+    def __init__(self, cfg, *, device:str = 'cuda', precision=torch.float32):
         super().__init__()
         self.cfg = cfg
+        self.precision = precision
         self.fp16_scaler = ShardedGradScaler() if cfg.compute_precision.grad_scaler else None
 
         student_model_dict = dict()
@@ -77,6 +79,7 @@ class SSL(nn.Module):
         logger.info(f"OPTIONS -- architecture : embed_dim: {embed_dim}")
 
         '''
+        #TODO: #REMOVE
         if cfg.student.pretrained_weights:
             chkpt = torch.load(cfg.student.pretrained_weights)
             logger.info(f"OPTIONS -- pretrained weights: loading from {cfg.student.pretrained_weights}")
@@ -115,8 +118,8 @@ class SSL(nn.Module):
             logger.info("OPTIONS -- DINO -- not using DINO")
 
         if self.do_dino or self.do_ibot:
-            student_model_dict["dino_head"] = dino_head().to(torch.float16).to(device)
-            teacher_model_dict["dino_head"] = dino_head().to(torch.float16).to(device)
+            student_model_dict["dino_head"] = dino_head().to(precision).to(device)
+            teacher_model_dict["dino_head"] = dino_head().to(precision).to(device)
 
         logger.info("OPTIONS -- IBOT")
         logger.info(f"OPTIONS -- IBOT -- loss_weight: {cfg.ibot.loss_weight}")
@@ -171,15 +174,15 @@ class SSL(nn.Module):
         assert n_global_crops == 2
         n_local_crops = self.cfg.crops.local_crops_number
 
-        global_crops = images["collated_global_crops"].to(torch.float16).cuda(non_blocking=True)
-        local_crops = images["collated_local_crops"].to(torch.float16).cuda(non_blocking=True)
+        global_crops = images["collated_global_crops"].to(self.precision).cuda(non_blocking=True)
+        local_crops = images["collated_local_crops"].to(self.precision).cuda(non_blocking=True)
 
         masks = images["collated_masks"].cuda(non_blocking=True)
         mask_indices_list = images["mask_indices_list"].cuda(non_blocking=True)
         n_masked_patches_tensor = images["n_masked_patches"].cuda(non_blocking=True)
         n_masked_patches = mask_indices_list.shape[0]
         upperbound = images["upperbound"]
-        masks_weight = images["masks_weight"].to(torch.float16).cuda(non_blocking=True)
+        masks_weight = images["masks_weight"].to(self.precision).cuda(non_blocking=True)
 
         n_local_crops_loss_terms = max(n_local_crops * n_global_crops, 1)
         n_global_crops_loss_terms = (n_global_crops - 1) * n_global_crops
@@ -194,7 +197,7 @@ class SSL(nn.Module):
         @torch.no_grad()
         def get_teacher_output():
             x, n_global_crops_teacher = global_crops, n_global_crops
-            teacher_backbone_output_dict = self.teacher.backbone.half().cuda()(x, is_training=True)
+            teacher_backbone_output_dict = self.teacher.backbone.to(self.precision).cuda()(x, is_training=True)
             teacher_cls_tokens = teacher_backbone_output_dict["x_norm_clstoken"]
             teacher_cls_tokens = teacher_cls_tokens.chunk(n_global_crops_teacher)
             # watch out: these are chunked and cat'd in reverse so A is matched to B in the global crops dino loss
@@ -269,7 +272,9 @@ class SSL(nn.Module):
         loss_dict = {}
 
         loss_accumulator = 0  # for backprop
-        student_global_backbone_output_dict, student_local_backbone_output_dict = self.student.backbone.half().cuda()(
+        student_global_backbone_output_dict, student_local_backbone_output_dict = self.student.backbone.to(
+            self.precision
+        ).cuda()(
             [global_crops, local_crops], masks=[masks, None], is_training=True
         )
 

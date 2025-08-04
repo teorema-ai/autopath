@@ -10,12 +10,15 @@ import math
 import os
 import sys
 
-
-
 from fvcore.common.checkpoint import PeriodicCheckpointer
 import torch
 
-from dinov2.data import SamplerType, make_data_loader
+#HACK: #TODO: #FIX dinov2 installation
+HOME = os.environ['HOME']
+DINOV2 = f"{HOME}/dinov2"
+sys.path.insert(0, DINOV2)
+
+from dinov2.data import SamplerType
 from dinov2.data import collate_data_and_cast, DataAugmentationDINO, MaskingGenerator
 from dinov2 import distributed
 from dinov2.fsdp import FSDPCheckpointer
@@ -24,7 +27,9 @@ from dinov2.utils.utils import CosineScheduler
 
 from .ssl import SSL
 from .dataset import make_dataset
+from .dataloader import make_dataloader
 from .cfg import make_cfg
+from . import distributed
 
 
 torch.backends.cuda.matmul.allow_tf32 = True  # PyTorch 1.12 sets this to False by default
@@ -91,7 +96,7 @@ def apply_optim_scheduler(optimizer, lr, wd, last_layer_lr):
         param_group["weight_decay"] = wd * wd_multiplier
         param_group["lr"] = (last_layer_lr if is_last_layer else lr) * lr_multiplier
 
-
+"""
 def do_test(cfg, model, iteration):
     new_state_dict = model.teacher.state_dict()
 
@@ -102,7 +107,7 @@ def do_test(cfg, model, iteration):
         # save teacher checkpoint
         teacher_ckp_path = os.path.join(eval_dir, "teacher_checkpoint.pth")
         torch.save({"teacher": new_state_dict}, teacher_ckp_path)
-
+"""
 
 def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     model.train()
@@ -164,22 +169,23 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     # setup data loader
 
     dataset = make_dataset(
-        dataset_path=cfg.train.dataset_path,
-        dataset_resolution=cfg.train.dataset_resolution,
-        dataset_split=cfg.train.dataset_split,
-        dataset_train_fraction=cfg.train.dataset_train_fraction,
+        path=cfg.train.dataset_path,
+        resolution=cfg.train.dataset_resolution,
+        split=cfg.train.dataset_split,
+        train_fraction=cfg.train.dataset_train_fraction,
         seed=cfg.train.dataset_seed,
         verbose=verbose,
         debug=debug,
     )
     # sampler_type = SamplerType.INFINITE
-    sampler_type = SamplerType.SHARDED_INFINITE
-    data_loader = make_data_loader(
+    #sampler_type = SamplerType.SHARDED_INFINITE #TODO: #FIX
+    sampler_type = None
+    data_loader = make_dataloader(
         dataset=dataset,
         batch_size=cfg.train.batch_size_per_gpu,
         num_workers=cfg.train.num_workers,
         shuffle=True,
-        seed=start_iter,  # TODO: Fix this -- cfg.train.seed
+        start_iter=start_iter,  # TODO: Fix this -- cfg.train.seed
         sampler_type=sampler_type,
         sampler_advance=0,  # TODO(qas): fix this -- start_iter * cfg.train.batch_size_per_gpu,
         drop_last=True,
@@ -278,7 +284,6 @@ def make_args(argv=[]):
         action="store_true",
         help="Whether to not attempt to resume from the checkpoint directory. ",
     )
-    parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
     parser.add_argument("--eval", type=str, default="", help="Eval type to perform")
     parser.add_argument(
         "opts",
@@ -301,26 +306,30 @@ def make_args(argv=[]):
     return args
 
 
-def main(argv=[]):
-    
-    args = make_args(argv)
-    cfg = make_cfg(args)
+def run(argv=[]):
+    try:
+        distributed.initialize()
+        args = make_args(argv)
+        cfg = make_cfg(args)
+        model = SSL(cfg).to(torch.device("cuda"))
+        model.prepare_for_distributed_training()
 
-    model = SSL(cfg).to(torch.device("cuda"))
-    model.prepare_for_distributed_training()
-
-    logger.info("Model:\n{}".format(model))
-    if args.eval_only:
-        iteration = (
-            FSDPCheckpointer(model, save_dir=cfg.train.output_dir)
-            .resume_or_load(cfg.MODEL.WEIGHTS, resume=not args.no_resume)
-            .get("iteration", -1)
-            + 1
-        )
-        return do_test(cfg, model, f"manual_{iteration}")
-
-    do_train(cfg, model, resume=not args.no_resume)
+        logger.info("Model:\n{}".format(model))
+        """
+        #TODO: #REMOVE
+        if args.eval_only:
+            iteration = (
+                FSDPCheckpointer(model, save_dir=cfg.train.output_dir)
+                .resume_or_load(cfg.MODEL.WEIGHTS, resume=not args.no_resume)
+                .get("iteration", -1)
+                + 1
+            )
+            return do_test(cfg, model, f"manual_{iteration}")
+        """
+        do_train(cfg, model, resume=not args.no_resume)
+    finally:
+        distributed.tear_down()
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    run(sys.argv[1:])

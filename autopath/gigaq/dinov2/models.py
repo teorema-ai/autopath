@@ -56,6 +56,7 @@ from timm.models.vision_transformer import Attention
 from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock, DropPath
 from dinov2.layers.layer_scale import LayerScale
 from dinov2.models.vision_transformer import BlockChunk, DinoVisionTransformer
+from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 
 
 logger = logging.getLogger("gigapath_uq_dinov2")
@@ -225,7 +226,7 @@ class GigapathVisionTransformer(DinoVisionTransformer):
         return x
 
 
-def gigapath_tile_feature_extractor(
+def gigapath_tile_backbone(
     *, 
     type: str = 'dinov2', # or 'prov-gigapath'
     weights: str = None,
@@ -289,7 +290,7 @@ def model_blocks(model):
     return blocks
 
 
-def gigapath_tile_feature_extractor_sideband_preprocessor(
+def gigapath_tile_backbone_with_sideband_and_preprocessor(
     *, 
     type: str = 'prov-gigapath',
     weights: str = None,
@@ -301,7 +302,7 @@ def gigapath_tile_feature_extractor_sideband_preprocessor(
     center_crop: int = 224,
     **kwargs,
 ):
-    model = gigapath_tile_feature_extractor(
+    model = gigapath_tile_backbone(
         type=type,
         weights=weights,
         cache=cache,
@@ -333,8 +334,8 @@ def gigapath_tile_feature_extractor_sideband_preprocessor(
     all_transforms += [
         transforms.Lambda(lambda x: x / 255.),
         transforms.Normalize(
-            mean=(0.485, 0.456, 0.406),
-            std=(0.229, 0.224, 0.225))
+            mean=IMAGENET_DEFAULT_MEAN,
+            std=IMAGENET_DEFAULT_STD),
     ]
     transform = transforms.Compose(all_transforms)
     
