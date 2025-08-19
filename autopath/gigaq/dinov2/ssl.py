@@ -33,12 +33,15 @@ from .models import GigapathVisionTransformer, gigapath_tile_backbone
 logger = logging.getLogger("dinov2")
 
 
-def build_model(scfg, * , device='cuda', only_teacher=False, load_state: bool = True):
+def build_backbone(scfg, * , device='cuda', only_teacher=False, load_state: bool = True, freeze: bool = False):
     teacher = gigapath_tile_backbone(
             device=device, 
             load_state=load_state, 
             attention_class=MemEffAttention
     )
+    if freeze:
+        for p in teacher.parameters():
+            p.requires_grad = False
     if only_teacher:
         return teacher, teacher.embed_dim
     
@@ -48,6 +51,12 @@ def build_model(scfg, * , device='cuda', only_teacher=False, load_state: bool = 
         #attention_class=Attention,
         attention_class=MemEffAttention,
     )
+    if freeze:
+        for p in student.parameters():
+            p.requires_grad = False
+    return student, teacher, student.embed_dim
+
+
     """
     #TODO: RESET drop_path_rate and drop_path_uniform as below? Do we need this for RoB distillation?
     student = GigapathVisionTransformer(
@@ -59,8 +68,8 @@ def build_model(scfg, * , device='cuda', only_teacher=False, load_state: bool = 
     return student, teacher, embed_dim
 
 
-def build_model_from_cfg(cfg, *, device='cuda', only_teacher=False):
-    return build_model(cfg.student, only_teacher=only_teacher, device=device)
+def build_backbone_from_cfg(cfg, *, device='cuda', only_teacher=False):
+    return build_backbone(cfg.student, only_teacher=only_teacher, device=device, freeze=cfg.train.freeze_backbone)
 
 
 class SSL(nn.Module):
@@ -73,7 +82,7 @@ class SSL(nn.Module):
         student_model_dict = dict()
         teacher_model_dict = dict()
 
-        student_backbone, teacher_backbone, embed_dim = build_model_from_cfg(cfg, device=device)
+        student_backbone, teacher_backbone, embed_dim = build_backbone_from_cfg(cfg, device=device)
         student_model_dict["backbone"] = student_backbone
         teacher_model_dict["backbone"] = teacher_backbone
         logger.info(f"OPTIONS -- architecture : embed_dim: {embed_dim}")
@@ -118,8 +127,13 @@ class SSL(nn.Module):
             logger.info("OPTIONS -- DINO -- not using DINO")
 
         if self.do_dino or self.do_ibot:
-            student_model_dict["dino_head"] = dino_head().to(precision).to(device)
-            teacher_model_dict["dino_head"] = dino_head().to(precision).to(device)
+            if cfg.train.tie_student_teacher_heads:
+                shared_dino_head = dino_head().to(precision).to(device)
+                student_model_dict["dino_head"] = shared_dino_head
+                teacher_model_dict["dino_head"] = shared_dino_head
+            else:
+                student_model_dict["dino_head"] = dino_head().to(precision).to(device)
+                teacher_model_dict["dino_head"] = dino_head().to(precision).to(device)
 
         logger.info("OPTIONS -- IBOT")
         logger.info(f"OPTIONS -- IBOT -- loss_weight: {cfg.ibot.loss_weight}")
@@ -144,8 +158,13 @@ class SSL(nn.Module):
                     bottleneck_dim=cfg.ibot.head_bottleneck_dim,
                     nlayers=cfg.ibot.head_nlayers,
                 )
-                student_model_dict["ibot_head"] = ibot_head()
-                teacher_model_dict["ibot_head"] = ibot_head()
+                if cfg.train.tie_student_teacher_heads:
+                    shared_ibot_head = ibot_head().to(precision).to(device)
+                    student_model_dict["ibot_head"] = shared_ibot_head
+                    teacher_model_dict["ibot_head"] = shared_ibot_head
+                else:   
+                    student_model_dict["ibot_head"] = ibot_head()
+                    teacher_model_dict["ibot_head"] = ibot_head()
             else:
                 logger.info("OPTIONS -- IBOT -- head shared with DINO")
 
@@ -385,7 +404,7 @@ class SSL(nn.Module):
 
         self.fsdp_synchronize_streams()
 
-        return loss_dict
+        return loss_dict, (student_global_backbone_output_dict, student_local_backbone_output_dict)
 
     def fsdp_synchronize_streams(self):
         if self.need_to_synchronize_fsdp_streams:

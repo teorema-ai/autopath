@@ -24,7 +24,7 @@ def make_dataloader(
     num_workers: int = 1,
     start_iter: int = 0,
     shuffle: bool = True,
-    sampler_type: Optional[SamplerType] = SamplerType.INFINITE,
+    sampler_type: Optional[SamplerType] = SamplerType.SHARDED_INFINITE,
     sampler_advance: int = 0,
     collate_fn: Optional[Callable[[List[T]], Any]] = None,
     drop_last: bool = True,
@@ -45,15 +45,13 @@ def make_dataloader(
         mask_generator=mask_generator,
         dtype=inputs_dtype,
     )
-    sampler_type = SamplerType.SHARDED_INFINITE
     data_loader = make_data_loader(
         dataset=dataset,
         batch_size=batch_size,
         num_workers=num_workers,
         shuffle=shuffle,
         seed=start_iter,  # TODO: Fix this -- cfg.train.seed
-        #sampler_type=sampler_type, #TODO: FIX
-        sampler_type=None,
+        sampler_type=sampler_type,
         sampler_advance=sampler_advance,  # TODO(qas): fix this -- start_iter * cfg.train.batch_size_per_gpu,
         drop_last=drop_last,
         collate_fn=collate_fn,

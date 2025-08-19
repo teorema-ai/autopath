@@ -2,7 +2,13 @@
 #
 # This source code is licensed under the Apache License, Version 2.0
 # found in the LICENSE file in the root directory of this source tree.
-
+"""
+    Examples:
+    Bash:
+        python -m autopath.gigaq.dinov2.train
+    Python:
+        from autopath.gigaq.dinov2 import train; train.run()
+"""
 import argparse
 from functools import partial
 import logging
@@ -12,6 +18,9 @@ import sys
 
 from fvcore.common.checkpoint import PeriodicCheckpointer
 import torch
+from torch.utils.tensorboard import SummaryWriter
+
+
 
 #HACK: #TODO: #FIX dinov2 installation
 HOME = os.environ['HOME']
@@ -26,7 +35,7 @@ from dinov2.logging import MetricLogger
 from dinov2.utils.utils import CosineScheduler
 
 from .ssl import SSL
-from .dataset import make_dataset
+from .dataset import pancan_tileset
 from .dataloader import make_dataloader
 from .cfg import make_cfg
 from . import distributed
@@ -96,7 +105,7 @@ def apply_optim_scheduler(optimizer, lr, wd, last_layer_lr):
         param_group["weight_decay"] = wd * wd_multiplier
         param_group["lr"] = (last_layer_lr if is_last_layer else lr) * lr_multiplier
 
-"""
+
 def do_test(cfg, model, iteration):
     new_state_dict = model.teacher.state_dict()
 
@@ -107,9 +116,10 @@ def do_test(cfg, model, iteration):
         # save teacher checkpoint
         teacher_ckp_path = os.path.join(eval_dir, "teacher_checkpoint.pth")
         torch.save({"teacher": new_state_dict}, teacher_ckp_path)
-"""
+        
 
 def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
+    writer = SummaryWriter(os.path.join(cfg.train.output_dir, 'tensorboard'))
     model.train()
     inputs_dtype = torch.half
     fp16_scaler = model.fp16_scaler  # for mixed precision training
@@ -127,8 +137,8 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     # checkpointer
     checkpointer = FSDPCheckpointer(model, cfg.train.output_dir, optimizer=optimizer, save_to_disk=True)
 
-    start_iter = checkpointer.resume_or_load(cfg.MODEL.WEIGHTS, resume=resume).get("iteration", -1) + 1
-
+    #start_iter = checkpointer.resume_or_load(cfg.MODEL.WEIGHTS, resume=resume).get("iteration", -1) + 1
+    start_iter = 0
     OFFICIAL_EPOCH_LENGTH = cfg.train.OFFICIAL_EPOCH_LENGTH
     max_iter = cfg.optim.epochs * OFFICIAL_EPOCH_LENGTH
 
@@ -167,8 +177,7 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     )
 
     # setup data loader
-
-    dataset = make_dataset(
+    dataset = pancan_tileset(
         path=cfg.train.dataset_path,
         resolution=cfg.train.dataset_resolution,
         split=cfg.train.dataset_split,
@@ -201,13 +210,14 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     metric_logger = MetricLogger(delimiter="  ", output_file=metrics_file)
     header = "Training"
 
-    for data in metric_logger.log_every(
+    for i, data in enumerate(metric_logger.log_every(
         data_loader,
         10,
         header,
         max_iter,
         start_iter,
-    ):
+    )):
+        print(f"DEBUG: do_train(): {i}-th sample, iteration: {iteration}, max_iter: {max_iter}")
         current_batch_size = data["collated_global_crops"].shape[0] / 2
         if iteration > max_iter:
             return
@@ -224,7 +234,7 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
         # compute losses
 
         optimizer.zero_grad(set_to_none=True)
-        loss_dict = model.forward_backward(data, teacher_temp=teacher_temp)
+        loss_dict, student_backbone_output = model.forward_backward(data, teacher_temp=teacher_temp)
 
         # clip gradients
 
@@ -263,6 +273,16 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
         metric_logger.update(last_layer_lr=last_layer_lr)
         metric_logger.update(current_batch_size=current_batch_size)
         metric_logger.update(total_loss=losses_reduced, **loss_dict_reduced)
+        writer.add_scalar("Loss/total", losses_reduced, iteration)
+        for k, v in loss_dict.items():
+            writer.add_scalar(f"Loss/{k}", v, iteration)
+        student_backbone_global_output, student_backbone_local_output = student_backbone_output
+        #global_y =  student_backbone_global_output['x_prenorm']
+        #local_y =  student_backbone_local_output['x_prenorm']
+        #writer.add_image("student/global", global_y, global_step=iteration)
+        #writer.add_image("student/local",  local_y, global_step=iteration)
+
+
 
         # checkpointing and testing
 
@@ -315,17 +335,7 @@ def run(argv=[]):
         model.prepare_for_distributed_training()
 
         logger.info("Model:\n{}".format(model))
-        """
-        #TODO: #REMOVE
-        if args.eval_only:
-            iteration = (
-                FSDPCheckpointer(model, save_dir=cfg.train.output_dir)
-                .resume_or_load(cfg.MODEL.WEIGHTS, resume=not args.no_resume)
-                .get("iteration", -1)
-                + 1
-            )
-            return do_test(cfg, model, f"manual_{iteration}")
-        """
+
         do_train(cfg, model, resume=not args.no_resume)
     finally:
         distributed.tear_down()

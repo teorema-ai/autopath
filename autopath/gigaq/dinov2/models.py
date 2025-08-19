@@ -282,7 +282,7 @@ def gigapath_tile_backbone(
     return model
 
 
-def model_blocks(model):
+def backbone_blocks(model):
     if isinstance(model.blocks[0], torch.nn.modules.container.ModuleList):
         blocks = model.blocks[0]
     else:
@@ -346,7 +346,7 @@ def gigapath_tile_backbone_with_sideband_and_preprocessor(
             sideband[f"{name}"] = output.detach()
         return hook
 
-    blocks = model_blocks(model)
+    blocks = backbone_blocks(model)
     L = len(blocks)
     for l in range(L):
         blocks[l].norm1.register_forward_hook(capture_layer(f'B_{l}_norm1'))
@@ -369,14 +369,14 @@ def gigapath_tile_backbone_with_sideband_and_preprocessor(
     return model, sideband, transform
 
 
-def apply(feature_extractor, sideband, transform, image, *, output_root: str = None, scale: bool = True):
+def apply(backbone, sideband, transform, image, *, output_root: str = None, scale: bool = True):
     image_size = image.shape[1]
     timage = transform(image).to('cuda')
-    output = feature_extractor.cuda()(timage[None].cuda()).cpu().detach()
+    output = backbone.cuda()(timage[None].cuda()).cpu().detach()
     timage = timage.cpu()
     sb = sideband
 
-    blocks = model_blocks(feature_extractor)
+    blocks = backbone_blocks(backbone)
     L = len(blocks)
     attn = (sb[f'Q_{L-1}'].cpu()) @ (sb[f'K_{L-1}'].cpu().transpose(-2, -1))
     if scale:

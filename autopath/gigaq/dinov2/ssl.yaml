@@ -59,9 +59,9 @@ ibot:
   head_nlayers: 3
   head_hidden_dim: 2048
 train:
-  batch_size_per_gpu: 64
+  batch_size_per_gpu: 2 # 64
   dataset_path: "/mnt/labshare/SLIDES/CPTAC_downloads"
-  dataset_resolution: "256x256" # 256px_256um
+  dataset_resolution: "256px_256um"
   dataset_split: "TRAIN"
   dataset_train_fraction: 0.8
   dataset_seed: 42
@@ -72,6 +72,8 @@ train:
   OFFICIAL_EPOCH_LENGTH: 1250
   cache_dataset: true
   centering: "centering" # or "sinkhorn_knopp"
+  tie_student_teacher_heads: False
+  freeze_backbone: True
 student:
   drop_path_rate: 0.3
   drop_path_uniform: true

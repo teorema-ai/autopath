@@ -15,6 +15,24 @@ pip install -e .
 cd ~/autopath
 pip install -e .
 
+# dinov2
+cd ~/dinov2
+# set dependencies in requirements.txt as follows (to comport with what's below; 
+# removing the troublesome cuml-cu11):
+    --extra-index-url https://download.pytorch.org/whl/cu124
+    torch==2.6.0+cu124
+    torchvision==0.21.0+cu124
+    omegaconf
+    torchmetrics==1.8.0
+    fvcore
+    iopath
+    xformers==0.0.29.post3
+    submitit
+    --extra-index-url https://pypi.nvidia.com
+    ##cuml-cu11
+# remove conda.yaml and conda-extras.yaml
+pip install -e .
+
 # dependencies (in addition to or overriding those in the env, slideflow and structured_eye)
 # TODO: incorporate into the appropriate requirements file
 # N.B.: some of these packages may cause conflicts with those already in the env.
@@ -71,3 +89,11 @@ pip install -U xformers --index-url https://download.pytorch.org/whl/cu124
 #### this will reinstall torch to 2.5.0, among other things, 
 #### and seems to mess with torchvision, so
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu124
+
+# tensorboard
+conda activate autopath
+pip install tensorboard
+tmux # tensorboard
+cd ~/autopath
+mkdir tensorboard
+nohup tensorboard --logdir=tensorboard > tensorboard.out &
