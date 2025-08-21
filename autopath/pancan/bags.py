@@ -1,9 +1,7 @@
 """
     Examples:
         #BASH:
-            dbx.exec("autopath.pancan.bags.FeatureBag(cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', backbone='@autopath.gigaq.dinov2.models.gigapath_tile_backbone()')).build()")
-            # with repo check
-            dbx.exec(f"autopath.pancan.bags.FeatureBag(cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', backbone='@autopath.gigaq.dinov2.models.gigapath_tile_backbone()'), gitrepo='{HOME}/autopath').build()")
+            dbx "autopath.pancan.bags.FeatureBag(batch_size=16, device='cuda', verbose=True, debug=True, cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', extractor='@autopath.gigaq.dinov2.models.BackboneEvaluator()', split='test')).build().read()"
         #PYTHON:
             import autopath.pancan.bags;featurebag = autopath.pancan.bags.FeatureBag(
                 batch_size=16, device="cuda", verbose=True, debug=True, 
