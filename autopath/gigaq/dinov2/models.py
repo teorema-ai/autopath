@@ -411,9 +411,34 @@ def apply(backbone, sideband, transform, image, *, output_root: str = None, scal
 
 
 class BackboneEvaluator(torch.nn.Module):
-    def __init__(self, backbone, *, transform=dino_tile_transform()):
-        super().__init__()
-        self.backbone = backbone
+    def __init__(self, 
+        type: str = 'dinov2', # or 'prov-gigapath'
+        weights: str = None,
+        cache: str = None,
+        tile_encoder_snapshot: str = "8d2b1d2e65832e16bf9ff100a081acf6170a44ca",
+        hf_token: str = "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", 
+        device: str = 'cuda',
+        resize: int = 256,
+        center_crop: int = 224,
+        drop_path_rate: float = 0.0,
+        drop_path_uniform: bool = False,
+        attention_class: Callable[..., nn.Module] = Attention,
+        transform=dino_tile_transform(),
+        **kwargs):
+        self.backbone = gigapath_tile_backbone(
+            type=type,
+            weights=weights,
+            cache=cache,
+            tile_encoder_snapshot=tile_encoder_snapshot,
+            hf_token=hf_token, 
+            device=device,
+            resize=resize,
+            center_crop=center_crop,
+            drop_path_rate=drop_path_rate,
+            drop_path_uniform=drop_path_uniform,
+            attention_class=attention_class,
+            **kwargs,
+        )
         self.transform = transform
 
     def forward(self, x):
