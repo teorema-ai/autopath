@@ -12,6 +12,7 @@
 """
 from dataclasses import dataclass, asdict
 import datetime
+import gc
 import json
 import math
 import os
@@ -66,6 +67,7 @@ class FeatureBag(Datablock):
             self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(self.tiles)} on device: {self.device}...")
             features_ = self.eval(batch).to('cpu')
             del batch
+            gc.collect()
             torch.cuda.empty_cache()
             self.log.verbose(f"done")
             feature_list.append(features_)
