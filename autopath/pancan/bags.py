@@ -60,12 +60,13 @@ class FeatureBag(Datablock):
     def build(self):
         feature_list = []
         for k in range(math.ceil(len(self.tiles)/self.batch_size)):
-            n = k*self.batch_size
-            batch = self.tiles[n:n+self.batch_size].to(self.device)
-            self.log.verbose(f"Evaluating batch {k}: device: {self.device}")
+            m = k*self.batch_size
+            n = min((k+1)*self.batch_size, len(self.tiles))
+            batch = self.tiles[m:n].to(self.device)
+            self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(self.tiles)} on device: {self.device}...")
             features_ = self.eval(batch).to('cpu')
             torch.cuda.empty_cache()
-            self.log.verbose(f"Evaluating batch {k}: done")
+            self.log.verbose(f"done")
             feature_list.append(features_)
         features = torch.cat(feature_list)
         dbx.write_tensor(features, self.path())
