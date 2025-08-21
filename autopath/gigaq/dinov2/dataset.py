@@ -1,11 +1,14 @@
+from torchvision import transforms
+
 from dinov2.data import collate_data_and_cast, MaskingGenerator
 from .augmentations import DataAugmentationDINO
+
 from ...pancan.tiles import (
     CPTAC_ROOT,
     CPTAC_RESOLUTION,
     PancanSlideShard, 
     PancanSlideBatch, 
-    PancanTileset
+    PancanTileSamples,
 )
 
 def pancan_slidebatch(
@@ -31,8 +34,46 @@ def pancan_slidebatch(
     )
     return databatch
 
+def dino_tile_transform(*, resize=256, center_crop=224):
+    all_transforms = []
+    if resize:
+        all_transforms += [
+            transforms.Resize(
+                256 if resize is True else resize,
+                interpolation=transforms.InterpolationMode.BICUBIC),
+        ]
+    if center_crop:
+        all_transforms += [
+            transforms.CenterCrop(
+                224 if center_crop is True else center_crop),
+        ]
+    all_transforms += [
+        transforms.Lambda(lambda x: x / 255.),
+        transforms.Normalize(
+            mean=(0.485, 0.456, 0.406),
+            std=(0.229, 0.224, 0.225))
+    ]
+    transform = transforms.Compose(all_transforms)
+    return transform
 
-def pancan_tileset(
+
+def dino_augmentations(
+    global_crops_scale=[0.32, 1.0],
+    local_crops_scale=[0.05, 0.32],
+    local_crops_number=8,
+    global_crops_size=224,
+    local_crops_size=96,
+):
+    return DataAugmentationDINO(
+        global_crops_scale,
+        local_crops_scale,
+        local_crops_number,
+        global_crops_size=global_crops_size,
+        local_crops_size=local_crops_size,
+    )
+
+
+def pancan_tilesamples(
     *,
     path: str = CPTAC_ROOT,
     resolution: str = CPTAC_RESOLUTION,
@@ -58,12 +99,12 @@ def pancan_tileset(
         verbose=verbose, 
         debug=debug,
     )
-    transform = DataAugmentationDINO(
+    transform = dino_augmentations(
         global_crops_scale,
         local_crops_scale,
         local_crops_number,
         global_crops_size=global_crops_size,
         local_crops_size=local_crops_size,
     )
-    dataset = PancanTileset(slidebatch, split=split, transform=transform, verbose=verbose, debug=debug)
+    dataset = PancanTileSamples(slidebatch, split=split, transform=transform, verbose=verbose, debug=debug)
     return dataset

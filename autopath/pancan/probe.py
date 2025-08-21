@@ -22,7 +22,8 @@ import scipy as sp
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.linear_model import LogisticRegression
 
-
+DBKSPACE = os.environ.get("DBKSPACE", "/mnt/labshare/PROJECTS/GIGAQ/dbx")
+DBKREPO = os.environ.get("DBKREPO", f"{os.environ.get('HOME')}/autopath")
 
 class FeatureProbe:
     @staticmethod

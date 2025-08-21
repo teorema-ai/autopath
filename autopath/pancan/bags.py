@@ -1,9 +1,16 @@
 """
     Examples:
-        dbx.exec("autopath.pancan.bags.FeatureBag(cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', backbone='@autopath.gigaq.dinov2.models.gigapath_tile_backbone()'))")
-        # with repo check
-        dbx.exec(f"autopath.pancan.bags.FeatureBag(cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', backbone='@autopath.gigaq.dinov2.models.gigapath_tile_backbone()'), gitrepo='{HOME}/autopath')")
-
+        #BASH:
+            dbx.exec("autopath.pancan.bags.FeatureBag(cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', backbone='@autopath.gigaq.dinov2.models.gigapath_tile_backbone()')).build()")
+            # with repo check
+            dbx.exec(f"autopath.pancan.bags.FeatureBag(cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', backbone='@autopath.gigaq.dinov2.models.gigapath_tile_backbone()'), gitrepo='{HOME}/autopath').build()")
+        #PYTHON:
+            import autopath.pancan.bags;featurebag = autopath.pancan.bags.FeatureBag(
+                batch_size=16, device="cuda", verbose=True, debug=True, 
+                cfg=dict(slideshard="@autopath.pancan.tiles.PancanSlideShard()", 
+                         backbone="@autopath.gigaq.dinov2.models.BackboneEvaluluator('@autopath.gigaq.dinov2.models.gigapath_tile_backbone()')",
+                         split="test",
+            )).build().read()
 """
 from dataclasses import dataclass, asdict
 import datetime
@@ -32,7 +39,8 @@ from .tiles import PancanSlideShard, PancanSlideBatch
 
 #from ..gigaq.dinov2.models import BackboneEvaluator
 
-DATASPACE = os.environ.get("DATASPACE", "/mnt/labshare/PROJECTS/GIGAQ/dbx")
+DBKSPACE = os.environ.get("DBKSPACE", "/mnt/labshare/PROJECTS/GIGAQ/dbx")
+DBKREPO = os.environ.get("DBKREPO", f"{os.environ.get('HOME')}/autopath")
 
 class FeatureBag(Datablock):
     @dataclass
@@ -41,14 +49,24 @@ class FeatureBag(Datablock):
         slideshard: PancanSlideShard
         split: str = "test"
 
+    def __init__(self, *args, batch_size: int = 16, device: str = 'cuda', **kwargs):
+        super().__init__(*args, **kwargs)
+        self.batch_size = batch_size
+        self.device = device
+
     def __post_init__(self):
-        #self.eval = BackboneEvaluator(self.config.backbone)
         self.eval = self.config.backbone
-        self.tiles, self.cancer, self.slide = self.config.slideshard.read(self.config.split)
+        self.tiles, self.origin, self.slide = self.config.slideshard.read(self.config.split)
         self.FILE = f"{self.slide}.pt"
 
     def build(self):
-        features = self.eval(self.tiles)
+        feature_list = []
+        for k in range(math.ceil(len(self.tiles)/self.batch_size)):
+            n = k*self.batch_size
+            batch = self.tiles[n:n+self.batch_size].to(self.device)
+            features_ = self.eval(batch)
+            feature_list.append(features_)
+        features = torch.cat(feature_list)
         dbx.write_tensor(features, self.path())
         return self
 

@@ -35,7 +35,7 @@ from dinov2.logging import MetricLogger
 from dinov2.utils.utils import CosineScheduler
 
 from .ssl import SSL
-from .dataset import pancan_tileset
+from .dataset import pancan_tilesamples
 from .dataloader import make_dataloader
 from .cfg import make_cfg
 from . import distributed
@@ -177,7 +177,7 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
     )
 
     # setup data loader
-    dataset = pancan_tileset(
+    dataset = pancan_tilesamples(
         path=cfg.train.dataset_path,
         resolution=cfg.train.dataset_resolution,
         split=cfg.train.dataset_split,

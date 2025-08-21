@@ -56,6 +56,7 @@ from timm.models.vision_transformer import Attention
 from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock, DropPath
 from dinov2.layers.layer_scale import LayerScale
 from dinov2.models.vision_transformer import BlockChunk, DinoVisionTransformer
+from .dataset import dino_tile_transform
 from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 
 
@@ -407,3 +408,16 @@ def apply(backbone, sideband, transform, image, *, output_root: str = None, scal
         with open(sideband_path, 'wb') as f:
             np.savez(f, **sideband_)
     return output, sideband_
+
+
+class BackboneEvaluator(torch.nn.Module):
+    def __init__(self, backbone, *, transform=dino_tile_transform()):
+        super().__init__()
+        self.backbone = backbone
+        self.transform = transform
+
+    def forward(self, x):
+        y = self.transform(x)
+        z = self.backbone(y)
+        return z
+
