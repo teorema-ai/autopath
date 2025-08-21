@@ -410,7 +410,7 @@ def apply(backbone, sideband, transform, image, *, output_root: str = None, scal
     return output, sideband_
 
 
-class BackboneEvaluator(torch.nn.Module):
+class BackboneEvaluator:
     def __init__(self, 
         type: str = 'dinov2', # or 'prov-gigapath'
         weights: str = None,
@@ -441,7 +441,7 @@ class BackboneEvaluator(torch.nn.Module):
         )
         self.transform = transform
 
-    def forward(self, x):
+    def __call__(self, x):
         y = self.transform(x)
         z = self.backbone(y)
         return z

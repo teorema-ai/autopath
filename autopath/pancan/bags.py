@@ -45,7 +45,7 @@ DBKREPO = os.environ.get("DBKREPO", f"{os.environ.get('HOME')}/autopath")
 class FeatureBag(Datablock):
     @dataclass
     class CONFIG:
-        backbone: torch.nn.Module
+        extractor: Callable
         slideshard: PancanSlideShard
         split: str = "test"
 
@@ -55,7 +55,7 @@ class FeatureBag(Datablock):
         self.device = device
 
     def __post_init__(self):
-        self.eval = self.config.backbone
+        self.eval = self.config.extractor
         self.tiles, self.origin, self.slide = self.config.slideshard.read(self.config.split)
         self.FILE = f"{self.slide}.pt"
 
@@ -64,7 +64,9 @@ class FeatureBag(Datablock):
         for k in range(math.ceil(len(self.tiles)/self.batch_size)):
             n = k*self.batch_size
             batch = self.tiles[n:n+self.batch_size].to(self.device)
+            self.log.verbose(f"Evaluating batch {k}: device: {self.device}")
             features_ = self.eval(batch)
+            self.log.verbose(f"Evaluating batch {k}: done")
             feature_list.append(features_)
         features = torch.cat(feature_list)
         dbx.write_tensor(features, self.path())
