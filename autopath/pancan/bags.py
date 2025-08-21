@@ -63,7 +63,7 @@ class FeatureBag(Datablock):
             n = k*self.batch_size
             batch = self.tiles[n:n+self.batch_size].to(self.device)
             self.log.verbose(f"Evaluating batch {k}: device: {self.device}")
-            features_ = self.eval(batch)
+            features_ = self.eval(batch).to('cpu')
             self.log.verbose(f"Evaluating batch {k}: done")
             feature_list.append(features_)
         features = torch.cat(feature_list)
