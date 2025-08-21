@@ -65,6 +65,7 @@ class FeatureBag(Datablock):
             batch = self.tiles[m:n].to(self.device)
             self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(self.tiles)} on device: {self.device}...")
             features_ = self.eval(batch).to('cpu')
+            del batch
             torch.cuda.empty_cache()
             self.log.verbose(f"done")
             feature_list.append(features_)
