@@ -58,21 +58,22 @@ class FeatureBag(Datablock):
         self.tiles, self.origin, self.slide = self.config.slideshard.read(self.config.split)
         self.FILE = f"{self.slide}.pt"
 
+
     def build(self):
         feature_list = []
         for k in range(math.ceil(len(self.tiles)/self.batch_size)):
             m = k*self.batch_size
             n = min((k+1)*self.batch_size, len(self.tiles))
             batch = self.tiles[m:n].to(self.device)
-            self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(self.tiles)} on device: {self.device}...")
+            self.log.debug(f"Evaluating batch {k}: {m}:{n} out of {len(self.tiles)} on device: {self.device}...")
             features_ = self.eval(batch).to('cpu')
             del batch
             gc.collect()
             torch.cuda.empty_cache()
-            self.log.verbose(f"done")
+            self.log.debug(f"done")
             feature_list.append(features_)
         features = torch.cat(feature_list)
-        dbx.write_tensor(features, self.path())
+        dbx.write_tensor(features, self.path(ensure_dirpath=True))
         return self
 
     def read(self):
