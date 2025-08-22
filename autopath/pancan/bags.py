@@ -59,7 +59,7 @@ class FeatureBag(Datablock):
         self.FILE = f"{self.slide}.pt"
 
 
-    def build(self):
+    def __build__(self):
         feature_list = []
         for k in range(math.ceil(len(self.tiles)/self.batch_size)):
             m = k*self.batch_size
