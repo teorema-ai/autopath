@@ -54,10 +54,11 @@ class FeatureBag(Datablock):
         self.device = device
 
     def __post_init__(self):
+        self.tiles, self.origin, self.slide = self.config.slideshard.read(self.config.split)
         self.FILE = f"{self.slide}.pt"
 
     def __build__(self):
-        tiles, origin, slide = self.config.slideshard.read(self.config.split)
+        tiles = self.tiles
         feature_list = []
         for k in range(math.ceil(len(tiles)/self.batch_size)):
             m = k*self.batch_size
