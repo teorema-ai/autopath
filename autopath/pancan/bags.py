@@ -43,7 +43,7 @@ DBKREPO = os.environ.get("DBKREPO", f"{os.environ.get('HOME')}/autopath")
 
 class FeatureBag(Datablock):
     @dataclass
-    class CONFIG:
+    class CONFIG(Datablock.CONFIG):
         extractor: Callable
         slideshard: PancanSlideShard
         split: str = "test"
