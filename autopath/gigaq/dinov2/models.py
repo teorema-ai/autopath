@@ -438,11 +438,12 @@ class BackboneEvaluator:
             drop_path_uniform=drop_path_uniform,
             attention_class=attention_class,
             **kwargs,
-        )
+        ).to(device)
         self.transform = transform
 
     def __call__(self, x):
-        y = self.transform(x)
-        z = self.backbone(y)
-        return z
+        with torch.no_grad():
+            y = self.transform(x.to(self.device))
+            z = self.backbone(y).cpu().detach()
+            return z
 
