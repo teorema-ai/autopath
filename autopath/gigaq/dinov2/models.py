@@ -440,10 +440,12 @@ class BackboneEvaluator:
             **kwargs,
         ).to(device)
         self.transform = transform
+        self.device = device
 
     def __call__(self, x):
         with torch.no_grad():
             y = self.transform(x.to(self.device))
             z = self.backbone(y).cpu().detach()
+            del y
             return z
 
