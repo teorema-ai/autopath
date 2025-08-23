@@ -18,7 +18,6 @@ from dinov2.utils.utils import has_batchnorms
 from dinov2.utils.param_groups import get_params_groups_with_decay, fuse_params_groups
 from . import distributed
 from dinov2.fsdp import get_fsdp_wrapper, ShardedGradScaler, get_fsdp_modules, reshard_fsdp_model
-
 from dinov2.models.vision_transformer import BlockChunk
 
 try:
@@ -27,7 +26,7 @@ except ImportError:
     raise AssertionError("xFormers is required for training")
 
 
-from .models import GigapathVisionTransformer, gigapath_tile_backbone
+from .backbone import gigapath_tile_backbone
 
 
 logger = logging.getLogger("dinov2")
@@ -56,14 +55,6 @@ def build_backbone(scfg, * , device='cuda', only_teacher=False, load_state: bool
             p.requires_grad = False
     return student, teacher, student.embed_dim
 
-
-    """
-    #TODO: RESET drop_path_rate and drop_path_uniform as below? Do we need this for RoB distillation?
-    student = GigapathVisionTransformer(
-        drop_path_rate=scfg.drop_path_rate,
-        drop_path_uniform=scfg.drop_path_uniform,
-    )
-    """
     embed_dim = student.embed_dim
     return student, teacher, embed_dim
 

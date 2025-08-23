@@ -6,7 +6,7 @@
             import autopath.pancan.bags;featurebag = autopath.pancan.bags.FeatureBag(
                 batch_size=16, device="cuda", verbose=True, debug=True, 
                 cfg=dict(slideshard="@autopath.pancan.tiles.PancanSlideShard()", 
-                         extractor="@autopath.gigaq.dinov2.models.BackboneEvaluator()",
+                         extractor="@autopath.gigaq.dinov2.backbone.BackboneEvaluator()",
                          split="test",
             )).build().read()
 """
