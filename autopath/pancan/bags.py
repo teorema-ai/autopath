@@ -83,8 +83,9 @@ class FeatureBag(Datablock):
 class FeatureBags(Databatch):
     DATABLOCK = FeatureBag
     @dataclass
-    class CONFIG:
-        backbone: torch.nn.Module
+    class CONFIG(Databatch.CONFIG):
+        extractor: Callable
         slidebatch: PancanSlideBatch
-
+        max_shard_count: Optional[int] = None
+        split: str = "test"
 
