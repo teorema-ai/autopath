@@ -223,7 +223,7 @@ class FeatureBatch(Databatch):
 		if self.config.max_shard_count is not None:
 			slideshards = slideshards[:self.config.max_shard_count]
 		datablocks = [FeatureBag(
-			cfg=dict(extractor=self.cfg.extractor, slideshard=slideshard, split=self.cfg.split),
+			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshard, split=self.cfg.get('split')),
 			verbose=self.verbose,
 			debug=self.debug,
 			device_batch_size=self.device_batch_size,
