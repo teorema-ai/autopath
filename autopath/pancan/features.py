@@ -43,7 +43,7 @@ import pyarrow.parquet as pq
 
 
 import torch
-from rich import progress
+import rich
 
 import dbx
 from dbx import (
