@@ -3,7 +3,7 @@ from torchvision import transforms
 from dinov2.data import collate_data_and_cast, MaskingGenerator
 from .augmentations import DataAugmentationDINO
 
-from ...pancan.tiles import (
+from ...pancan.images import (
     CPTAC_ROOT,
     CPTAC_RESOLUTION,
     PancanSlideShard, 
