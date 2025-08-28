@@ -47,16 +47,16 @@ class _PancanSlideTiles(Datablock):
         seed: Optional[int] = 42
 
     def __post_init__(self):
-        self.cancer, self.resolution, self.slide = self._parse_source(self.source)
+        self.cancer, self.config.resolution, self.slide = self._parse_source(self.config.source)
 
     def __build__(self):
-        index = os.path.splitext(self.source)[0]+'.index.npz'
-        dataset = self._get_dataset(tfrecords_path=self.source, index_path=index)
+        index = os.path.splitext(self.config.source)[0]+'.index.npz'
+        dataset = self._get_dataset(tfrecords_path=self.config.source, index_path=index)
         N = len(dataset)
-        n = int(floor(N*self.train_fraction))
-        if self.randomize:
-            if self.seed is not None:
-                torch.manual_seed(self.seed)
+        n = int(floor(N*self.config.train_fraction))
+        if self.config.randomize:
+            if self.config.seed is not None:
+                torch.manual_seed(self.config.seed)
             train_indices = torch.tensor(np.random.choice(np.arange(N), size=(n,), replace=False))
             test_indices = torch.tensor([i for i in range(N) if i not in train_indices])
         else:
@@ -143,9 +143,9 @@ class _PancanSlideSplit(Databatch):
         datablocks = [
             PancanSlideShard(
                 cfg=dict(source=tfrecords_path,
-                         train_fraction=self.train_fraction,
-                         randomize=self.randomize,
-                         seed=self.seed
+                         train_fraction=self.config.train_fraction,
+                         randomize=self.config.randomize,
+                         seed=self.config.seed
                 ),
                 verbose=self.verbose,
                 debug=self.debug,
@@ -199,10 +199,10 @@ class _PancanSlideSplit(Databatch):
     def _all_tfrecords_paths(self):
         fs, _ = fsspec.core.url_to_fs(self.root)
         tfrecords_paths = list(itertools.chain.from_iterable(
-            [self._tfrecords_paths(fs, d, resolution=self.resolution) for d in fs.ls(self.source) if self._is_tfrecords_dir(fs, d, resolution=self.resolution)]
+            [self._tfrecords_paths(fs, d, resolution=self.config.resolution) for d in fs.ls(self.config.source) if self._is_tfrecords_dir(fs, d, resolution=self.config.resolution)]
         ))
-        if self.max_shards is not None:
-            tfrecords_paths = tfrecords_paths[:self.max_shards]
+        if self.config.max_shards is not None:
+            tfrecords_paths = tfrecords_paths[:self.config.max_shards]
         return tfrecords_paths
 
 
@@ -265,16 +265,16 @@ class PancanSlideShard(Datablock):
         seed: Optional[int] = 42
 
     def __post_init__(self):
-        self.cancer, self.resolution, self.slide = self._parse_source(self.source)
+        self.cancer, self.config.resolution, self.slide = self._parse_source(self.config.source)
 
     def __build__(self):
-        index = os.path.splitext(self.source)[0]+'.index.npz'
-        dataset = self._get_dataset(tfrecords_path=self.source, index_path=index)
+        index = os.path.splitext(self.config.source)[0]+'.index.npz'
+        dataset = self._get_dataset(tfrecords_path=self.config.source, index_path=index)
         N = len(dataset)
-        n = int(floor(N*self.train_fraction))
-        if self.randomize:
-            if self.seed is not None:
-                torch.manual_seed(self.seed)
+        n = int(floor(N*self.config.train_fraction))
+        if self.config.randomize:
+            if self.config.seed is not None:
+                torch.manual_seed(self.config.seed)
             train_indices = torch.tensor(np.random.choice(np.arange(N), size=(n,), replace=False))
             test_indices = torch.tensor([i for i in range(N) if i not in train_indices])
         else:
@@ -362,9 +362,9 @@ class PancanSlideBatch(Databatch):
         datablocks = [
             PancanSlideShard(
                 cfg=dict(source=tfrecords_path,
-                         train_fraction=self.train_fraction,
-                         randomize=self.randomize,
-                         seed=self.seed
+                         train_fraction=self.config.train_fraction,
+                         randomize=self.config.randomize,
+                         seed=self.config.seed
                 ),
                 verbose=self.verbose,
                 debug=self.debug,
@@ -418,10 +418,10 @@ class PancanSlideBatch(Databatch):
     def _all_tfrecords_paths(self):
         fs, _ = fsspec.core.url_to_fs(self.root)
         tfrecords_paths = list(itertools.chain.from_iterable(
-            [self._tfrecords_paths(fs, d, resolution=self.resolution) for d in fs.ls(self.source) if self._is_tfrecords_dir(fs, d, resolution=self.resolution)]
+            [self._tfrecords_paths(fs, d, resolution=self.config.resolution) for d in fs.ls(self.config.source) if self._is_tfrecords_dir(fs, d, resolution=self.config.resolution)]
         ))
-        if self.max_shards is not None:
-            tfrecords_paths = tfrecords_paths[:self.max_shards]
+        if self.config.max_shards is not None:
+            tfrecords_paths = tfrecords_paths[:self.config.max_shards]
         return tfrecords_paths
 
 
