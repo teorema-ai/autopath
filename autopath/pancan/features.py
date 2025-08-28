@@ -127,7 +127,7 @@ class TorchMultiprocessingBatchRunner(BatchRunner):
 	def tag(self):
 		return "mp"
 	
-	def __call__(func, kwargslist):
+	def __call__(self, func, kwargslist):
 		n_kwargs = len(kwargslist)
 		pb = rich.progress.Progress() 
 		pb.add_task(
