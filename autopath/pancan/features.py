@@ -202,8 +202,19 @@ class FeatureBatch(Databatch):
 		max_shard_count: Optional[int] = None
 		split: str = "test"
 
-	def __init__(self, *args, device_batch_size: int = 16, **kwargs):
-		super().__init__(*args, **kwargs)
+	DEFAULT_RUNNER = TorchMultiprocessingBatchRunner(FeatureBag, num_gpus=1)
+
+	def __init__(self, 
+				root: str = None,
+				verbose: bool = False,
+				debug: bool = False,
+				runner: BatchRunner = None,
+				device_batch_size: int = 16,
+				*,
+				cfg: Optional[Union[str,dict]] = None,
+	):
+		runner = runner or self.DEFAULT_RUNNER
+		super().__init__(root, verbose, debug, runner, cfg=cfg)
 		self.device_batch_size = device_batch_size
 
 	def datablocks(self):
