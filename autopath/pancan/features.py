@@ -221,5 +221,6 @@ class FeatureBatch(Databatch):
 			debug=self.debug,
 			gpu_batch_size=self.gpu_batch_size,
 		) for slideshard in slideshards]
+		self.debug(f"{self.anchor()}: {datablocks=}")
 		return datablocks
 
