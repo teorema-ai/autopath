@@ -148,7 +148,7 @@ class TorchMultiprocessingBatchRunner(BatchRunner):
 				args=(self.datablock_cls,
 					  self.method,
 					  kwargslist,
-					  pb,
+					  mp_pb.tracker,
 					  slide_task,
 				),       
 				nprocs=self.num_gpus,
