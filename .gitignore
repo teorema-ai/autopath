@@ -1,2 +1,6 @@
-tmp/
+run/
 notebooks/
+*.egg-info
+jupyter.out
+__pycache__
+.ipynb_checkpoints
