@@ -17,7 +17,7 @@
 				debug=True, 
 				cfg=dict(slidebatch="@autopath.pancan.images.PancanSlideBatch()", 
 						 split="test",
-						 max_shard_count=1,
+						 max_bag_count=1,
 						 extractor="@autopath.gigaq.dinov2.backbone.BackboneEvaluator()",
 			)).build().read()
 
@@ -196,7 +196,7 @@ class FeatureBatch(Databatch):
 	class CONFIG(Databatch.CONFIG):
 		extractor: Callable
 		slidebatch: PancanSlideBatch
-		max_shard_count: Optional[int] = None
+		max_bag_count: Optional[int] = None
 		split: str = "test"
 
 	DEFAULT_BUILDER = TorchMultiprocessingBatchBuilder(num_gpus=1)
@@ -216,8 +216,8 @@ class FeatureBatch(Databatch):
 
 	def datablocks(self):
 		slideshards = list(self.config.slidebatch.datablocks())
-		if self.config.max_shard_count is not None:
-			slideshards = slideshards[:self.config.max_shard_count]
+		if self.config.max_bag_count is not None:
+			slideshards = slideshards[:self.config.max_bag_count]
 		datablocks = [FeatureBag(
 			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshard, split=self.cfg.get('split')),
 			verbose=self.verbose,
