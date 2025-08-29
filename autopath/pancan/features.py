@@ -107,11 +107,11 @@ class MultiprocessProgress:
 def datablock_multiprocessing_build(
 		id,
 		datablock_cls,
-		datablock_method_kwargslist,
+		datablock_method_build_kwargslist,
 		progress_bar=None,
 		progress_task=None,
 ):
-		result = datablock_method(datablock_cls, 'build', **datablock_method_kwargslist[id])
+		result = datablock_method(datablock_cls, 'build', **datablock_method_build_kwargslist[id])
 		if progress_bar is not None and progress_task is not None:
 			progress_bar.advance(progress_task, 1)
 		return result
@@ -125,8 +125,8 @@ class TorchMultiprocessingBatchBuilder(BatchBuilder):
 	def tag(self):
 		return "mp"
 	
-	def __call__(self, datablock_cls, build_kwargslist):
-		n_kwargs = len(kwargslist)
+	def __call__(self, datablock_cls, datablock_method_build_kwargslist):
+		n_kwargs = len(datablock_method_build_kwargslist)
 		pb = rich.progress.Progress() 
 		pb.add_task(
 			"Speed: ",
@@ -143,7 +143,7 @@ class TorchMultiprocessingBatchBuilder(BatchBuilder):
 			torch.multiprocessing.spawn(
 				datablock_multiprocessing_build,
 				args=(datablock_cls,
-					  datablock_method_kwargslist,
+					  datablock_method_build_kwargslist,
 					  mp_pb.tracker,
 					  slide_task,
 				),       
