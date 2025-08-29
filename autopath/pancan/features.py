@@ -11,7 +11,7 @@
 			)).build().read()
 			#
 			import autopath.pancan.features;featurebag = autopath.pancan.features.FeatureBatch(
-				builder='@autopath.pancan.features.TorchMultiprocessingBatchBuilder(num_gpus=1)',
+				builder='@autopath.pancan.features.TorchMultiprocessingDatabatchBuilder(num_gpus=1)',
 				gpu_batch_size=16, 
 				verbose=True, 
 				debug=True, 
@@ -51,7 +51,7 @@ from dbx import (
 	Logger,
 	Datablock,
 	Databatch,
-	BatchBuilder,
+	DatabatchBuilder,
 	datablock_method,
 )
 from .images import PancanSlideShard, PancanSlideBatch
@@ -117,7 +117,7 @@ def datablock_multiprocessing_build(
 		return result
 	
 
-class TorchMultiprocessingBatchBuilder(BatchBuilder):
+class TorchMultiprocessingDatabatchBuilder(DatabatchBuilder):
 	def __init__(self, *, num_gpus: int = 1):
 		self.num_gpus = num_gpus
 
@@ -203,7 +203,7 @@ class FeatureBatch(Databatch):
 				root: str = None,
 				verbose: bool = False,
 				debug: bool = False,
-				builder: BatchBuilder = None,
+				builder: DatabatchBuilder = None,
 				gpu_batch_size: int = 16,
 				*,
 				cfg: Optional[Union[str,dict]] = None,
@@ -214,7 +214,7 @@ class FeatureBatch(Databatch):
 	def datablocks(self):
 		slideshards = list(self.config.slidebatch.datablocks())
 		if self.config.max_bag_count is not None:
-			slideshards = slideshards[:self.config.max_bag_count]
+			slideshards = ["@"+repr(slideshard) for slideshard in slideshards[:self.config.max_bag_count]]
 		datablocks = [FeatureBag(
 			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshard, split=self.cfg.get('split')),
 			verbose=self.verbose,
