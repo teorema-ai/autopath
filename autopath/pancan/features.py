@@ -199,8 +199,6 @@ class FeatureBatch(Databatch):
 		max_bag_count: Optional[int] = None
 		split: str = "test"
 
-	DEFAULT_BUILDER = TorchMultiprocessingBatchBuilder(num_gpus=1)
-
 	def __init__(self, 
 				root: str = None,
 				verbose: bool = False,
@@ -210,7 +208,6 @@ class FeatureBatch(Databatch):
 				*,
 				cfg: Optional[Union[str,dict]] = None,
 	):
-		builder = builder or self.DEFAULT_BUILDER
 		super().__init__(root, verbose, debug, builder, cfg=cfg)
 		self.gpu_batch_size = gpu_batch_size
 
