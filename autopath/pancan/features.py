@@ -4,7 +4,7 @@
 			dbx "autopath.pancan.bags.FeatureBag(batch_size=16, device='cuda', verbose=True, debug=True, cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', extractor='@autopath.gigaq.dinov2.models.BackboneEvaluator()', split='test')).build().read()"
 		#PYTHON:
 			import autopath.pancan.features;featurebag = autopath.pancan.features.FeatureBag(
-				device_batch_size=16, verbose=True, debug=True, 
+				gpu_batch_size=16, verbose=True, debug=True, 
 				cfg=dict(slideshard="@autopath.pancan.images.PancanSlideShard()", 
 						 extractor="@autopath.gigaq.dinov2.backbone.BackboneEvaluator()",
 						 split="test",
@@ -12,7 +12,7 @@
 			#
 			import autopath.pancan.features;featurebag = autopath.pancan.features.FeatureBatch(
 				builder='@autopath.pancan.features.TorchMultiprocessingBatchBuilder(num_gpus=1)',
-				device_batch_size=16, 
+				gpu_batch_size=16, 
 				verbose=True, 
 				debug=True, 
 				cfg=dict(slidebatch="@autopath.pancan.images.PancanSlideBatch()", 
@@ -134,7 +134,7 @@ class TorchMultiprocessingBatchBuilder(BatchBuilder):
 			total=None
 		)
 		slide_task = pb.add_task(
-			"Running batch ...",
+			"Building {datablock_cls.__name__} ...",
 			progress_type="slide_progress",
 			total=n_kwargs,
 		)
@@ -158,9 +158,9 @@ class FeatureBag(Datablock):
 		slideshard: PancanSlideShard
 		split: str = "test"
 
-	def __init__(self, *args, device_batch_size: int = 16, **kwargs):
+	def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.device_batch_size = device_batch_size
+		self.gpu_batch_size = gpu_batch_size
 		self.device = 'cuda' #TODO: inline?
 
 	def __post_init__(self):
@@ -170,9 +170,9 @@ class FeatureBag(Datablock):
 	def __build__(self):
 		tiles = self.tiles
 		feature_list = []
-		for k in range(math.ceil(len(tiles)/self.device_batch_size)):
-			m = k*self.device_batch_size
-			n = min((k+1)*self.device_batch_size, len(tiles))
+		for k in range(math.ceil(len(tiles)/self.gpu_batch_size)):
+			m = k*self.gpu_batch_size
+			n = min((k+1)*self.gpu_batch_size, len(tiles))
 			batch = tiles[m:n].to(self.device)
 			self.log.debug(f"Evaluating batch {k}: {m}:{n} out of {len(tiles)} on device: {self.device}...")
 			features_ = self.config.extractor(batch).to('cpu')
@@ -206,13 +206,13 @@ class FeatureBatch(Databatch):
 				verbose: bool = False,
 				debug: bool = False,
 				builder: BatchBuilder = None,
-				device_batch_size: int = 16,
+				gpu_batch_size: int = 16,
 				*,
 				cfg: Optional[Union[str,dict]] = None,
 	):
 		builder = builder or self.DEFAULT_BUILDER
 		super().__init__(root, verbose, debug, builder, cfg=cfg)
-		self.device_batch_size = device_batch_size
+		self.gpu_batch_size = gpu_batch_size
 
 	def datablocks(self):
 		slideshards = list(self.config.slidebatch.datablocks())
@@ -222,7 +222,7 @@ class FeatureBatch(Databatch):
 			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshard, split=self.cfg.get('split')),
 			verbose=self.verbose,
 			debug=self.debug,
-			device_batch_size=self.device_batch_size,
+			gpu_batch_size=self.gpu_batch_size,
 		) for slideshard in slideshards]
 		return datablocks
 
