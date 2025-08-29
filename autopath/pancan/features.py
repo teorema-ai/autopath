@@ -11,7 +11,7 @@
 			)).build().read()
 			#
 			import autopath.pancan.features;featurebag = autopath.pancan.features.FeatureBatch(
-				runner='@autopath.pancan.features.TorchMultiprocessingBatchRunner(num_gpus=1)',
+				builder='@autopath.pancan.features.TorchMultiprocessingBatchBuilder(num_gpus=1)',
 				device_batch_size=16, 
 				verbose=True, 
 				debug=True, 
@@ -51,7 +51,7 @@ from dbx import (
 	Logger,
 	Datablock,
 	Databatch,
-	BatchRunner,
+	BatchBuilder,
 	datablock_method,
 )
 from .images import PancanSlideShard, PancanSlideBatch
@@ -104,31 +104,28 @@ class MultiprocessProgress:
 		self._thread.join()
 
 
-def datablock_method_multiprocessing(
+def datablock_multiprocessing_build(
 		id,
 		datablock_cls,
-		method,
-		kwargslist,
+		datablock_method_kwargslist,
 		progress_bar=None,
 		progress_task=None,
 ):
-		result = datablock_method(datablock_cls, method, **kwargslist[id])
+		result = datablock_method(datablock_cls, 'build', **datablock_method_kwargslist[id])
 		if progress_bar is not None and progress_task is not None:
 			progress_bar.advance(progress_task, 1)
 		return result
 	
 
-class TorchMultiprocessingBatchRunner(BatchRunner):
-	def __init__(self, datablock_cls, method='build', *, num_gpus: int = 1):
-		self.datablock_cls = datablock_cls
-		self.method = method
+class TorchMultiprocessingBatchBuilder(BatchBuilder):
+	def __init__(self, *, num_gpus: int = 1):
 		self.num_gpus = num_gpus
 
 	@property
 	def tag(self):
 		return "mp"
 	
-	def __call__(self, func, kwargslist):
+	def __call__(self, datablock_cls, build_kwargslist):
 		n_kwargs = len(kwargslist)
 		pb = rich.progress.Progress() 
 		pb.add_task(
@@ -137,17 +134,16 @@ class TorchMultiprocessingBatchRunner(BatchRunner):
 			total=None
 		)
 		slide_task = pb.add_task(
-			"Generating...",
+			"Running batch ...",
 			progress_type="slide_progress",
 			total=n_kwargs,
 		)
 		pb.start()
 		with MultiprocessProgress(pb) as mp_pb:
 			torch.multiprocessing.spawn(
-				datablock_method_multiprocessing,
-				args=(self.datablock_cls,
-					  self.method,
-					  kwargslist,
+				datablock_multiprocessing_build,
+				args=(datablock_cls,
+					  datablock_method_kwargslist,
 					  mp_pb.tracker,
 					  slide_task,
 				),       
@@ -203,19 +199,19 @@ class FeatureBatch(Databatch):
 		max_shard_count: Optional[int] = None
 		split: str = "test"
 
-	DEFAULT_RUNNER = TorchMultiprocessingBatchRunner(FeatureBag, num_gpus=1)
+	DEFAULT_BUILDER = TorchMultiprocessingBatchBuilder(FeatureBag, num_gpus=1)
 
 	def __init__(self, 
 				root: str = None,
 				verbose: bool = False,
 				debug: bool = False,
-				runner: BatchRunner = None,
+				builder: BatchBuilder = None,
 				device_batch_size: int = 16,
 				*,
 				cfg: Optional[Union[str,dict]] = None,
 	):
-		runner = runner or self.DEFAULT_RUNNER
-		super().__init__(root, verbose, debug, runner, cfg=cfg)
+		builder = builder or self.DEFAULT_BUILDER
+		super().__init__(root, verbose, debug, builder, cfg=cfg)
 		self.device_batch_size = device_batch_size
 
 	def datablocks(self):
