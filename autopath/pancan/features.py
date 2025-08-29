@@ -199,7 +199,7 @@ class FeatureBatch(Databatch):
 		max_shard_count: Optional[int] = None
 		split: str = "test"
 
-	DEFAULT_BUILDER = TorchMultiprocessingBatchBuilder(FeatureBag, num_gpus=1)
+	DEFAULT_BUILDER = TorchMultiprocessingBatchBuilder(num_gpus=1)
 
 	def __init__(self, 
 				root: str = None,
