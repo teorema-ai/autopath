@@ -104,14 +104,14 @@ class MultiprocessProgress:
 		self._thread.join()
 
 
-def datablock_multiprocessing_build(
+def datablock_method_multiprocessing(
 		id,
-		datablock_cls,
-		datablock_method_build_kwargslist,
+		datablock_method_args_kwargs_list,
 		progress_bar=None,
 		progress_task=None,
 ):
-		result = datablock_method(datablock_cls, 'build', **datablock_method_build_kwargslist[id])
+		args, kwargs = datablock_method_args_kwargs_list[id]
+		result = datablock_method(args, **kwargs)
 		if progress_bar is not None and progress_task is not None:
 			progress_bar.advance(progress_task, 1)
 		return result
@@ -125,8 +125,8 @@ class TorchMultiprocessingDatabatchBuilder(DatabatchBuilder):
 	def tag(self):
 		return "mp"
 	
-	def __call__(self, datablock_cls, datablock_method_build_kwargslist):
-		n_kwargs = len(datablock_method_build_kwargslist)
+	def __call__(self, datablock_method_args_kwargs_list):
+		N = len(datablock_method_args_kwargs_list)
 		pb = rich.progress.Progress() 
 		pb.add_task(
 			"Speed: ",
@@ -136,14 +136,14 @@ class TorchMultiprocessingDatabatchBuilder(DatabatchBuilder):
 		slide_task = pb.add_task(
 			"Building {datablock_cls.__name__} ...",
 			progress_type="slide_progress",
-			total=n_kwargs,
+			total=N,
 		)
 		pb.start()
 		with MultiprocessProgress(pb) as mp_pb:
 			torch.multiprocessing.spawn(
 				datablock_multiprocessing_build,
 				args=(datablock_cls,
-					  datablock_method_build_kwargslist,
+					  datablock_method_args_kwargs_list,
 					  mp_pb.tracker,
 					  slide_task,
 				),       
@@ -199,16 +199,9 @@ class FeatureBatch(Databatch):
 		max_bag_count: Optional[int] = None
 		split: str = "test"
 
-	def __init__(self, 
-				root: str = None,
-				verbose: bool = False,
-				debug: bool = False,
-				builder: DatabatchBuilder = None,
-				gpu_batch_size: int = 16,
-				*,
-				cfg: Optional[Union[str,dict]] = None,
-	):
-		super().__init__(root, verbose, debug, builder, cfg=cfg)
+	def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
+		
+		super().__init__(*args, **kwargs)
 		self.gpu_batch_size = gpu_batch_size
 
 	def datablocks(self):
