@@ -259,7 +259,7 @@ class PancanSlideShard(Datablock):
     FILES = {'train': None, 'test': None}
     @dataclass
     class CONFIG:
-        source: str = CPTAC_SAMPLE_SHARD
+        source: str
         train_fraction: float = 0.8
         randomize: bool = False
         seed: Optional[int] = 42
@@ -349,8 +349,8 @@ class PancanSlideBatch(Databatch):
     
     @dataclass
     class CONFIG:
-        source: str = CPTAC_ROOT
-        resolution: str = CPTAC_RESOLUTION 
+        source: str
+        resolution: str
         train_fraction: float = 0.8
         max_shards: Optional[int] = None
         randomize: bool = False
@@ -423,6 +423,9 @@ class PancanSlideBatch(Databatch):
         if self.config.max_shards is not None:
             tfrecords_paths = tfrecords_paths[:self.config.max_shards]
         return tfrecords_paths
+
+
+PANCAN_SLIDE_BATCH_CPTAC = PancanSlideBatch(cfg=dict(source=CPCAT_ROOT, resolution=CPTAC_RESOLUTION))
 
 
 class PancanTileSamples(Dataset):
