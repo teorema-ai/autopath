@@ -425,7 +425,7 @@ class PancanSlideBatch(Databatch):
         return tfrecords_paths
 
 
-PANCAN_SLIDE_BATCH_CPTAC = PancanSlideBatch(cfg=dict(source=CPCAT_ROOT, resolution=CPTAC_RESOLUTION))
+PANCAN_SLIDE_BATCH_CPTAC = PancanSlideBatch(cfg=dict(source=CPTAC_ROOT, resolution=CPTAC_RESOLUTION))
 
 
 class PancanTileSamples(Dataset):
