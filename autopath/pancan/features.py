@@ -111,7 +111,7 @@ def datablock_method_multiprocessing(
 		progress_task=None,
 ):
 		args, kwargs = datablock_method_args_kwargs_list[id]
-		result = datablock_method(args, **kwargs)
+		result = datablock_method(*args, **kwargs)
 		if progress_bar is not None and progress_task is not None:
 			progress_bar.advance(progress_task, 1)
 		return result
@@ -209,6 +209,7 @@ class FeatureBatch(Databatch):
 			slideshards = slideshards[:self.config.max_bag_count]
 		slideshardreprs = ["@"+repr(slideshard) for slideshard in slideshards]
 		datablocks = [FeatureBag(
+			root=self.root,
 			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshardrepr, split=self.cfg.get('split')),
 			verbose=self.verbose,
 			debug=self.debug,
