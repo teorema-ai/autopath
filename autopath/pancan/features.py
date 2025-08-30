@@ -141,7 +141,7 @@ class TorchMultiprocessingDatabatchBuilder(DatabatchBuilder):
 		pb.start()
 		with MultiprocessProgress(pb) as mp_pb:
 			torch.multiprocessing.spawn(
-				datablock_multiprocessing_build,
+				datablock_method_multiprocessing,
 				args=(datablock_cls,
 					  datablock_method_args_kwargs_list,
 					  mp_pb.tracker,
