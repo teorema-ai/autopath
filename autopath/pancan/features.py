@@ -215,6 +215,6 @@ class FeatureBatch(Databatch):
 			debug=self.debug,
 			gpu_batch_size=self.gpu_batch_size,
 		) for slideshardrepr in slideshardreprs]
-		self.debug(f"{self.anchor()}: {datablocks=}")
+		self.log.debug(f"{self.anchor()}: {datablocks=}")
 		return datablocks
 
