@@ -207,13 +207,14 @@ class FeatureBatch(Databatch):
 	def datablocks(self):
 		slideshards = list(self.config.slidebatch.datablocks())
 		if self.config.max_bag_count is not None:
-			slideshards = ["@"+repr(slideshard) for slideshard in slideshards[:self.config.max_bag_count]]
+			slideshards = slideshards[:self.config.max_bag_count]
+		slideshardreprs = ["@"+repr(slideshard) for slideshard in slideshards]
 		datablocks = [FeatureBag(
-			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshard, split=self.cfg.get('split')),
+			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshardrepr, split=self.cfg.get('split')),
 			verbose=self.verbose,
 			debug=self.debug,
 			gpu_batch_size=self.gpu_batch_size,
-		) for slideshard in slideshards]
+		) for slideshardrepr in slideshardreprs]
 		self.debug(f"{self.anchor()}: {datablocks=}")
 		return datablocks
 
