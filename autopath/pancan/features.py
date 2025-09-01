@@ -186,7 +186,7 @@ class FeatureBag(Datablock):
 
 	def read(self):
 		features = dbx.read_tensor(self.path())
-		return features
+		return features, self.origin, self.slide
 
 
 class FeatureBatch(Databatch):
@@ -217,4 +217,21 @@ class FeatureBatch(Databatch):
 		) for slideshardrepr in slideshardreprs]
 		self.log.debug(f"{self.anchor()}: {datablocks=}")
 		return datablocks
+
+	def __read__(self):
+		bagtensors = []
+		baglabels = []
+		for bag in self.datablocks():
+			bagtensor, baglabel, _ = bag.read()
+			bagtensors.append(bagtensor)
+			baglabels.extend([baglabel]*bagtensor.shape[0])
+		batchtensor = torch.cat(bagtensors)
+		return batchtensor, baglabels
+
+	#TODO: IMPL
+	def dataloader(self, *, num_workers=None):
+		...
+		
+
+
 
