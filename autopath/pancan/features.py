@@ -163,8 +163,14 @@ class FeatureBag(Datablock):
 		self.device = 'cuda' #TODO: inline?
 
 	def __post_init__(self):
-		self.tiles, self.origin, self.slide = self.config.slideshard.read(self.config.split)
+		self.origin = self.config.slideshard.origin
+		self.slide = self.config.slideshard.slide
 		self.FILE = f"{self.slide}.pt"
+
+	@property
+	def tiles(self):
+		tiles, _, _ = self.config.slideshard.read(self.split)
+		return tiles
 
 	def __build__(self):
 		tiles = self.tiles
@@ -217,6 +223,9 @@ class FeatureBatch(Databatch):
 		) for slideshardrepr in slideshardreprs]
 		self.log.debug(f"{self.anchor()}: {datablocks=}")
 		return datablocks
+
+	def valid_bags(self):
+		return [bag for bag in self.datablocks() if bag.valid()]
 
 	def __read__(self):
 		bagtensors = []

@@ -265,7 +265,7 @@ class PancanSlideShard(Datablock):
         seed: Optional[int] = 42
 
     def __post_init__(self):
-        self.cancer, self.config.resolution, self.slide = self._parse_source(self.config.source)
+        self.origin, self.config.resolution, self.slide = self._parse_source(self.config.source)
 
     def __build__(self):
         index = os.path.splitext(self.config.source)[0]+'.index.npz'
@@ -310,7 +310,7 @@ class PancanSlideShard(Datablock):
     def read(self, topic):
         path = self.path(topic)
         images = torch.load(path)
-        return torch.permute(images, (0, 3, 1, 2)), self.cancer, self.slide
+        return torch.permute(images, (0, 3, 1, 2)), self.origin, self.slide
     
     def path(self, topic, *, index: bool = False, ensure: bool = True):
         path_ = super().path(topic)
