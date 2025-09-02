@@ -4,7 +4,7 @@ from .dinov2.backbone import BackboneEvaluator
 
 GIGAPATH_BASELINE_BACKBONE_EVALUATOR = BackboneEvaluator
 
-def GIGAPATH_BASELINE_CPTAC_FEATURES_(
+def GIGAPATH_BASELINE_CPTAC_FEATURES(
     *,
     num_gpus=None,
     gpu_batch_size=16,
@@ -30,7 +30,7 @@ def GIGAPATH_BASELINE_CPTAC_FEATURES_(
     return featurebatch
 
 
-def GIGAPATH_BASELINE_CPTAC_FEATURES_TEST(
+def GIGAPATH_BASELINE_CPTAC_TEST_FEATURES(
     *,
     num_gpus=None,
     gpu_batch_size=16,
@@ -39,7 +39,7 @@ def GIGAPATH_BASELINE_CPTAC_FEATURES_TEST(
     verbose=True,
     debug=False,
 ):
-    return GIGAPATH_BASELINE_CPTAC_FEATURES_(
+    return GIGAPATH_BASELINE_CPTAC_FEATURES(
         num_gpus=num_gpus,
         gpu_batch_size=gpu_batch_size,
         split='test',
