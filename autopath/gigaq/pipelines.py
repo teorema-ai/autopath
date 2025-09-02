@@ -16,7 +16,7 @@ def GIGAPATH_BASELINE_CPTAC_FEATURES(
     if num_gpus is not None:
         builder='@autopath.pancan.features.TorchMultiprocessingDatabatchBuilder(num_gpus={num_gpus})'
     else:
-        builder='@dbx.DatabatchBuilder()'
+        builder='@dbx.DatabatchBuilder(verbose=True)'
     featurebatch = FeatureBatch(
                 spec=dict(extractor="@autopath.gigaq.pipelines.GIGAPATH_BASELINE_BACKBONE_EVALUATOR()",
                          slidebatch="@autopath.pancan.pipelines.PANCAN_CPTAC_SLIDE_BATCH()", 
