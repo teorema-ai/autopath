@@ -169,7 +169,7 @@ class FeatureBag(Datablock):
 
 	@property
 	def tiles(self):
-		tiles, _, _ = self.config.slideshard.read(self.split)
+		tiles, _, _ = self.config.slideshard.read(self.config.split)
 		return tiles
 
 	def __build__(self):
