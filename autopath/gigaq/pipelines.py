@@ -18,7 +18,7 @@ def GIGAPATH_BASELINE_CPTAC_FEATURES_(
     else:
         builder='@dbx.DatabatchBuilder()'
     featurebatch = FeatureBatch(
-                cfg=dict(extractor="@autopath.gigaq.pipelines.GIGAPATH_BASELINE_BACKBONE_EVALUATOR()",
+                spec=dict(extractor="@autopath.gigaq.pipelines.GIGAPATH_BASELINE_BACKBONE_EVALUATOR()",
                          slidebatch="@autopath.pancan.pipelines.PANCAN_CPTAC_SLIDE_BATCH()", 
                          split=split,
                 ),

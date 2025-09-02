@@ -1,11 +1,11 @@
 """
 	Examples:
 		#BASH:
-			dbx "autopath.pancan.bags.FeatureBag(batch_size=16, device='cuda', verbose=True, debug=True, cfg=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', extractor='@autopath.gigaq.dinov2.models.BackboneEvaluator()', split='test')).build().read()"
+			dbx "autopath.pancan.bags.FeatureBag(batch_size=16, device='cuda', verbose=True, debug=True, spec=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', extractor='@autopath.gigaq.dinov2.models.BackboneEvaluator()', split='test')).build().read()"
 		#PYTHON:
 			import autopath.pancan.features;featurebag = autopath.pancan.features.FeatureBag(
 				gpu_batch_size=16, verbose=True, debug=True, 
-				cfg=dict(slideshard="@autopath.pancan.images.PancanSlideShard()", 
+				spec=dict(slideshard="@autopath.pancan.images.PancanSlideShard()", 
 						 extractor="@autopath.gigaq.dinov2.backbone.BackboneEvaluator()",
 						 split="test",
 			)).build().read()
@@ -15,7 +15,7 @@
 				gpu_batch_size=16, 
 				verbose=True, 
 				debug=True, 
-				cfg=dict(slidebatch="@autopath.pancan.images.PancanSlideBatch()", 
+				spec=dict(slidebatch="@autopath.pancan.images.PancanSlideBatch()", 
 						 split="test",
 						 max_bag_count=1,
 						 extractor="@autopath.gigaq.dinov2.backbone.BackboneEvaluator()",
@@ -210,7 +210,7 @@ class FeatureBatch(Databatch):
 		slideshardreprs = ["@"+repr(slideshard) for slideshard in slideshards]
 		datablocks = [FeatureBag(
 			root=self.root,
-			cfg=dict(extractor=self.cfg.get('extractor'), slideshard=slideshardrepr, split=self.cfg.get('split')),
+			spec=dict(extractor=self.spec.get('extractor'), slideshard=slideshardrepr, split=self.spec.get('split')),
 			verbose=self.verbose,
 			debug=self.debug,
 			gpu_batch_size=self.gpu_batch_size,

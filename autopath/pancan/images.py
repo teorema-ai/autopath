@@ -142,7 +142,7 @@ class _PancanSlideSplit(Databatch):
         tfrecords_paths = self._all_tfrecords_paths()
         datablocks = [
             PancanSlideShard(
-                cfg=dict(source=tfrecords_path,
+                spec=dict(source=tfrecords_path,
                          train_fraction=self.config.train_fraction,
                          randomize=self.config.randomize,
                          seed=self.config.seed
@@ -361,7 +361,7 @@ class PancanSlideBatch(Databatch):
         tfrecords_paths = self._all_tfrecords_paths()
         datablocks = [
             PancanSlideShard(
-                cfg=dict(source=tfrecords_path,
+                spec=dict(source=tfrecords_path,
                          train_fraction=self.config.train_fraction,
                          randomize=self.config.randomize,
                          seed=self.config.seed
@@ -425,7 +425,7 @@ class PancanSlideBatch(Databatch):
         return tfrecords_paths
 
 
-PANCAN_SLIDE_BATCH_CPTAC = PancanSlideBatch(cfg=dict(source=CPTAC_ROOT, resolution=CPTAC_RESOLUTION))
+PANCAN_SLIDE_BATCH_CPTAC = PancanSlideBatch(spec=dict(source=CPTAC_ROOT, resolution=CPTAC_RESOLUTION))
 
 
 class PancanTileSamples(Dataset):
