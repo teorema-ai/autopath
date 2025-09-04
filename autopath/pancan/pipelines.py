@@ -1,11 +1,23 @@
 import os
 
-from .images import PancanSlideBatch, PancanSlideTilebag, PancanTileDatasets
+from .images import PancanSlideBatch, PancanSlideTilebag, PancanTileDatasets, PancanTileDataset
+
 
 PANCAN_DATASPACE = os.environ.get("PANCAN_DATASPACE", "/mnt/labshare/PERSONAL/dmitry/dbx") 
 PANCAN_CPTAC_ROOT = os.environ.get("PANCAN_CPTAC_ROOT", "/mnt/labshare/SLIDES/CPTAC_downloads")
 PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE = os.path.join(PANCAN_CPTAC_ROOT, "HNSCC/tfrecords/256px_256um/C3L-02621-23.tfrecords")
 PANCAN_CPTAC_RESOLUTION = os.environ.get("PANCAN_CPTAC_RESOLUTION", "256px_256um")
+
+
+def PANCAN_CPTAC_TILE_DATASET_8020_TEST(root=PANCAN_DATASPACE, *, verbose=True, debug=False, gitrepo=None):
+    return PancanTileDataset(root,
+                               spec=dict(datasets="@autopath.pancan.pipelines.PANCAN_CPTAC_TILE_DATASETS_8020()",
+                                         split="test",
+                               ),
+                               verbose=verbose,
+                               debug=debug,
+                               gitrepo=gitrepo,
+    )
 
 
 def PANCAN_CPTAC_TILE_DATASETS_8020(root=PANCAN_DATASPACE, *, verbose=True, debug=False, gitrepo=None):

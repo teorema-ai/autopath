@@ -237,10 +237,10 @@ class PancanTileDataset(Datablock):
 
 	@property
 	def dataset(self):
-		return self.config.datasets(self.config.split, transform=self.config.transform)
+		return self.config.datasets.dataset(self.config.split)
 
 	def valid(self):
-		return self.datasets.valid()
+		return self.config.datasets.valid()
 
 	def __read__(self):
 		return self.dataset
