@@ -81,7 +81,7 @@ class PancanSlideTilebag(Datablock):
 	def tensor(self):
 		if self._tensor is None:
 			tensors = list(self.dataset)
-			self._tensor = torch.stack(tensors)
+			self._tensor = torch.stack(tensors).permute(0, 3, 1, 2)
 		return self._tensor
 
 
