@@ -36,6 +36,7 @@ import time
 from typing import List, Dict, Optional, Union, Tuple, Callable
 
 import fsspec
+import tqdm
 
 import numpy as np
 import pandas as pd
