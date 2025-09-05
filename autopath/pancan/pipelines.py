@@ -1,6 +1,7 @@
 import os
 
-from .images import PancanSlideBatch, PancanSlideTilebag, PancanTileDatasets, PancanTileDataset
+from .images import PancanSlideTilebag, PancanTilesets, PancanTileset
+from .images import PancanSlideBatch # DEPRECATED
 
 
 PANCAN_DATASPACE = os.environ.get("PANCAN_DATASPACE", "/mnt/labshare/PERSONAL/dmitry/dbx") 
@@ -9,19 +10,20 @@ PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE = os.path.join(PANCAN_CPTAC_ROOT, "HNSCC/tfre
 PANCAN_CPTAC_RESOLUTION = os.environ.get("PANCAN_CPTAC_RESOLUTION", "256px_256um")
 
 
-def PANCAN_CPTAC_TILE_DATASET_8020_TEST(root=PANCAN_DATASPACE, *, verbose=True, debug=False, gitrepo=None):
-    return PancanTileDataset(root,
-                               spec=dict(datasets="@autopath.pancan.pipelines.PANCAN_CPTAC_TILE_DATASETS_8020()",
-                                         split="test",
-                               ),
-                               verbose=verbose,
-                               debug=debug,
-                               gitrepo=gitrepo,
+def PANCAN_CPTAC_8020_TEST(root=PANCAN_DATASPACE, *, verbose=True, debug=False, gitrepo=None) -> PancanTileset:
+    return PancanTileset(root,
+                             spec=dict(
+                                datasets=f"@autopath.pancan.pipelines.PANCAN_CPTAC_8020(verbose={verbose}, debug={debug}, gitrepo={repr(gitrepo)})",
+                                split="test",
+                             ),
+                             verbose=verbose,
+                             debug=debug,
+                             gitrepo=gitrepo,
     )
 
 
-def PANCAN_CPTAC_TILE_DATASETS_8020(root=PANCAN_DATASPACE, *, verbose=True, debug=False, gitrepo=None):
-    return PancanTileDatasets(root, 
+def PANCAN_CPTAC_8020(root=PANCAN_DATASPACE, *, verbose=True, debug=False, gitrepo=None) -> PancanTilesets:
+    return PancanTilesets(root, 
                                spec=dict(source=PANCAN_CPTAC_ROOT, 
                                          resolution=PANCAN_CPTAC_RESOLUTION,
                                          train_fraction=0.8,
@@ -32,10 +34,10 @@ def PANCAN_CPTAC_TILE_DATASETS_8020(root=PANCAN_DATASPACE, *, verbose=True, debu
     )
 
 
+def PANCAN_CPTAC_SAMPLE_TILEBAG(root=PANCAN_DATASPACE, *, verbose=True, debug=False, gitrepo=None) -> PancanSlideTilebag:
+    return PancanSlideTilebag(root, verbose=verbose, debug=debug, gitrepo=gitrepo, spec=dict(source=PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE))
 
-def PANCAN_CPTAC_SAMPLE_TILEBAG(root=PANCAN_DATASPACE):
-    return PancanSlideTilebag(root, spec=dict(source=PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE))
 
-
+# DEPRECATED
 def PANCAN_CPTAC_SLIDE_BATCH(root=PANCAN_DATASPACE):
     return PancanSlideBatch(root, spec=dict(source=PANCAN_CPTAC_ROOT, resolution=PANCAN_CPTAC_RESOLUTION))

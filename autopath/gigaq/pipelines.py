@@ -1,8 +1,38 @@
-from ..pancan.features import FeatureBatch
-from .dinov2.backbone import BackboneEvaluator
+import os
 
+from ..pancan.features import FeatureBatch, FeatureSet
+from .dinov2.backbone import BackboneEvaluator
+from ..pancan.features import FeatureSet
+from ..pancan.features import FeatureBatch # DEPRECATED
+
+
+GIGAQ_DATASPACE = os.environ.get("GIGAQ_DATASPACE", "/mnt/labshare/PERSONAL/dmitry/dbx") 
 
 GIGAPATH_BASELINE_BACKBONE_EVALUATOR = BackboneEvaluator
+
+
+def GIGAPATH_BASELINE_CPTAC_8020_TEST_FEATURES(
+    root=GIGAQ_DATASPACE,
+    *,
+    device = 'cuda',
+    gpu_batch_size=16,
+    shard_size: int = 1024,
+    verbose=False,
+    debug=False,
+) -> FeatureSet:
+    return FeatureSet(root,
+                      device=device,
+                      gpu_batch_size=gpu_batch_size,
+                      verbose=verbose,
+                      debug=debug,
+                      spec=dict(extractor="@autopath.gigaq.pipelines.GIGAPATH_BASELINE_BACKBONE_EVALUATOR()",
+                                tileset="@autopath.pancan.pipelines.PANCAN_CPTAC_8020_TEST()",
+                                shard_size=shard_size,
+    ))
+
+
+# DEPRECATED BELOW THIS LINE
+
 
 def GIGAPATH_BASELINE_CPTAC_FEATURES(
     *,

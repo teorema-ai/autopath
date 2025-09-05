@@ -44,6 +44,7 @@ import pyarrow.parquet as pq
 
 
 import torch
+import torch.nn.functional as F
 import rich
 
 import dbx
@@ -54,7 +55,9 @@ from dbx import (
 	DatabatchBuilder,
 	datablock_method,
 )
-from .images import PancanSlideShard, PancanSlideBatch
+
+from .images import PancanTileset
+from .images import PancanSlideShard, PancanSlideBatch # DEPRECATED
 
 #from ..gigaq.dinov2.models import BackboneEvaluator
 
@@ -242,5 +245,90 @@ class FeatureBatch(Databatch):
 		...
 		
 
+class FeatureSet(Datablock):
+	FILE = "features.pt"
+	@dataclass
+	class CONFIG(Datablock.CONFIG):
+		extractor: Callable
+		tileset: PancanTileset
+		shard_size: int
+
+	def __init__(self, 
+				*args, 
+				device: str = 'cuda', 
+				gpu_batch_size: int = 16,
+				**kwargs):
+		self.gpu_batch_size = gpu_batch_size
+		self.device = device
+		super().__init__(*args, **kwargs)
+
+	def __post_init__(self):
+		assert self.config.shard_size % self.gpu_batch_size == 0, "shard_size must be a multiple of gpu_batch_size"
+		self.dataset = self.config.tileset.dataset
+		self.num_shards = math.ceil(len(self.dataset)/self.config.shard_size)
+		self.batches_per_shard = self.config.shard_size//self.gpu_batch_size
+		self.FILES = {'num_shards': 'num_shards.json', **{f"{i}": f"{i:06}.npz" for i in range(self.num_shards)}}
+		return self
+
+	def dataset_slice(self, lo, hi):
+		tensors, labels = zip(*torch.utils.data.Subset(self.dataset, range(lo, hi)))
+		return torch.stack(tensors), labels
+
+	def __build__(self):
+		self.log.verbose(f"Building a feature set from tile dataset of size {len(self.dataset)} with {self.num_shards} shards of size {self.config.shard_size} using {self.gpu_batch_size=}")
+		if self.verbose:
+			shard_itor = tqdm.tqdm(range(self.num_shards))
+		else:
+			shard_itor = range(self.num_shards)
+		for shard_idx in shard_itor:
+			tensor_shard, label_shard = self.dataset_slice(shard_idx*self.config.shard_size, (shard_idx+1)*self.config.shard_size)
+			if self.verbose:
+				batch_itor = tqdm.tqdm(range(self.batches_per_shard))
+			else:
+				batch_itor = range(self.batches_per_shard)
+			feature_shard_batches = []
+			for batch_idx in batch_itor:
+				batch = tensor_shard[batch_idx*self.gpu_batch_size:(batch_idx+1)*self.gpu_batch_size].to(self.device)
+				feature_batch = self.config.extractor(batch).to('cpu')
+				del batch
+				gc.collect()
+				torch.cuda.empty_cache()
+				feature_shard_batches.append(feature_batch)
+			feature_shard = torch.cat(feature_shard_batches)
+			for feature_shard_batch in feature_shard_batches:
+				del feature_shard_batch
+			gc.collect()
+			torch.cuda.empty_cache()
+
+			dbx.write_npz(self.path(shard_idx, ensure_dirpath=True), 
+					      features=feature_shard.numpy(), 
+						  labels=np.array(label_shard))
+			del feature_shard
+			del feature_label_shard
+			gc.collect()
+			torch.cuda.empty_cache()
+		dbx.write_json(self.path('num_shards', ensure_dirpath=True), {'num_shards': self.num_shards})
+		return self
+
+	def __read__(self, topic):
+		if topic == 'num_shards':
+			num_shards = dbx.read_json(self.path('num_shards'))['num_shards']
+			result = num_shards
+		elif topic.isnumeric():
+			feature_shard, label_shard = dbx.read_npz(self.path(topic), 'features', 'labels')
+			result = feature_shard, label_shard
+		else:
+			raise ValueError(f"Invalid topic: {topic}")
+		return result
+
+				
+			
+
+
+
+		
+
+	
+	
 
 

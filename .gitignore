@@ -5,3 +5,4 @@ jupyter.out
 __pycache__
 .ipynb_checkpoints
 *.log
+scratch

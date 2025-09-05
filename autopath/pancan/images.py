@@ -85,7 +85,7 @@ class PancanSlideTilebag(Datablock):
 		return self._tensor
 
 
-class PancanTileDatasets(Datablock): #from PancanSlideBatch
+class PancanTilesets(Datablock): #from PancanSlideBatch
 	FILES = {"train_bag_indices": "train_bag_indices.pt", 
 			 "train_bag_lens":    "train_bag_lens.pt",
 			 "test_bag_indices":  "test_bag_indices.pt",
@@ -99,7 +99,7 @@ class PancanTileDatasets(Datablock): #from PancanSlideBatch
 		seed: int = 42
 
 	class Dataset(torch.utils.data.Dataset): # internalize PancanTileSamples
-		def __init__(self, bags, bag_lens, transform=None, *, verbose: bool = False, debug: bool = False, log = None):
+		def __init__(self, bags, bag_lens=None, transform=None, *, verbose: bool = False, debug: bool = False, log = None):
 			self.bags = bags
 			self._bag_lens = bag_lens
 			self.transform = transform
@@ -114,6 +114,13 @@ class PancanTileDatasets(Datablock): #from PancanSlideBatch
 
 			self._n_bags = len(self.bags)
 			self.log.debug(f"Building dataset out of {self._n_bags} bags")
+			if self._bag_lens is None:
+				if self.verbose:
+					bagsitor = tqdm.tqdm(self.bags)
+					self.log.verbose(f"Computing _bag_lens")
+				else:
+					bagsitor = self.bags
+				self._bag_lens = [len(bag) for bag in bagsitor]
 			self.log.debug(f"Computing _bag_bounds")
 			self._bag_bounds = np.cumsum(self._bag_lens)
 			self.log.debug(f"{self._n_bags=}, {self._bag_bounds=}")
@@ -217,7 +224,7 @@ class PancanTileDatasets(Datablock): #from PancanSlideBatch
 		return bag_lens  	
 			
 	def dataset(self, split, *, transform=None):
-		dataset = PancanTileDatasets.Dataset(
+		dataset = PancanTilesets.Dataset(
 						  bags=self.bags(split), 
 						  bag_lens=self.bag_lens(split), 
 						  transform=transform, 
@@ -228,10 +235,10 @@ class PancanTileDatasets(Datablock): #from PancanSlideBatch
 		return dataset
 
 
-class PancanTileDataset(Datablock):
+class PancanTileset(Datablock):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
-		datasets: PancanTileDatasets
+		datasets: PancanTilesets
 		split: str = "train"
 		transform: Optional[torchvision.transforms.Compose] = None
 
