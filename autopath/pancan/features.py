@@ -304,7 +304,7 @@ class FeatureSet(Datablock):
 			gc.collect()
 			torch.cuda.empty_cache()
 
-			dbx.write_npz(self.path(shard_idx, ensure_dirpath=True), 
+			dbx.write_npz(self.path(f"{shard_idx}", ensure_dirpath=True), 
 					      features=feature_shard.numpy(), 
 						  labels=np.array(label_shard))
 			del feature_shard
@@ -315,6 +315,8 @@ class FeatureSet(Datablock):
 		return self
 
 	def __read__(self, topic):
+		if isinstance(topic, int):
+			topic = f"{topic}"
 		if topic == 'num_shards':
 			num_shards = dbx.read_json(self.path('num_shards'))['num_shards']
 			result = num_shards
