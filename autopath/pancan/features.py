@@ -308,7 +308,6 @@ class FeatureSet(Datablock):
 					      features=feature_shard.numpy(), 
 						  labels=np.array(label_shard))
 			del feature_shard
-			del feature_label_shard
 			gc.collect()
 			torch.cuda.empty_cache()
 		dbx.write_json(self.path('num_shards', ensure_dirpath=True), {'num_shards': self.num_shards})
