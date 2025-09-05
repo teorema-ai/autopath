@@ -15,7 +15,7 @@ def GIGAPATH_BASELINE_CPTAC_8020_TEST_FEATURES(
     root=GIGAQ_DATASPACE,
     *,
     device = 'cuda',
-    gpu_batch_size=8,
+    gpu_batch_size=16,
     shard_size: int = 1024,
     verbose=False,
     debug=False,
