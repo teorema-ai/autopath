@@ -271,6 +271,9 @@ class FeatureSet(Datablock):
 		self.FILES = {'num_shards': 'num_shards.json', **{f"{i}": f"{i:06}.npz" for i in range(self.num_shards)}}
 		return self
 
+	def valid(self):
+		return self.validpath(self.path('num_shards'))
+
 	def dataset_slice(self, lo, hi):
 		tensors, labels = zip(*torch.utils.data.Subset(self.dataset, range(lo, hi)))
 		return torch.stack(tensors), labels
