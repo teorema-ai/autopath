@@ -457,6 +457,3 @@ class BackboneEvaluator:
             z = self.backbone(y).cpu().detach()
             del y
             return z
-
-
-GIGAPATH_TILE_BACKBONE_EVALUATOR = BackboneEvaluator()

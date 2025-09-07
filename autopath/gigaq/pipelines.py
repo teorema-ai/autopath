@@ -1,79 +1,52 @@
 import os
 
-from ..pancan.features import FeatureBatch, FeatureSet
+from ..pancan.features import FeatureBatch, FeatureShard
 from .dinov2.backbone import BackboneEvaluator
-from ..pancan.features import FeatureSet
-from ..pancan.features import FeatureBatch # DEPRECATED
 
 
-GIGAQ_DATASPACE = os.environ.get("GIGAQ_DATASPACE", "/mnt/labshare/PERSONAL/dmitry/dbx") 
-
-GIGAPATH_BASELINE_BACKBONE_EVALUATOR = BackboneEvaluator
+GIGAPATH_DATASPACE = os.environ.get("GIGAPATH_DATASPACE", "/mnt/labshare/PERSONAL/dmitry/dbx") 
 
 
-def GIGAPATH_BASELINE_CPTAC_8020_TEST_FEATURES(
-    root=GIGAQ_DATASPACE,
+def gigapath_backbone_evaluator(name, *, device: str = 'cuda'):
+    match name:
+        case "GIGAPATH_BASELINE_BACKBONE_EVALUATOR":
+            return BackboneEvaluator(device=device)
+        case _:
+            raise ValueError(f"Unknown backbone evaluator: {name}")
+
+
+def gigapath_features(
+    name,
     *,
+    root=GIGAPATH_DATASPACE,
     device = 'cuda',
     gpu_batch_size=1024,
     shard_size: int = 1024,
     verbose=False,
     debug=False,
-) -> FeatureSet:
-    return FeatureSet(root,
+) -> FeatureBatch:
+    match name:
+        case "GIGAPATH_BASELINE_CPTAC_8020_TEST_FEATURES":
+            return FeatureBatch(root,
                       device=device,
                       gpu_batch_size=gpu_batch_size,
                       verbose=verbose,
                       debug=debug,
-                      spec=dict(extractor="@autopath.gigaq.pipelines.GIGAPATH_BASELINE_BACKBONE_EVALUATOR()",
-                                tileset="@autopath.pancan.pipelines.PANCAN_CPTAC_8020_TEST()",
+                      spec=dict(extractor="@autopath.gigaq.pipelines.gigapath_backbone_evaluator('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')#",
+                                tileset="@autopath.pancan.pipelines.pancan_tileset('PANCAN_CPTAC_8020_TEST')#",
                                 shard_size=shard_size,
-    ))
+            ))
+        case "GIGAPATH_BASELINE_CPTAC_9802_TEST_FEATURES":
+            return FeatureBatch(root,
+                      device=device,
+                      gpu_batch_size=gpu_batch_size,
+                      verbose=verbose,
+                      debug=debug,
+                      spec=dict(extractor="@autopath.gigaq.pipelines.gigapath_backbone_evaluator('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')#",
+                                tileset="@autopath.pancan.pipelines.pancan_tileset('PANCAN_CPTAC_9802_TEST')#",
+                                shard_size=shard_size,
+            ))
+        case _:
+            raise ValueError(f"Unknown featureset: {name}")
 
 
-# DEPRECATED BELOW THIS LINE
-
-
-def GIGAPATH_BASELINE_CPTAC_FEATURES(
-    *,
-    num_gpus=None,
-    gpu_batch_size=16,
-    split='test',
-    max_bag_count=None,
-    verbose=True,
-    debug=True,
-):
-    if num_gpus is not None:
-        builder='@autopath.pancan.features.TorchMultiprocessingDatabatchBuilder(num_gpus={num_gpus})'
-    else:
-        builder='@dbx.DatabatchBuilder(verbose=True)'
-    featurebatch = FeatureBatch(
-                spec=dict(extractor="@autopath.gigaq.pipelines.GIGAPATH_BASELINE_BACKBONE_EVALUATOR()",
-                         slidebatch="@autopath.pancan.pipelines.PANCAN_CPTAC_SLIDE_BATCH()", 
-                         split=split,
-                ),
-                builder=builder,
-                gpu_batch_size=gpu_batch_size, 
-                verbose=verbose, 
-                debug=debug, 
-    )
-    return featurebatch
-
-
-def GIGAPATH_BASELINE_CPTAC_TEST_FEATURES(
-    *,
-    num_gpus=None,
-    gpu_batch_size=16,
-    split='test',
-    max_bag_count=None,
-    verbose=True,
-    debug=False,
-):
-    return GIGAPATH_BASELINE_CPTAC_FEATURES(
-        num_gpus=num_gpus,
-        gpu_batch_size=gpu_batch_size,
-        split='test',
-        max_bag_count=None,
-        verbose=verbose,
-        debug=debug
-    )
