@@ -8,10 +8,9 @@ GIGAPATH_DATASPACE = os.environ.get("GIGAPATH_DATASPACE", "/mnt/labshare/PERSONA
 
 
 def gigapath_backbone_evaluator(name, *, device: str = 'cuda'):
-    match name:
-        case "GIGAPATH_BASELINE_BACKBONE_EVALUATOR":
+        if name == "GIGAPATH_BASELINE_BACKBONE_EVALUATOR":
             return BackboneEvaluator(device=device)
-        case _:
+        else:
             raise ValueError(f"Unknown backbone evaluator: {name}")
 
 
@@ -25,8 +24,7 @@ def gigapath_features(
     verbose=False,
     debug=False,
 ) -> FeatureBatch:
-    match name:
-        case "GIGAPATH_BASELINE_CPTAC_8020_TEST_FEATURES":
+        if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_FEATURES":
             return FeatureBatch(root,
                       device=device,
                       gpu_batch_size=gpu_batch_size,
@@ -36,7 +34,7 @@ def gigapath_features(
                                 tileset="@autopath.pancan.pipelines.pancan_tileset('PANCAN_CPTAC_8020_TEST')#",
                                 shard_size=shard_size,
             ))
-        case "GIGAPATH_BASELINE_CPTAC_9802_TEST_FEATURES":
+        elif name == "GIGAPATH_BASELINE_CPTAC_9802_TEST_FEATURES":
             return FeatureBatch(root,
                       device=device,
                       gpu_batch_size=gpu_batch_size,
@@ -46,7 +44,7 @@ def gigapath_features(
                                 tileset="@autopath.pancan.pipelines.pancan_tileset('PANCAN_CPTAC_9802_TEST')#",
                                 shard_size=shard_size,
             ))
-        case _:
+        else:
             raise ValueError(f"Unknown featureset: {name}")
 
 

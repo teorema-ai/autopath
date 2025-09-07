@@ -11,8 +11,7 @@ PANCAN_CPTAC_RESOLUTION = os.environ.get("PANCAN_CPTAC_RESOLUTION", "256px_256um
 
 
 def pancan_tileset(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanTileset:
-    match name:
-        case "PANCAN_CPTAC_8020_TEST":
+    if name == "PANCAN_CPTAC_8020_TEST":
             return PancanTileset(root,
                                     spec=dict(
                                         datasets=f"@autopath.pancan.pipelines.pancan_tilesets('PANCAN_CPTAC_8020', verbose={verbose}, debug={debug}, gitrepo={repr(gitrepo)})",
@@ -22,7 +21,7 @@ def pancan_tileset(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gi
                                     debug=debug,
                                     gitrepo=gitrepo,
             )
-        case "PANCAN_CPTAC_8020_TRAIN":
+    elif name == "PANCAN_CPTAC_8020_TRAIN":
             return PancanTileset(root,
                                     spec=dict(
                                         datasets=f"@autopath.pancan.pipelines.pancan_tilesets('PANCAN_CPTAC_8020', verbose={verbose}, debug={debug}, gitrepo={repr(gitrepo)})",
@@ -32,7 +31,7 @@ def pancan_tileset(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gi
                                     debug=debug,
                                     gitrepo=gitrepo,
             )
-        case "PANCAN_CPTAC_9802_TEST":
+    elif name == "PANCAN_CPTAC_9802_TEST":
             return PancanTileset(root,
                                     spec=dict(
                                         datasets=f"@autopath.pancan.pipelines.pancan_tilesets('PANCAN_CPTAC_9802', verbose={verbose}, debug={debug}, gitrepo={repr(gitrepo)})",
@@ -42,7 +41,7 @@ def pancan_tileset(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gi
                                     debug=debug,
                                     gitrepo=gitrepo,
             )
-        case "PANCAN_CPTAC_9802_TRAIN":
+    elif name == "PANCAN_CPTAC_9802_TRAIN":
             return PancanTileset(root,
                                     spec=dict(
                                         datasets=f"@autopath.pancan.pipelines.pancan_tilesets('PANCAN_CPTAC_9802', verbose={verbose}, debug={debug}, gitrepo={repr(gitrepo)})",
@@ -52,13 +51,12 @@ def pancan_tileset(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gi
                                     debug=debug,
                                     gitrepo=gitrepo,
             )
-        case _:
+    else:
             raise ValueError(f"Unknown tileset: {name}")
 
 
 def pancan_tilesets(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanTilesets:
-    match name:
-        case "PANCAN_CPTAC_8020":   
+        if name == "PANCAN_CPTAC_8020":   
             return PancanTilesets(root, 
                                   spec=dict(source=PANCAN_CPTAC_ROOT, 
                                             resolution=PANCAN_CPTAC_RESOLUTION,
@@ -68,7 +66,7 @@ def pancan_tilesets(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, g
                                   debug=debug,
                                   gitrepo=gitrepo,
             )
-        case "PANCAN_CPTAC_9802":   
+        elif name == "PANCAN_CPTAC_9802":   
             return PancanTilesets(root, 
                                   spec=dict(source=PANCAN_CPTAC_ROOT, 
                                             resolution=PANCAN_CPTAC_RESOLUTION,
@@ -78,20 +76,19 @@ def pancan_tilesets(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, g
                                   debug=debug,
                                   gitrepo=gitrepo,
             )
-        case _:
+        else:
             raise ValueError(f"Unknown tilesets: {name}")
 
 
 def pancan_slide_tilebag(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanSlideTilebag:
-    match name:
-        case "PANCAN_CPTAC_SAMPLE_TILEBAG":     
+        if name == "PANCAN_CPTAC_SAMPLE_TILEBAG":     
             return PancanSlideTilebag(root, 
                                       spec=dict(source=PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE),
                                       verbose=verbose, 
                                       debug=debug, 
                                       gitrepo=gitrepo, 
             )
-        case _:
+        else:
             raise ValueError(f"Unknown slide tilebag: {name}")
 
 

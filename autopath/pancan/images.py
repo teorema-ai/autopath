@@ -22,7 +22,7 @@ import slideflow as sf
 import dbx
 from dbx import Logger, Datablock, Databatch
 
-from autopath.tools import LabeledBagDataset
+from autopath.tools.dataset import LabeledBagDataset
 
 
 logger = Logger()
