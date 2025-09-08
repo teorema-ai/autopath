@@ -70,7 +70,7 @@ class PancanTileBag(Datablock):
 		if topic == 'index':
 			result = np.load(self.path(topic))['arr_0']
 		elif topic == 'tiles':
-			result = self.dataset
+			result = self.tensor
 		else:
 			raise ValueError(f"Unknown topic: {topic}")
 		return result
