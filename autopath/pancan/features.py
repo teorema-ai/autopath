@@ -154,8 +154,7 @@ class FeatureBag(Datablock):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		extractor: Callable
-		slideshard: PancanSlideShard
-		split: str = "test"
+		tilebag: PancanTileBag
 
 	def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -163,13 +162,13 @@ class FeatureBag(Datablock):
 		self.device = 'cuda' #TODO: inline?
 
 	def __post_init__(self):
-		self.origin = self.config.slideshard.origin
-		self.slide = self.config.slideshard.slide
-		self.FILE = f"{self.slide}.pt"
+		self.label = self.config.tilebag.label
+		self.name = self.config.tilebag.name
+		self.FILE = f"{self.name}-features.pt"
 
 	@property
 	def tiles(self):
-		tiles, _, _ = self.config.slideshard.read(self.config.split)
+		tiles, _, _ = self.config.tilebag.read('tiles')
 		return tiles
 
 	def __build__(self):
@@ -192,9 +191,10 @@ class FeatureBag(Datablock):
 
 	def read(self):
 		features = dbx.read_tensor(self.path())
-		return features, self.origin, self.slide
+		return features
 
 
+"""
 class _FeatureBatch(Databatch):
 	DATABLOCK = FeatureBag
 	@dataclass
@@ -381,6 +381,7 @@ class FeatureBatch(Databatch):
 						  log=self.log,
 		)
 		return dataset
+"""
 
 
 				
