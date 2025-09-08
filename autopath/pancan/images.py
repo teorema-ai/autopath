@@ -99,7 +99,7 @@ class PancanTileBag(Datablock):
 		return self._tensor
 
 
-class PancanTilebags(Databatch):
+class PancanTileBags(Databatch):
 	DATABLOCK = PancanTileBag
 	@dataclass
 	class CONFIG:
