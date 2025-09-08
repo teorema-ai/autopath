@@ -9,7 +9,7 @@ PANCAN_CPTAC_SAMPLE = os.path.join(PANCAN_CPTAC, "HNSCC/tfrecords/256px_256um/C3
 PANCAN_CPTAC_RESOLUTION = os.environ.get("PANCAN_CPTAC_RESOLUTION", "256px_256um")
 
 
-def pancan_tilebag(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanSlideTileBag:
+def pancan_tilebag(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanTileBag:
         if name == "PANCAN_CPTAC_SAMPLE":     
             return PancanTileBag(root, 
                                  spec=dict(source=PANCAN_CPTAC_SAMPLE),
