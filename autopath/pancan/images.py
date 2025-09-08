@@ -145,6 +145,10 @@ class PancanTileBags(Databatch):
 	def datablocks(self):
 		return self.bags
 
+	def __build__(self):
+		self.leave_breadcrumbs()
+		return self
+
 
 class PancanTileSets(Datablock): #from PancanSlideBatch
 	FILES = {"train_bag_indices": "train_bag_indices.pt", 

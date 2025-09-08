@@ -47,7 +47,7 @@ def pancan_tilesets(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, g
                                   gitrepo=gitrepo,
             )
         elif name == "PANCAN_CPTAC_9802":   
-            return PancanTilesets(root, 
+            return PancanTileSets(root, 
                                   spec=dict(tilebags=f"@autopath.pancan.pipelines.pancan_tilebags('PANCAN_CPTAC', verbose={verbose}, debug={debug}, gitrepo={repr(gitrepo)})",
                                             train_fraction=0.98,
                                   ),
