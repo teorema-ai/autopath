@@ -208,7 +208,7 @@ class PancanTileSets(Datablock): #from PancanSlideBatch
 		return dataset
 
 
-class PancanTilesSet(Datablock):
+class PancanTileSet(Datablock):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		datasets: PancanTileSets
