@@ -14,7 +14,7 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda'):
             raise ValueError(f"Unknown backbone evaluator: {name}")
 
 
-def gigapath_featurebag(name, *, root=GIGAPATH_DATASPACE, device = 'cuda', gpu_batch_size=1024, verbose=False, debug=False,
+def gigapath_feature_bag(name, *, root=GIGAPATH_DATASPACE, device = 'cuda', gpu_batch_size=1024, verbose=False, debug=False,
 ) -> FeatureBag:
         if name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
             return FeatureBag(root,

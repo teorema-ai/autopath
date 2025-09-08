@@ -1,27 +1,3 @@
-"""
-	Examples:
-		#BASH:
-			dbx "autopath.pancan.bags.FeatureBag(batch_size=16, device='cuda', verbose=True, debug=True, spec=dict(slideshard='@autopath.pancan.tiles.PancanSlideShard()', extractor='@autopath.gigaq.dinov2.models.BackboneEvaluator()', split='test')).build().read()"
-		#PYTHON:
-			import autopath.pancan.features;featurebag = autopath.pancan.features.FeatureBag(
-				gpu_batch_size=16, verbose=True, debug=True, 
-				spec=dict(slideshard="@autopath.pancan.images.PancanSlideShard()", 
-						 extractor="@autopath.gigaq.dinov2.backbone.BackboneEvaluator()",
-						 split="test",
-			)).build().read()
-			#
-			import autopath.pancan.features;featurebag = autopath.pancan.features.FeatureBatch(
-				builder='@autopath.pancan.features.TorchMultiprocessingDatabatchBuilder(num_gpus=1)',
-				gpu_batch_size=16, 
-				verbose=True, 
-				debug=True, 
-				spec=dict(slidebatch="@autopath.pancan.images.PancanSlideBatch()", 
-						 split="test",
-						 max_bag_count=1,
-						 extractor="@autopath.gigaq.dinov2.backbone.BackboneEvaluator()",
-			)).build().read()
-
-"""
 from dataclasses import dataclass, asdict
 import datetime
 import gc
@@ -57,13 +33,7 @@ from dbx import (
 	datablock_method,
 )
 
-from .images import PancanTileset
-from .images import PancanSlideShard, PancanSlideBatch # DEPRECATED
-
-#from ..gigaq.dinov2.models import BackboneEvaluator
-
-DBKSPACE = os.environ.get("DBKSPACE", "/mnt/labshare/PROJECTS/GIGAQ/dbx")
-DBKREPO = os.environ.get("DBKREPO", f"{os.environ.get('HOME')}/autopath")
+from .images import PancanTileBag, PancanTileBags
 
 
 class MultiprocessProgressTracker:
