@@ -131,7 +131,7 @@ class PancanTileBags(Databatch):
 			]
 		))
 		self.allbags = [
-			PancanSlideTilebag(
+			PancanTileBag(
 				self.root,
 				spec=dict(source=slidepath,),
 				verbose=self.verbose,
