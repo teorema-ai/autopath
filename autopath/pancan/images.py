@@ -130,7 +130,7 @@ class PancanTileBags(Databatch):
 				if _is_tfrecords_dir(fs, d, resolution=self.config.resolution)
 			]
 		))
-		self.allbags = [
+		self.bags = [
 			PancanTileBag(
 				self.root,
 				spec=dict(source=slidepath,),
@@ -142,7 +142,7 @@ class PancanTileBags(Databatch):
 		return self
 
 	def datablocks(self):
-		return self.allbags
+		return self.bags
 
 
 class PancanTileSets(Datablock): #from PancanSlideBatch
