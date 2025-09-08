@@ -77,6 +77,10 @@ class PancanTileBag(Datablock):
 
 	def __len__(self):
 		return len(self.read('index'))
+
+	@property
+	def size(self):
+		return len(self)
 	
 	@property
 	def dataset(self): 
