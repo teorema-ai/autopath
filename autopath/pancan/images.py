@@ -324,8 +324,7 @@ class PancanSlideShard(Datablock):
 		return tensor
 
 
-"""
-#TODO: #REMOVE
+#TODO: #REMOVE: #DEPENDENCE: gigaq.dinov2.dataset
 class PancanSlideBatch(Databatch):
 	DATABLOCK = PancanSlideShard
 	FILES = {"train": "train.npy", "test": "test.npy"}
@@ -407,10 +406,10 @@ class PancanSlideBatch(Databatch):
 			tfrecords_paths = tfrecords_paths[:self.config.max_shards]
 		return tfrecords_paths
 
-
+"""
 PANCAN_SLIDE_BATCH_CPTAC = PancanSlideBatch(spec=dict(source=CPTAC_ROOT, resolution=CPTAC_RESOLUTION))
 
-
+#TODO: #REMOVE: #DEPENDENCE: gigaq.dinov2.dataset
 class PancanTileSamples(Dataset):
 	def __init__(self, databatch, *, split, transform=None, verbose: bool = False, debug: bool = False, log = None):
 		self.databatch = databatch

@@ -55,8 +55,9 @@ from torch.nn.init import trunc_normal_
 #from dinov2.layers.attention import Attention
 #from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock, DropPath
 
-from .dataset import dino_tile_transform
-from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, dino_tile_transform
+
+
 
 
 logger = logging.getLogger("gigapath_uq_dinov2")

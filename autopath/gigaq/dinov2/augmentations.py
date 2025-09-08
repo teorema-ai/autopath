@@ -163,3 +163,27 @@ class DataAugmentationDINO(object):
         output["offsets"] = ()
 
         return output
+
+
+def dino_tile_transform(*, resize=256, center_crop=224):
+    all_transforms = []
+    if resize:
+        all_transforms += [
+            transforms.Resize(
+                256 if resize is True else resize,
+                interpolation=transforms.InterpolationMode.BICUBIC),
+        ]
+    if center_crop:
+        all_transforms += [
+            transforms.CenterCrop(
+                224 if center_crop is True else center_crop),
+        ]
+    all_transforms += [
+        transforms.Lambda(lambda x: x / 255.),
+        transforms.Normalize(
+            mean=(0.485, 0.456, 0.406),
+            std=(0.229, 0.224, 0.225))
+    ]
+    transform = transforms.Compose(all_transforms)
+    return transform
+

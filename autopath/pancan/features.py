@@ -126,10 +126,10 @@ class FeatureBag(Datablock):
 		extractor: Callable
 		tilebag: PancanTileBag
 
-	def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
+	def __init__(self, *args, device: str = 'cuda', gpu_batch_size: int = 16, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.gpu_batch_size = gpu_batch_size
-		self.device = 'cuda' #TODO: inline?
+		self.device = device
 
 	def __post_init__(self):
 		self.label = self.config.tilebag.label
