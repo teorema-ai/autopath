@@ -10,6 +10,20 @@ PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE = os.path.join(PANCAN_CPTAC_ROOT, "HNSCC/tfre
 PANCAN_CPTAC_RESOLUTION = os.environ.get("PANCAN_CPTAC_RESOLUTION", "256px_256um")
 
 
+def pancan_tilebag(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanSlideTilebag:
+        if name == "PANCAN_CPTAC_SAMPLE_TILEBAG":     
+            return PancanTileBag(root, 
+                                      spec=dict(source=PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE),
+                                      verbose=verbose, 
+                                      debug=debug, 
+                                      gitrepo=gitrepo, 
+            )
+        else:
+            raise ValueError(f"Unknown slide tilebag: {name}")
+
+
+
+
 def pancan_tileset(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanTileset:
     if name == "PANCAN_CPTAC_8020_TEST":
             return PancanTileset(root,
@@ -78,23 +92,3 @@ def pancan_tilesets(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, g
             )
         else:
             raise ValueError(f"Unknown tilesets: {name}")
-
-
-def pancan_slide_tilebag(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanSlideTilebag:
-        if name == "PANCAN_CPTAC_SAMPLE_TILEBAG":     
-            return PancanSlideTilebag(root, 
-                                      spec=dict(source=PANCAN_CPTAC_SAMPLE_TILEBAG_SOURCE),
-                                      verbose=verbose, 
-                                      debug=debug, 
-                                      gitrepo=gitrepo, 
-            )
-        else:
-            raise ValueError(f"Unknown slide tilebag: {name}")
-
-
-
-
-
-# DEPRECATED
-def PANCAN_CPTAC_SLIDE_BATCH(root=PANCAN_DATASPACE):
-    return PancanSlideBatch(root, spec=dict(source=PANCAN_CPTAC_ROOT, resolution=PANCAN_CPTAC_RESOLUTION))

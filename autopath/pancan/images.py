@@ -41,7 +41,7 @@ class TFRecordDataset(sf.io.TFRecordDataset):
 			return len(self.index)
 
 
-class PancanSlideTilebag(Datablock):
+class PancanTileBag(Datablock):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		source: str
@@ -50,7 +50,7 @@ class PancanSlideTilebag(Datablock):
 		root, tail = self.config.source.split('/tfrecords/')
 		self.label = root.split('/')[-1] #cancer
 		self.resolution, records = tail.split('/')
-		self.slide, _  = os.path.splitext(records)
+		self.name, _  = os.path.splitext(records)
 		tilesfile = os.path.basename(self.config.source)
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
 		self.FILES = {'index': indexfile, 'tiles': tilesfile}
@@ -65,6 +65,18 @@ class PancanSlideTilebag(Datablock):
 
 	def UNSAFE_clear(self):
 		raise ValueError(f"Read-Only datablock: {self}")
+
+	def __read__(self, topic):
+		if topic == 'index':
+			result = np.load(self.path(topic))['arr_0']
+		elif topic == 'tiles':
+			result = self.dataset
+		else:
+			raise ValueError(f"Unknown topic: {topic}")
+		return result
+
+	def __len__(self):
+		return len(self.read('index'))
 	
 	@property
 	def dataset(self): 
@@ -87,18 +99,12 @@ class PancanSlideTilebag(Datablock):
 		return self._tensor
 
 
-class PancanTilesets(Datablock): #from PancanSlideBatch
-	FILES = {"train_bag_indices": "train_bag_indices.pt", 
-			 "train_bag_lens":    "train_bag_lens.pt",
-			 "test_bag_indices":  "test_bag_indices.pt",
-			 "test_bag_lens":     "test_bag_lens.pt",
-	}
+class PancanTilebags(Databatch):
+	DATABLOCK = PancanTileBag
 	@dataclass
 	class CONFIG:
 		source: str
 		resolution: str
-		train_fraction: float = 0.8
-		seed: int = 42
 
 	def __post_init__(self):
 		def _is_tfrecords_dir(fs, d, resolution=CPTAC_RESOLUTION):
@@ -129,6 +135,26 @@ class PancanTilesets(Datablock): #from PancanSlideBatch
 			)
 			for slidepath in slidepaths
 		]
+		return self
+
+	def datablocks(self):
+		return self.allbags
+
+
+class PancanTilesets(Datablock): #from PancanSlideBatch
+	FILES = {"train_bag_indices": "train_bag_indices.pt", 
+			 "train_bag_lens":    "train_bag_lens.pt",
+			 "test_bag_indices":  "test_bag_indices.pt",
+			 "test_bag_lens":     "test_bag_lens.pt",
+	}
+	@dataclass
+	class CONFIG:
+		tilebags: PancanTilebags
+		train_fraction: float = 0.8
+		seed: int = 42
+
+	def __post_init__(self):
+		self.allbags = self.config.tilebags.datablocks()
 		return self
 
 	def __build__(self):
@@ -200,6 +226,7 @@ class PancanTileset(Datablock):
 		return self.dataset
 
 
+"""
 class PancanSlideShard(Datablock):
 	FILES = {'train': None, 'test': None}
 	@dataclass
@@ -397,7 +424,6 @@ class PancanTileSamples(Dataset):
 		self._shard_cancer = None
 		self._shard_slide = None
 
-
 	@functools.lru_cache(maxsize=3)
 	def shard(self, shard_idx):
 		if shard_idx != self._shard_idx:
@@ -420,5 +446,6 @@ class PancanTileSamples(Dataset):
 		if self.transform is not None:
 			sample = self.transform(sample)
 		return sample, target
+"""
 
 	
