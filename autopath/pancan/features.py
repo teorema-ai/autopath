@@ -165,6 +165,7 @@ class FeatureBag(Datablock):
 
 
 """
+#TODO: #REMOVE
 class _FeatureBatch(Databatch):
 	DATABLOCK = FeatureBag
 	@dataclass

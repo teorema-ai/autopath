@@ -236,6 +236,7 @@ class PancanTileSet(Datablock):
 
 
 """
+#TODO: #REMOVE
 class PancanSlideShard(Datablock):
 	FILES = {'train': None, 'test': None}
 	@dataclass
