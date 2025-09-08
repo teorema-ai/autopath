@@ -141,7 +141,7 @@ class PancanTileBags(Databatch):
 		return self.allbags
 
 
-class PancanTilesets(Datablock): #from PancanSlideBatch
+class PancanTileSets(Datablock): #from PancanSlideBatch
 	FILES = {"train_bag_indices": "train_bag_indices.pt", 
 			 "train_bag_lens":    "train_bag_lens.pt",
 			 "test_bag_indices":  "test_bag_indices.pt",
@@ -149,7 +149,7 @@ class PancanTilesets(Datablock): #from PancanSlideBatch
 	}
 	@dataclass
 	class CONFIG:
-		tilebags: PancanTilebags
+		tilebags: PancanTileBags
 		train_fraction: float = 0.8
 		seed: int = 42
 
@@ -208,10 +208,10 @@ class PancanTilesets(Datablock): #from PancanSlideBatch
 		return dataset
 
 
-class PancanTileset(Datablock):
+class PancanTilesSet(Datablock):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
-		datasets: PancanTilesets
+		datasets: PancanTileSets
 		split: str = "train"
 		transform: Optional[torchvision.transforms.Compose] = None
 
