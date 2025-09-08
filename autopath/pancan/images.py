@@ -104,6 +104,7 @@ class PancanTileBag(Datablock):
 
 
 class PancanTileBags(Databatch):
+	FILE = "breadcrumbs"
 	DATABLOCK = PancanTileBag
 	@dataclass
 	class CONFIG:
