@@ -21,7 +21,7 @@ def pancan_tilebag(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gi
             raise ValueError(f"Unknown slide tilebag: {name}")
 
 
-def pancan_tilebags(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanSlideTileBags:
+def pancan_tilebags(name, *, root=PANCAN_DATASPACE, verbose=True, debug=False, gitrepo=None) -> PancanTileBags:
         if name == "PANCAN_CPTAC":     
             return PancanTileBags(root, 
                                  spec=dict(
