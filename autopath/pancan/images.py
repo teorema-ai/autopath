@@ -235,8 +235,7 @@ class PancanTileSet(Datablock):
 		return self.dataset
 
 
-"""
-#TODO: #REMOVE
+#TODO: #REMOVE: #DEPENDENCE: gigaq.dinov2.dataset
 class PancanSlideShard(Datablock):
 	FILES = {'train': None, 'test': None}
 	@dataclass
@@ -325,6 +324,8 @@ class PancanSlideShard(Datablock):
 		return tensor
 
 
+"""
+#TODO: #REMOVE
 class PancanSlideBatch(Databatch):
 	DATABLOCK = PancanSlideShard
 	FILES = {"train": "train.npy", "test": "test.npy"}
