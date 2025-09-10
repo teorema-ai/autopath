@@ -22,7 +22,7 @@ def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=512,) -> Featu
         ))
 
 
-def gigapath_feature_bags(name, *, device = 'cuda', gpu_batch_size=512) -> FeatureBags:
+def gigapath_feature_bags(name, *, device = 'cuda', gpu_batch_size=1024) -> FeatureBags:
     if name == "GIGAPATH_BASELINE_PANCAN_CPTAC_9802_TEST":
         return FeatureBags(
                     device=device,
