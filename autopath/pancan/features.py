@@ -104,6 +104,9 @@ class FeatureBags(Datablock):
 		else:
 			featurebag_itor = self.bags
 		for featurebag in featurebag_itor:
+			if featurebag.valid():
+				self.log.verbose(f"Skipping existing featurebag {featurebag.hashpath()}")
+				continue
 			bag_len = self.__build_bag__(featurebag)
 			bag_lens.append(bag_len)
 		dbx.write_tensor(torch.tensor(bag_lens), self.path('bag_lens', ensure_dirpath=True))
