@@ -26,6 +26,17 @@ def gigapath_feature_bag(name, *, root=GIGAPATH_DATASPACE, device = 'cuda', gpu_
                                 tilebag="@autopath.pancan.pipelines.pancan_tilebag('PANCAN_CPTAC_SAMPLE')#",
             ))
 
+def gigapath_feature_bags(name, *, root=GIGAPATH_DATASPACE, device = 'cuda', gpu_batch_size=1024, verbose=False, debug=False,
+) -> FeatureBags:
+        if name == "GIGAPATH_BASELINE_PANCAN_CPTAC":
+            return FeatureBags(root,
+                      device=device,
+                      gpu_batch_size=gpu_batch_size,
+                      verbose=verbose,
+                      debug=debug,
+                      spec=dict(extractor="@autopath.gigaq.pipelines.gigapath_backbone_evaluator('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')#",
+                                tilebags="@autopath.pancan.pipelines.pancan_tilebags('PANCAN_CPTAC_9802_TEST')#",
+            ))
 """
 def gigapath_features(
     name,

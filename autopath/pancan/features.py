@@ -138,7 +138,7 @@ class FeatureBag(Datablock):
 
 	@property
 	def tiles(self):
-		tiles, _, _ = self.config.tilebag.read('tiles')
+		tiles = self.config.tilebag.read('tiles')
 		return tiles
 
 	def __build__(self):
@@ -162,6 +162,39 @@ class FeatureBag(Datablock):
 	def read(self):
 		features = dbx.read_tensor(self.path())
 		return features
+
+
+class FeatureBags(Databatch):
+	DATABLOCK = FeatureBag
+	FILE = "breadcrumbs"
+	@dataclass
+	class CONFIG(Datablock.CONFIG):
+		extractor: Callable
+		tilebags: PancanTileBags
+
+	def __init__(self, *args, device: str = 'cuda', gpu_batch_size: int = 16, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.gpu_batch_size = gpu_batch_size
+		self.device = device
+
+	def datablocks(self):
+		return [FeatureBag(root=self.root, 
+						   device=self.device,
+						   gpu_batch_size=self.gpu_batch_size,
+						   spec=dict(extractor=self.spec.get('extractor'), tilebag=tilebag),
+						   verbose=self.verbose,
+						   debug=self.debug,
+						   )
+				for tilebag in self.config.tilebags.datablocks()
+		]
+	
+	def __build__(self):
+		self.leave_breadcrumbs()
+		return self
+
+	@property
+	def bags(self):
+		return self.datablocks()
 
 
 """
