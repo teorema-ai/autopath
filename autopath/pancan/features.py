@@ -1,5 +1,6 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 import datetime
+import functools
 import gc
 import json
 import math
@@ -9,7 +10,8 @@ import pickle
 import sys
 import threading
 import time
-from typing import List, Dict, Optional, Union, Tuple, Callable
+from typing import List, Dict, Optional, Union, Tuple, Callable, Sequence
+
 
 import fsspec
 import tqdm
@@ -33,98 +35,44 @@ from dbx import (
 	datablock_method,
 )
 
-from .images import PancanTileBag, PancanTileBags
-
-
-class MultiprocessProgressTracker:
-	"""Wrapper for a rich.progress tracker that can be shared across processes."""
-
-	def __init__(self, tasks):
-		ctx = mp.get_context('spawn')
-		self.mp_values = {
-			task.id: ctx.Value('i', task.completed)
-			for task in tasks
-		}
-
-	def advance(self, id, amount):
-		with self.mp_values[id].get_lock():
-			self.mp_values[id].value += amount
-
-	def __getitem__(self, id):
-		return self.mp_values[id].value
-
-
-class MultiprocessProgress:
-	"""Wrapper for a rich.progress bar that can be shared across processes."""
-
-	def __init__(self, pb):
-		self.pb = pb
-		self.tracker = MultiprocessProgressTracker(self.pb.tasks)
-		self.should_stop = False
-
-	def _update_progress(self):
-		while not self.should_stop:
-			for task in self.pb.tasks:
-				self.pb.update(task.id, completed=self.tracker[task.id])
-			time.sleep(0.1)
-
-	def __enter__(self):
-		self._thread = threading.Thread(target=self._update_progress)
-		self._thread.start()
-		return self
-
-	def __exit__(self, *args):
-		self.should_stop = True
-		self._thread.join()
-
-
-def datablock_method_multiprocessing(
-		id,
-		datablock_method_args_kwargs_list,
-		progress_bar=None,
-		progress_task=None,
-):
-		args, kwargs = datablock_method_args_kwargs_list[id]
-		result = datablock_method(*args, **kwargs)
-		if progress_bar is not None and progress_task is not None:
-			progress_bar.advance(progress_task, 1)
-		return result
-	
-
-class TorchMultiprocessingDatabatchBuilder(DatabatchBuilder):
-	def __init__(self, *, num_gpus: int = 1):
-		self.num_gpus = num_gpus
-	
-	def __call__(self, datablock_method_args_kwargs_list):
-		N = len(datablock_method_args_kwargs_list)
-		pb = rich.progress.Progress() 
-		pb.add_task(
-			"Speed: ",
-			progress_type="speed",
-			total=None
-		)
-		slide_task = pb.add_task(
-			"Building {datablock_cls.__name__} ...",
-			progress_type="slide_progress",
-			total=N,
-		)
-		pb.start()
-		with MultiprocessProgress(pb) as mp_pb:
-			torch.multiprocessing.spawn(
-				datablock_method_multiprocessing,
-				args=(datablock_method_args_kwargs_list,
-					  mp_pb.tracker,
-					  slide_task,
-				),       
-				nprocs=self.num_gpus,
-			)
+from .tiles import PancanTileBag, PancanTileBatch
 
 
 class FeatureBag(Datablock):
+	VERSION = 1
+	@dataclass
+	class CONFIG(Datablock.CONFIG):
+		tilebag: PancanTileBag
+
+	def __post_init__(self):
+		self.name = self.config.tilebag.name
+		self.label = self.config.tilebag.label
+		self.FILE = f"{self.name}-features.pt"
+
+	def store(self, features):
+		self.__pre_build__()
+		dbx.write_tensor(features, self.path(ensure_dirpath=True))
+		self._write_journal_entry(event="store")
+		self.__post_build__()
+		return self
+
+	def read(self):
+		features = dbx.read_tensor(self.path())
+		return features
+
+	def features(self):
+		return self.read()
+
+
+class FeatureBags(Datablock):
+	VERSION = 1
+	FILES = {'bag_lens': 'bag_lens.pt'}
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		extractor: Callable
-		tilebag: PancanTileBag
+		tilebatch: PancanTileBatch
+		lo: int = 0
+		hi: Optional[int] = None
 
 	def __init__(self, *args, device: str = 'cuda', gpu_batch_size: int = 16, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -132,23 +80,43 @@ class FeatureBag(Datablock):
 		self.device = device
 
 	def __post_init__(self):
-		self.label = self.config.tilebag.label
-		self.name = self.config.tilebag.name
-		self.FILE = f"{self.name}-features.pt"
+		if self.config.hi is None:
+			self.config = replace(self.config, hi=len(self.config.tilebatch))
+		return self
 
-	@property
-	def tiles(self):
-		tiles = self.config.tilebag.read('tiles')
-		return tiles
+	@functools.cached_property
+	def bags(self):
+		featurebags = [FeatureBag(root=self.root if not self._autoroot else None,
+								  spec=dict(tilebag=dbx.quote(tilebag)))
+						for tilebag in self.config.tilebatch.datablocks()[self.config.lo:self.config.hi]
+		]
+		return featurebags
+
+	def __len__(self):
+		return len(self.bags)
 
 	def __build__(self):
-		tiles = self.tiles
+		"""Single-process, but, potentially, a multithreaded build."""
+		bag_lens = []
+		self.log.verbose("Building {len(bags)} feature bags")
+		if self.verbose:
+			featurebag_itor = tqdm.tqdm(self.bags)
+		else:
+			featurebag_itor = self.bags
+		for featurebag in featurebag_itor:
+			bag_len = self.__build_bag__(featurebag)
+			bag_lens.append(bag_len)
+		dbx.write_tensor(torch.tensor(bag_lens), self.path('bag_lens', ensure_dirpath=True))
+		return self
+
+	def __build_bag__(self, featurebag: FeatureBag):
+		tilebag = featurebag.config.tilebag
 		feature_list = []
-		for k in range(math.ceil(len(tiles)/self.gpu_batch_size)):
+		for k in range(math.ceil(len(tilebag.tiles)/self.gpu_batch_size)):
 			m = k*self.gpu_batch_size
-			n = min((k+1)*self.gpu_batch_size, len(tiles))
-			batch = tiles[m:n].to(self.device)
-			self.log.debug(f"Evaluating batch {k}: {m}:{n} out of {len(tiles)} on device: {self.device}...")
+			n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
+			batch = tilebag.tiles[m:n].to(self.device)
+			self.log.debug(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {self.device}...")
 			features_ = self.config.extractor(batch).to('cpu')
 			del batch
 			gc.collect()
@@ -156,45 +124,18 @@ class FeatureBag(Datablock):
 			self.log.debug(f"done")
 			feature_list.append(features_)
 		features = torch.cat(feature_list)
-		dbx.write_tensor(features, self.path(ensure_dirpath=True))
-		return self
+		#
+		featurebag.store(features)
+		return len(features)
 
-	def read(self):
-		features = dbx.read_tensor(self.path())
-		return features
+	def __read__(self, topic):
+		assert topic == "bag_lens", f"Unknown topic: {topic}"
+		bag_lens = dbx.read_tensor(self.path(topic))
+		return bag_lens
 
-
-class FeatureBags(Databatch):
-	DATABLOCK = FeatureBag
-	FILE = "breadcrumbs"
-	@dataclass
-	class CONFIG(Datablock.CONFIG):
-		extractor: Callable
-		tilebags: PancanTileBags
-
-	def __init__(self, *args, device: str = 'cuda', gpu_batch_size: int = 16, **kwargs):
-		super().__init__(*args, **kwargs)
-		self.gpu_batch_size = gpu_batch_size
-		self.device = device
-
-	def datablocks(self):
-		return [FeatureBag(root=self.root, 
-						   device=self.device,
-						   gpu_batch_size=self.gpu_batch_size,
-						   spec=dict(extractor=self.spec.get('extractor'), tilebag=tilebag),
-						   verbose=self.verbose,
-						   debug=self.debug,
-						   )
-				for tilebag in self.config.tilebags.datablocks()
-		]
-	
-	def __build__(self):
-		self.leave_breadcrumbs()
-		return self
-
-	@property
-	def bags(self):
-		return self.datablocks()
+	@functools.cached_property
+	def bag_lens(self):
+		return self.read('bag_lens')
 
 
 """
