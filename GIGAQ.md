@@ -94,6 +94,5 @@ pip install torch torchvision torchaudio --extra-index-url https://download.pyto
 conda activate autopath
 pip install tensorboard
 tmux # tensorboard
-cd ~/autopath
-mkdir tensorboard
+# cd /path/to/tensorboard/dir/.. # dbx.print "autopath.gigaq.dinov2.pipelines.gigaq_still('BASELINE_CPTAC_8020_TRAIN').dirpath('tensorboard')"
 nohup tensorboard --logdir=tensorboard > tensorboard.out &

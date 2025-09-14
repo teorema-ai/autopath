@@ -3,6 +3,7 @@
 # This source code is licensed under the Apache License, Version 2.0
 # found in the LICENSE file in the root directory of this source tree.
 
+from dataclasses import dataclass, field, asdict
 from functools import partial
 import logging
 
@@ -446,7 +447,7 @@ class SSL(nn.Module):
         # below will synchronize all student subnetworks across gpus:
         for k, v in self.student.items():
             self.teacher[k].load_state_dict(self.student[k].state_dict())
-            student_model_cfg = self.cfg.compute_precision.student[k]
+            student_model_cfg = getattr(self.cfg.compute_precision.student, k)
             self.student[k] = get_fsdp_wrapper(student_model_cfg, modules_to_wrap={BlockChunk})(self.student[k])
-            teacher_model_cfg = self.cfg.compute_precision.teacher[k]
+            teacher_model_cfg = getattr(self.cfg.compute_precision.teacher, k)
             self.teacher[k] = get_fsdp_wrapper(teacher_model_cfg, modules_to_wrap={BlockChunk})(self.teacher[k])

@@ -35,8 +35,6 @@ from dinov2.logging import MetricLogger
 from dinov2.utils.utils import CosineScheduler
 
 from .ssl import SSL
-from .dataset import pancan_tilesamples
-from .dataloader import make_dataloader
 from .cfg import make_cfg
 from . import distributed
 
@@ -118,7 +116,7 @@ def do_test(cfg, model, iteration):
         torch.save({"teacher": new_state_dict}, teacher_ckp_path)
         
 
-def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
+def do_train(cfg, model, data_loader, resume=False, *, verbose=True, debug=False):
     writer = SummaryWriter(os.path.join(cfg.train.output_dir, 'tensorboard'))
     model.train()
     inputs_dtype = torch.half
@@ -147,58 +145,6 @@ def do_train(cfg, model, resume=False, *, verbose=True, debug=False):
         period=3 * OFFICIAL_EPOCH_LENGTH,
         max_iter=max_iter,
         max_to_keep=3,
-    )
-
-    # setup data preprocessing
-
-    img_size = cfg.crops.global_crops_size
-    patch_size = cfg.student.patch_size
-    n_tokens = (img_size // patch_size) ** 2
-    mask_generator = MaskingGenerator(
-        input_size=(img_size // patch_size, img_size // patch_size),
-        max_num_patches=0.5 * img_size // patch_size * img_size // patch_size,
-    )
-
-    data_transform = DataAugmentationDINO(
-        cfg.crops.global_crops_scale,
-        cfg.crops.local_crops_scale,
-        cfg.crops.local_crops_number,
-        global_crops_size=cfg.crops.global_crops_size,
-        local_crops_size=cfg.crops.local_crops_size,
-    )
-
-    collate_fn = partial(
-        collate_data_and_cast,
-        mask_ratio_tuple=cfg.ibot.mask_ratio_min_max,
-        mask_probability=cfg.ibot.mask_sample_probability,
-        n_tokens=n_tokens,
-        mask_generator=mask_generator,
-        dtype=inputs_dtype,
-    )
-
-    # setup data loader
-    dataset = pancan_tilesamples(
-        path=cfg.train.dataset_path,
-        resolution=cfg.train.dataset_resolution,
-        split=cfg.train.dataset_split,
-        train_fraction=cfg.train.dataset_train_fraction,
-        seed=cfg.train.dataset_seed,
-        verbose=verbose,
-        debug=debug,
-    )
-    # sampler_type = SamplerType.INFINITE
-    #sampler_type = SamplerType.SHARDED_INFINITE #TODO: #FIX
-    sampler_type = None
-    data_loader = make_dataloader(
-        dataset=dataset,
-        batch_size=cfg.train.batch_size_per_gpu,
-        num_workers=cfg.train.num_workers,
-        shuffle=True,
-        start_iter=start_iter,  # TODO: Fix this -- cfg.train.seed
-        sampler_type=sampler_type,
-        sampler_advance=0,  # TODO(qas): fix this -- start_iter * cfg.train.batch_size_per_gpu,
-        drop_last=True,
-        collate_fn=collate_fn,
     )
 
     # training loop

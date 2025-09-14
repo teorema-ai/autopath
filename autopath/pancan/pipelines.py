@@ -9,8 +9,8 @@ PANCAN_CPTAC_RESOLUTION = os.environ.get("PANCAN_CPTAC_RESOLUTION", "256px_256um
 
 
 def pancan_tile_bag(name) -> PancanTileBag:
-    if name == "PANCAN_CPTAC_SAMPLE":     
-        return PancanTileBag(spec=dict(source=PANCAN_CPTAC_SAMPLE))
+    if name == "CPTAC_SAMPLE":     
+        return PancanTileBag(spec=dict(source=CPTAC_SAMPLE))
     else:
         raise ValueError(f"Unknown tile_bag: {name}")
 
@@ -26,11 +26,11 @@ def pancan_tile_batch(name) -> PancanTileBatch:
 
 
 def pancan_tile_split(name) -> PancanTileSplit:
-    if name == "PANCAN_CPTAC_8020":   
+    if name == "CPTAC_8020":   
         return PancanTileSplit(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_batch('PANCAN_CPTAC')",
                                          train_fraction=0.8)
         )
-    elif name == "PANCAN_CPTAC_9802":   
+    elif name == "CPTAC_9802":   
         return PancanTileSplit(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_batch('PANCAN_CPTAC')",
                                          train_fraction=0.98)
         )
@@ -39,26 +39,26 @@ def pancan_tile_split(name) -> PancanTileSplit:
 
 
 def pancan_tile_fold(name) -> PancanTileFold:
-    if name == "PANCAN_CPTAC_8020_TEST":   
-        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('PANCAN_CPTAC_8020')", fold='test'))
-    elif name == "PANCAN_CPTAC_8020_TRAIN":   
-        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('PANCAN_CPTAC_8020')", fold='train'))
-    elif name == "PANCAN_CPTAC_9802_TEST":   
-        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('PANCAN_CPTAC_9802')", fold='test'))
-    elif name == "PANCAN_CPTAC_9802_TRAIN":   
-        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('PANCAN_CPTAC_9802')", fold='train'))
+    if name == "CPTAC_8020_TEST":   
+        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('CPTAC_8020')", fold='test'))
+    elif name == "CPTAC_8020_TRAIN":   
+        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('CPTAC_8020')", fold='train'))
+    elif name == "CPTAC_9802_TEST":   
+        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('CPTAC_9802')", fold='test'))
+    elif name == "CPTAC_9802_TRAIN":   
+        return PancanTileFold(spec=dict(tilesplit=f"@autopath.pancan.pipelines.pancan_tile_split('CPTAC_9802')", fold='train'))
     else:
         raise ValueError(f"Unknown tile_fold: {name}")
 
 
 def pancan_tile_set(name) -> PancanTileSet:
-    if name == "PANCAN_CPTAC_8020_TEST":
-        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('PANCAN_CPTAC_8020_TEST')",))
-    elif name == "PANCAN_CPTAC_8020_TRAIN":
-        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('PANCAN_CPTAC_8020_TRAIN')",))
-    elif name == "PANCAN_CPTAC_9802_TEST":
-        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('PANCAN_CPTAC_9802_TEST')",))
-    elif name == "PANCAN_CPTAC_9802_TRAIN":
-        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('PANCAN_CPTAC_9802_TRAIN')",))
+    if name == "CPTAC_8020_TEST":
+        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')",))
+    elif name == "CPTAC_8020_TRAIN":
+        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TRAIN')",))
+    elif name == "CPTAC_9802_TEST":
+        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')",))
+    elif name == "CPTAC_9802_TRAIN":
+        return PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TRAIN')",))
     else:
         raise ValueError(f"Unknown tile_set: {name}")

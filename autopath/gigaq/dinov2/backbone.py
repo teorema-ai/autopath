@@ -43,21 +43,16 @@ import timm
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.linear_model import LogisticRegression
 
-import slideflow as sf
-from slideflow.model.extractors.gigapath import GigapathTileFeatures
-
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint
 from torch.nn.init import trunc_normal_
 
-
+from dinov2.models.vision_transformer import DinoVisionTransformer
 #from dinov2.layers.attention import Attention
 #from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock, DropPath
 
 from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, dino_tile_transform
-
-
 
 
 logger = logging.getLogger("gigapath_uq_dinov2")
@@ -122,9 +117,7 @@ def gigapath_tensor_block_class():
     return GigapathTensorBlock
 
 
-def gigapath_vision_transformer_class():
-    from dinov2.models.vision_transformer import DinoVisionTransformer
-    class GigapathVisionTransformer(DinoVisionTransformer):
+class GigapathVisionTransformer(DinoVisionTransformer):
         def __init__(
             self, 
             *,
@@ -246,6 +239,9 @@ def gigapath_vision_transformer_class():
                 )
 
             return x
+
+            
+def gigapath_vision_transformer_class():
     return GigapathVisionTransformer
 
 
