@@ -22,7 +22,7 @@ import slideflow as sf
 import dbx
 from dbx import Logger, Datablock, Databatch
 
-from autopath.tools.dataset import BagDataset
+from autopath.tools.dataset import ShardDataset
 
 
 logger = Logger()
@@ -49,7 +49,7 @@ class PancanTileBag(Datablock):
 		self.name, _  = os.path.splitext(records)
 		tilesfile = os.path.basename(self.config.source)
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
-		self.FILES = {'index': indexfile, 'tiles': tilesfile}
+		self.FILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}
 		self._dirpath = os.path.dirname(self.config.source)
 		self._tensor = None
 
@@ -57,7 +57,7 @@ class PancanTileBag(Datablock):
 		return self._dirpath
 
 	def path(self, topic, *, ensure_dirpath: bool = False):
-		return os.path.join(self._dirpath, self.FILES[topic])
+		return os.path.join(self._dirpath, self.FILES[topic]) if self.FILES[topic] is not None else None
 
 	def UNSAFE_clear(self):
 		raise ValueError(f"Read-Only datablock: {self}")
@@ -67,6 +67,8 @@ class PancanTileBag(Datablock):
 			result = np.load(self.path(topic))['arr_0']
 		elif topic == 'tiles':
 			result = self.tiles
+		elif topic == 'labels':
+			result = np.array([self.label]*len(self))
 		else:
 			raise ValueError(f"Unknown topic: {topic}")
 		return result
@@ -91,7 +93,7 @@ class PancanTileBag(Datablock):
 		dataset = TFRecordDataset(self.path('tiles'), self.path('index'), transform=transform)
 		return dataset
 	
-	@property
+	@functools.cached_property
 	def tensor(self):
 		if self._tensor is None:
 			tensors = list(self.dataset)
@@ -102,10 +104,27 @@ class PancanTileBag(Datablock):
 	def tiles(self):
 		return self.tensor
 
+	@functools.cached_property
+	def labels(self):
+		return self.read('labels')
 
-class PancanTileBatch(Databatch):
-	FILE = "bag_lens.npz"
+
+class PancanTileShards:
+	def __len__(self):
+		return len(self.shards)
+
+	@functools.cached_property
+	def shards(self):
+		raise NotImplementedError
+
+	@functools.cached_property
+	def shards_lens(self):
+		raise NotImplementedError
+
+
+class PancanTileBatch(Databatch, PancanTileShards):
 	DATABLOCK = PancanTileBag
+	FILE = "shard_lens.npz"
 	@dataclass
 	class CONFIG:
 		source: str
@@ -133,18 +152,6 @@ class PancanTileBatch(Databatch):
 		))
 		return self
 
-	def __len__(self):
-		return len(self.bags)
-
-	@functools.cached_property
-	def bags(self):
-		return self.datablocks()
-
-	@functools.cached_property
-	def bag_lens(self):
-		bag_lens = self.read()
-		return bag_lens 
-
 	@functools.lru_cache(maxsize=1)
 	def datablocks(self):
 		return [
@@ -157,26 +164,46 @@ class PancanTileBatch(Databatch):
 			for bagpath in self.bagpaths
 		]
 
+	@functools.cached_property
+	def shards(self):
+		return self.datablocks()
+
+	@functools.cached_property
+	def shard_lens(self):
+		shard_lens = self.read()
+		return shard_lens 
+
+	@property
+	def bags(self):
+		return self.shards
+
+	@property
+	def bag_lens(self):
+		return self.shard_lens
+
+	def __len__(self):
+		return len(self.shards)
+	
 	def __build__(self):
-		self.log.verbose(f"Computing bag lens")
+		self.log.verbose(f"Computing shard lens")
 		if self.verbose:
-			bagsitor = tqdm.tqdm(self.datablocks())
+			shardsitor = tqdm.tqdm(self.datablocks())
 		else:
-			bagsitor = self.datablocks()
-		bag_lens = [len(bag) for bag in bagsitor]
-		dbx.write_npz(self.path(), bag_lens=bag_lens)
+			shardsitor = self.datablocks()
+		shard_lens = [len(shard) for shard in shardsitor]
+		dbx.write_npz(self.path(), shard_lens=shard_lens)
 		return self
 
 	def __read__(self):
-		bag_lens = dbx.read_npz(self.path(), 'bag_lens')[0]
-		return bag_lens
+		shard_lens = dbx.read_npz(self.path(), 'shard_lens')[0]
+		return shard_lens
 
 
 class PancanTileSplit(Datablock):
-	FILES = {"train_bag_indices": "train_bag_indices.pt", 
-			 "train_bag_lens":    "train_bag_lens.pt",
-			 "test_bag_indices":  "test_bag_indices.pt",
-			 "test_bag_lens":     "test_bag_lens.pt",
+	FILES = {"train_shard_indices": "train_shard_indices.pt", 
+			 "train_shard_lens":    "train_shard_lens.pt",
+			 "test_shard_indices":  "test_shard_indices.pt",
+			 "test_shard_lens":     "test_shard_lens.pt",
 	}
 	@dataclass
 	class CONFIG:
@@ -185,43 +212,43 @@ class PancanTileSplit(Datablock):
 		seed: int = 42
 
 	def __build__(self):
-		self.log.verbose(f"Building tile datasets out of {len(self.config.tilebatch.bags)} slides using train fraction {self.config.train_fraction}")
-		N = len(self.config.tilebatch.bags)
+		self.log.info(f"Building tile splits out of {len(self.config.tilebatch.shards)} shards using train fraction {self.config.train_fraction}")
+		N = len(self.config.tilebatch.shards)
 		K = int(math.ceil(N*self.config.train_fraction))
 		np.random.seed(self.config.seed) #TODO: localize in a generator
 		perm = np.random.permutation(N)
-		train_bag_indices = torch.tensor(perm[:K])
-		test_bag_indices = torch.tensor(perm[K:])
-		self.log.verbose(f"Computing train bag lens")
+		train_shard_indices = torch.tensor(perm[:K])
+		test_shard_indices = torch.tensor(perm[K:])
+		self.log.verbose(f"Computing train shard lens")
 		if self.verbose:
-			train_bag_itor = tqdm.tqdm(train_bag_indices)
+			train_shard_itor = tqdm.tqdm(train_shard_indices)
 		else:
-			train_bag_itor = train_bag_indices
-		train_bag_lens = torch.tensor([len(self.config.tilebatch.bags[i].dataset) for i in train_bag_itor])
-		self.log.verbose(f"Computing test bag lens")
+			train_shard_itor = train_shard_indices
+		train_shard_lens = torch.tensor([len(self.config.tilebatch.shards[i].dataset) for i in train_shard_itor])
+		self.log.verbose(f"Computing test shard lens")
 		if self.verbose:
-			test_bag_itor = tqdm.tqdm(test_bag_indices)
+			test_shard_itor = tqdm.tqdm(test_shard_indices)
 		else:
-			test_bag_itor = test_bag_indices
-		test_bag_lens = torch.tensor([len(self.config.tilebatch.bags[i].dataset) for i in test_bag_itor])
-		dbx.write_tensor(train_bag_indices, self.path('train_bag_indices', ensure_dirpath=True),)
-		dbx.write_tensor(train_bag_lens, self.path('train_bag_lens', ensure_dirpath=True),)
-		dbx.write_tensor(test_bag_indices, self.path('test_bag_indices', ensure_dirpath=True),)
-		dbx.write_tensor(test_bag_lens, self.path('test_bag_lens', ensure_dirpath=True),)
+			test_shard_itor = test_shard_indices
+		test_shard_lens = torch.tensor([len(self.config.tilebatch.shards[i].dataset) for i in test_shard_itor])
+		dbx.write_tensor(train_shard_indices, self.path('train_shard_indices', ensure_dirpath=True),)
+		dbx.write_tensor(train_shard_lens, self.path('train_shard_lens', ensure_dirpath=True),)
+		dbx.write_tensor(test_shard_indices, self.path('test_shard_indices', ensure_dirpath=True),)
+		dbx.write_tensor(test_shard_lens, self.path('test_shard_lens', ensure_dirpath=True),)
 		return self
 	
 	def __read__(self, topic):
 		tensor = dbx.read_tensor(self.path(topic))
 		return tensor
 
-	def bags(self, split):
-		bag_indices = self.read(f"{split}_bag_indices")
-		bags = [self.config.tilebatch.bags[i] for i in bag_indices]
-		return bags   
+	def shards(self, split):
+		shard_indices = self.read(f"{split}_shard_indices")
+		shards = [self.config.tilebatch.shards[i] for i in shard_indices]
+		return shards   
 
-	def bag_lens(self, split):
-		bag_lens = self.read(f"{split}_bag_lens")
-		return bag_lens  	
+	def shard_lens(self, split):
+		shard_lens = self.read(f"{split}_shard_lens")
+		return shard_lens  	
 			
 
 class PancanTileFold(PancanTileBatch):
@@ -234,20 +261,19 @@ class PancanTileFold(PancanTileBatch):
 		return self
 
 	def datablocks(self):
-		return self.config.tilesplit.bags(self.config.fold)
+		return self.config.tilesplit.shards(self.config.fold)
 			
 
 class PancanTileSet(Datablock):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
-		tilebatch: PancanTileBatch
+		tileshards: PancanTileShards
 		transform: Optional[torchvision.transforms.Compose] = None
 
 	@property
 	def dataset(self):
-		dataset = BagDataset(
-						  bags=self.config.tilebatch.bags, 
-						  bag_lens=self.config.tilebatch.bag_lens, 
+		dataset = ShardDataset(
+						  shards=self.config.tileshards.shards, 
 						  transform=self.config.transform, 
 						  debug=self.debug, 
 						  verbose=self.verbose,
@@ -261,3 +287,126 @@ class PancanTileSet(Datablock):
 	def __read__(self):
 		return self.dataset
 
+
+class PancanTileHand(Datablock):
+	VERSION=1
+	@dataclass
+	class CONFIG(Datablock.CONFIG):
+		tileset: PancanTileSet
+		start: int
+		end: int
+
+	def __post_init__(self):
+		self.FILES = {
+			"tiles": f"{self.config.start}-{self.config.end}-tiles.pt",
+			"labels": f"{self.config.start}-{self.config.end}-labels.pt",
+		}
+		return self
+
+	def store(self, tiles, labels):
+		self.__pre_build__()
+		dbx.write_tensor(tiles, self.path('tiles', ensure_dirpath=True))
+		dbx.write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
+		self._write_journal_entry(event="store")
+		self.__post_build__()
+		return self
+
+	def __read__(self, topic):
+		if topic == 'tiles':
+			result = dbx.read_tensor(self.path(topic))
+		elif topic == 'labels':
+			result = dbx.read_npz(self.path(topic), 'labels')
+		else:
+			raise ValueError(f"Unknown topic: {topic}")
+		return result
+
+	def __len__(self):
+		return len(self.config.end - self.config.start)
+
+	@functools.cached_property
+	def tiles(self):
+		return self.read('tiles')
+
+	@functools.cached_property
+	def labels(self):
+		return self.read('labels')
+
+	@property
+	def start(self):
+		return self.config.start
+
+	@property
+	def end(self):
+		return self.config.end
+
+	
+class PancanTileDeck(Datablock):
+	VERSION = 1
+	FILES = {'shard_lens': 'shard_lens.pt'}
+	@dataclass
+	class CONFIG(Datablock.CONFIG):
+		tileset: PancanTileSet
+		shard_size: int = 512
+
+	def __init__(self, *args, dataloader_num_workers: int = 0, **kwargs):
+		super().__init__(*args, dataloader_num_workers=dataloader_num_workers, **kwargs)
+
+	@functools.cached_property
+	def shards(self):
+		N = len(self.config.tileset.dataset)
+		tilehands = [PancanTileHand(
+								  root=self.root if not self._autoroot else None,
+								  spec=dict(tileset=self.spec.get('tileset'), 
+											start=shard_start, 
+											end=min(shard_start+self.config.shard_size, N))
+						)
+						for shard_start in range(0, N, self.config.shard_size)
+		]
+		return tilehands
+
+	def __len__(self):
+		return len(self.shards)
+
+	def __build__(self):
+		"""Single-process, but, potentially, a multithreaded build."""
+		dataloader = torch.utils.data.DataLoader(
+			self.config.tileset.dataset, 
+			batch_size=self.config.shard_size,
+			shuffle=True,
+			num_workers=self.dataloader_num_workers,
+			collate_fn=self.collate,
+		)
+		shard_lens = []
+		self.log.info(f"Building {len(self.shards)} tile shards of size {self.config.shard_size} from dataset of size {len(self.config.tileset.dataset)}")
+		if self.info:
+			batch_itor = tqdm.tqdm(dataloader)
+		else:
+			batch_itor = dataloader
+		lo = hi = 0
+		for i, (sample, labels) in enumerate(batch_itor):
+			lo = hi
+			hi = lo + len(sample)
+			shard_lens.append(hi-lo)
+			assert len(sample) == len(labels), f"len(sample) != len(labels): {len(sample)} != {len(labels)}"
+			assert lo == self.shards[i].start, f"lo != self.shards[i].start: {lo} != {self.shards[i].start}"
+			assert hi == self.shards[i].end, f"hi != self.shards[i].end: {hi} != {self.shards[i].end}"
+			self.shards[i].store(sample, labels)
+		dbx.write_tensor(torch.tensor(shard_lens), self.path('shard_lens', ensure_dirpath=True))
+		return self
+
+	def __read__(self, topic):
+		assert topic == "shard_lens", f"Unknown topic: {topic}"
+		shard_lens = dbx.read_tensor(self.path(topic))
+		return shard_lens
+
+	@functools.cached_property
+	def shard_lens(self):
+		return self.read('shard_lens')
+
+	@staticmethod
+	def collate(samples): 
+		tensors_, labels_ = zip(*samples)
+		tensors = torch.stack(tensors_)
+		labels = np.array(labels_)
+		return tensors, labels
+	

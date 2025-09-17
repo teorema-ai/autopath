@@ -11,6 +11,7 @@ import logging
 import math
 import os
 import sys
+from typing import Callable, Optional
 
 from fvcore.common.checkpoint import PeriodicCheckpointer
 import torch
@@ -18,7 +19,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 from dinov2.data import SamplerType
-from dinov2.data import collate_data_and_cast, DataAugmentationDINO, MaskingGenerator
+from dinov2.data import collate_data_and_cast, DataAugmentationDINO, MaskingGenerator, SamplerType, make_data_loader
 from dinov2 import distributed
 from dinov2.fsdp import FSDPCheckpointer
 from dinov2.logging import MetricLogger
@@ -27,6 +28,7 @@ from dinov2.utils.utils import CosineScheduler
 import dbx
 from dbx import Datablock
 
+from autopath.pancan.tiles import PancanTileSet
 from .backbone import gigapath_tile_backbone
 from .backbone import GigapathVisionTransformer
 from .ssl import SSL
@@ -131,20 +133,17 @@ class IBOT:
     head_nlayers: int = 3
     head_hidden_dim: int = 2048
 
+
 @dataclass
 class TRAIN:
-    batch_size_per_gpu: int = 2
-    dataset_path: str = "/mnt/labshare/SLIDES/CPTAC_downloads"
-    dataset_resolution: str = "256px_256um"
-    dataset_split: str = "TRAIN"
-    dataset_train_fraction: float = 0.8
-    dataset_seed: int = 42
-    output_dir: str = "."
+    batch_size_per_gpu: int = 4
+    shuffle: bool = True
+    sampler_type: Optional[SamplerType] = SamplerType.SHARDED_INFINITE.value
+    sampler_advance: int = 0
+    start_iter: int = 0
     saveckp_freq: int = 20
     seed: int = 0
-    num_workers: int = 10
     OFFICIAL_EPOCH_LENGTH: int = 1250
-    cache_dataset: bool = True
     centering: str = "centering" # or "sinkhorn_knopp"
     tie_student_teacher_heads: bool = False
     freeze_backbone: bool = False
@@ -215,6 +214,54 @@ class ARCH:
     evaluation: EVALUATION = default(EVALUATION)
 
                 
+def dino_tile_dataloader(dataset, 
+                        *, 
+                        batch_size: int, 
+                        num_workers: int,
+                        shuffle: bool,
+                        sampler_type: Optional[SamplerType],
+                        sampler_advance: int,
+                        start_iter: int,
+                        log: dbx.Logger = dbx.Logger(),
+) -> torch.utils.data.DataLoader:
+    log.debug(f"{shuffle=}, {sampler_type=}, {sampler_advance=}, {start_iter=}")
+    global_crops_size: int = 224
+    student_patch_size: int = 16
+    ibot_mask_ratio_min_max: list[float] = [0.1, 0.5]
+    ibot_mask_sample_probability: float = 0.5
+    collate_fn: Optional[Callable] = None
+    drop_last: bool = True
+    inputs_dtype: str = torch.half
+
+    img_size = global_crops_size
+    patch_size = student_patch_size
+    n_tokens = (img_size // patch_size) ** 2
+    mask_generator = MaskingGenerator(
+        input_size=(img_size // patch_size, img_size // patch_size),
+        max_num_patches=0.5 * img_size // patch_size * img_size // patch_size,
+    )
+    collate_fn = partial(
+        collate_data_and_cast,
+        mask_ratio_tuple=ibot_mask_ratio_min_max,
+        mask_probability=ibot_mask_sample_probability,
+        n_tokens=n_tokens,
+        mask_generator=mask_generator,
+        dtype=inputs_dtype,
+    )
+    data_loader = make_data_loader(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            seed=start_iter,  # TODO: Fix this -- cfg.train.seed
+            sampler_type=sampler_type,
+            sampler_advance=sampler_advance,  # TODO(qas): fix this -- start_iter * cfg.train.batch_size_per_gpu,
+            drop_last=drop_last,
+            collate_fn=collate_fn,
+            num_workers=num_workers,
+        )
+    return data_loader
+
+
 class GigaqStill(Datablock):
     VERSION = 1
     FILES = {'arch': 'arch.yaml', 'ckpts': None, 'tensorboard': None, 'training_metrics': None, 'breadcrumbs': 'breadcrumbs'}
@@ -222,12 +269,28 @@ class GigaqStill(Datablock):
     @dataclass
     class CONFIG(Datablock.CONFIG):
         arch: ARCH
-        dataloader: torch.utils.data.DataLoader
+        dataset: torch.utils.data.Dataset
         backbone: GigapathVisionTransformer = gigapath_tile_backbone()
+
+    def __init__(self, *args, num_data_workers: int = 0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.num_data_workers = num_data_workers
+        self.log.debug(f"{self.num_data_workers=}")
 
     def __build__(self):
         try:
             distributed.initialize()
+            data_loader = dino_tile_dataloader(
+                    self.config.dataset, 
+                    batch_size=self.config.arch.train.batch_size_per_gpu,
+                    shuffle=self.config.arch.train.shuffle,
+                    sampler_type=SamplerType(self.config.arch.train.sampler_type),
+                    sampler_advance=self.config.arch.train.sampler_advance,
+                    start_iter=self.config.arch.train.start_iter,
+                    num_workers=self.num_data_workers,
+                    log=self.log,
+            )    
+
             dbx.write_yaml(asdict(self.config.arch), self.path('arch', ensure_dirpath=True))
             model = SSL(self.config.arch).to(torch.device("cuda"))
             model.prepare_for_distributed_training()
@@ -272,7 +335,6 @@ class GigaqStill(Datablock):
             metrics_file = os.path.join(self.dirpath('training_metrics', ensure=True), 'training_metrics.json')
             metric_logger = MetricLogger(delimiter="  ", output_file=metrics_file)
             header = "Training"
-            data_loader = self.config.dataloader
             for i, data in enumerate(metric_logger.log_every(
                 data_loader,
                 10,

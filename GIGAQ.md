@@ -17,7 +17,7 @@ pip install -e .
 
 # dinov2
 cd ~/dinov2
-# set dependencies in requirements.txt as follows (to comport with what's below; 
+# set dependencies in ~/dinov2/requirements.txt as follows (to comport with what's below; 
 # removing the troublesome cuml-cu11):
     --extra-index-url https://download.pytorch.org/whl/cu124
     torch==2.6.0+cu124
@@ -33,7 +33,7 @@ cd ~/dinov2
 # remove conda.yaml and conda-extras.yaml
 pip install -e .
 
-# dependencies (in addition to or overriding those in the env, slideflow and structured_eye)
+# dependencies (in addition to or overriding those in the env, slideflow and autopath)
 # TODO: incorporate into the appropriate requirements file
 # N.B.: some of these packages may cause conflicts with those already in the env.
 #   In part this is why they are being installed later
