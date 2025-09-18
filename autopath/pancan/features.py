@@ -45,8 +45,8 @@ class FeatureShard(Datablock):
 	class CONFIG(Datablock.CONFIG):
 		tileshard: PancanTileShard
 
-	def __post_init__(self):
-		self.labels = self.config.tileshard.labels
+	def __len__(self):
+		return len(self.labels)
 
 	def store(self, features):
 		self.__pre_build__()
@@ -61,11 +61,15 @@ class FeatureShard(Datablock):
 
 	def features(self):
 		return self.read()
+		
+	@functools.cached_property
+	def labels(self):
+		return self.config.tileshard.labels
 
 
 class FeatureShards(Datablock):
 	VERSION = 1
-	FILES = {'bag_lens': 'bag_lens.pt'}
+	FILES = {'shard_lens': 'shard_lens.pt'}
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		extractor: Callable
@@ -94,17 +98,18 @@ class FeatureShards(Datablock):
 
 	def __build__(self):
 		"""Single-process, but, potentially, a multithreaded build."""
-		shard_lens = []
 		self.log.verbose(f"Building {len(self.shards)} feature shards")
 		if self.verbose:
 			featureshard_itor = tqdm.tqdm(self.shards)
 		else:
 			featureshard_itor = self.shards
+		shard_lens = []
 		for featureshard in featureshard_itor:
 			if featureshard.valid():
 				self.log.verbose(f"Skipping existing feature shard {featureshard.hashpath()}")
-				continue
-			shard_len = self.__build_shard__(featureshard)
+				shard_len = len(featureshard)
+			else:
+				shard_len = self.__build_shard__(featureshard)
 			shard_lens.append(shard_len)
 		dbx.write_tensor(torch.tensor(shard_lens), self.path('shard_lens', ensure_dirpath=True))
 		return self
@@ -129,7 +134,6 @@ class FeatureShards(Datablock):
 		return len(features)
 
 	def __read__(self, topic):
-		assert topic == "shard_lens", f"Unknown topic: {topic}"
 		shard_lens = dbx.read_tensor(self.path(topic))
 		return shard_lens
 
