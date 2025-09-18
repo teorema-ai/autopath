@@ -308,7 +308,7 @@ class PancanTileSet(Datablock):
 		return self.dataset
 
 
-class PancanTileDeck(Datablock):
+class PancanTileBatch(Datablock):
 	VERSION=1
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
@@ -360,44 +360,44 @@ class PancanTileDeck(Datablock):
 		return self.config.end
 
 	
-class PancanTileDecks(Datablock):
+class PancanTileBatches(Datablock):
 	VERSION = 1
-	FILES = {'shard_lens': 'shard_lens.pt'}
+	FILES = {'batch_lens': 'batch_lens.pt'}
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		tileset: PancanTileSet
-		shard_size: int = 512
+		batch_size: int = 512
 
 	def __init__(self, *args, dataloader_num_workers: int = 0, **kwargs):
 		super().__init__(*args, dataloader_num_workers=dataloader_num_workers, **kwargs)
 
 	@functools.cached_property
-	def shards(self):
+	def batches(self):
 		N = len(self.config.tileset.dataset)
-		tiledecks = [PancanTileDeck(
+		tilebatches = [PancanTileBatch(
 								  root=self.root if not self._autoroot else None,
 								  spec=dict(tileset=self.spec.get('tileset'), 
-											start=shard_start, 
-											end=min(shard_start+self.config.shard_size, N))
+											start=batch_start, 
+											end=min(batch_start+self.config.batch_size, N))
 						)
-						for shard_start in range(0, N, self.config.shard_size)
+						for batch_start in range(0, N, self.config.batch_size)
 		]
 		return tiledecks
 
 	def __len__(self):
-		return len(self.shards)
+		return len(self.batches)
 
 	def __build__(self):
 		"""Single-process, but, potentially, a multithreaded build."""
 		dataloader = torch.utils.data.DataLoader(
 			self.config.tileset.dataset, 
-			batch_size=self.config.shard_size,
+			batch_size=self.config.batch_size,
 			shuffle=True,
 			num_workers=self.dataloader_num_workers,
 			collate_fn=self.collate,
 		)
-		shard_lens = []
-		self.log.info(f"Building {len(self.shards)} tile shards of size {self.config.shard_size} from dataset of size {len(self.config.tileset.dataset)}")
+		batch_lens = []
+		self.log.info(f"Building {len(self.batches)} tile batches of size {self.config.batch_size} from dataset of size {len(self.config.tileset.dataset)}")
 		if self.info:
 			batch_itor = tqdm.tqdm(dataloader)
 		else:
@@ -406,22 +406,28 @@ class PancanTileDecks(Datablock):
 		for i, (sample, labels) in enumerate(batch_itor):
 			lo = hi
 			hi = lo + len(sample)
-			shard_lens.append(hi-lo)
+			batch_lens.append(hi-lo)
 			assert len(sample) == len(labels), f"len(sample) != len(labels): {len(sample)} != {len(labels)}"
-			assert lo == self.shards[i].start, f"lo != self.shards[i].start: {lo} != {self.shards[i].start}"
-			assert hi == self.shards[i].end, f"hi != self.shards[i].end: {hi} != {self.shards[i].end}"
-			self.shards[i].store(sample, labels)
-		dbx.write_tensor(torch.tensor(shard_lens), self.path('shard_lens', ensure_dirpath=True))
+			assert lo == self.batchs[i].start, f"lo != self.batchs[i].start: {lo} != {self.batchs[i].start}"
+			assert hi == self.batchs[i].end, f"hi != self.batchs[i].end: {hi} != {self.batchs[i].end}"
+			self.batchs[i].store(sample, labels)
+		dbx.write_tensor(torch.tensor(batch_lens), self.path('batch_lens', ensure_dirpath=True))
 		return self
 
 	def __read__(self, topic):
-		assert topic == "shard_lens", f"Unknown topic: {topic}"
-		shard_lens = dbx.read_tensor(self.path(topic))
-		return shard_lens
+		reuturn dbx.read_tensor(self.path(topic))
 
 	@functools.cached_property
+	def batch_lens(self):
+		return self.read('batch_lens')
+
+	@property
+	def shards(self):
+		return self.batches
+
+	@property
 	def shard_lens(self):
-		return self.read('shard_lens')
+		return self.batch_lens
 
 	@staticmethod
 	def collate(samples): 

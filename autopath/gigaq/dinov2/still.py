@@ -273,9 +273,7 @@ class GigaqStill(Datablock):
         backbone: GigapathVisionTransformer = gigapath_tile_backbone()
 
     def __init__(self, *args, num_data_workers: int = 0, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.num_data_workers = num_data_workers
-        self.log.debug(f"{self.num_data_workers=}")
+        super().__init__(*args, num_data_workers=num_data_workers, **kwargs)
 
     def __build__(self):
         try:
