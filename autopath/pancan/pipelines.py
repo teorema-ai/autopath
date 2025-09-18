@@ -5,8 +5,7 @@ from typing import Optional
 # import torch.multiprocessing as mp
 # mp.set_start_method('spawn', force=True)
 
-from .tiles import PancanTileBag, PancanTileBatch, PancanTileSplit, PancanTileFold, PancanTileSet, PancanTileDeck
-
+from .tiles import PancanTileBag, PancanTileBags, PancanTileSplit, PancanTileFold, PancanTileSet, PancanTileDecks
 
 
 PANCAN_CPTAC = os.environ.get("PANCAN_CPTAC", "/mnt/labshare/SLIDES/CPTAC_downloads")
@@ -22,10 +21,10 @@ def pancan_tile_bag(name) -> PancanTileBag:
     else:
         raise ValueError(f"Unknown tile_bag: {name}")
 
-# dbx "autopath.pancan.pipelines.pancan_tile_batch('CPTAC').build()"
-def pancan_tile_batch(name) -> PancanTileBatch:
+# dbx "autopath.pancan.pipelines.pancan_tile_bags('CPTAC').build()"
+def pancan_tile_bags(name) -> PancanTileBags:
     if name == "CPTAC":     
-        return PancanTileBatch(spec=dict(
+        return PancanTileBags(spec=dict(
                                 source=PANCAN_CPTAC,
                                 resolution=PANCAN_CPTAC_RESOLUTION,
         ))
@@ -37,17 +36,17 @@ def pancan_tile_batch(name) -> PancanTileBatch:
 def pancan_tile_split(name, train_fraction: Optional[float] = None) -> PancanTileSplit:
     if name == "CPTAC":
         assert train_fraction is not None, "train_fraction must be specified"
-        return PancanTileSplit(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_batch('CPTAC')",
+        return PancanTileSplit(spec=dict(tileshards=f"@autopath.pancan.pipelines.pancan_tile_bags('CPTAC')",
                                          train_fraction=train_fraction)
         )   
     elif name == "CPTAC_8020":
         assert train_fraction is None or train_fraction == 0.8, "train_fraction must be 0.8"   
-        return PancanTileSplit(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_batch('CPTAC')",
+        return PancanTileSplit(spec=dict(tileshards=f"@autopath.pancan.pipelines.pancan_tile_bags('CPTAC')",
                                          train_fraction=0.8)
         )
     elif name == "CPTAC_9802": 
         assert train_fraction is None or train_fraction == 0.98, "train_fraction must be 0.98"  
-        return PancanTileSplit(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_batch('CPTAC')",
+        return PancanTileSplit(spec=dict(tileshards=f"@autopath.pancan.pipelines.pancan_tile_bags('CPTAC')",
                                          train_fraction=0.98)
         )
     else:
@@ -85,11 +84,11 @@ def pancan_tile_set(name) -> PancanTileSet:
     else:
         raise ValueError(f"Unknown tile_set: {name}")
 
-# dbx "autopath.pancan.pipelines.pancan_tile_deck('CPTAC_9802_TEST_8', num_workers=8).build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_deck('CPTAC_9802_TEST_512', num_workers=8).build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_deck('CPTAC_8020_TRAIN_512').build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_deck('CPTAC_8020_TEST', shard_size=128, num_workers=2).build()"
-def pancan_tile_deck(name, shard_size: Optional[int] = None, num_workers: int = 0) -> PancanTileDeck:
+# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_9802_TEST_8', num_workers=8).build()"
+# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_9802_TEST_512', num_workers=8).build()"
+# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_8020_TRAIN_512').build()"
+# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_8020_TEST', shard_size=128, num_workers=2).build()"
+def pancan_tile_decks(name, shard_size: Optional[int] = None, num_workers: int = 0) -> PancanTileDecks:
     if name == "CPTAC_8020_TEST":
         assert shard_size is not None, "shard_size must be specified"
         return PancanTileDeck(spec=dict(

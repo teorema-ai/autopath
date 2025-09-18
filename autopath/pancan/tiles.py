@@ -37,7 +37,20 @@ class TFRecordDataset(sf.io.TFRecordDataset):
 			return len(self.index)
 
 
-class PancanTileBag(Datablock):
+class PancanTileShard:
+	def __len__(self):
+		return len(self.tiles)
+
+	@functools.cached_property
+	def tiles(self):
+		raise NotImplementedError
+
+	@functools.cached_property
+	def labels(self):
+		raise NotImplementedError
+
+
+class PancanTileBag(Datablock, PancanTileShard):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		source: str
@@ -122,9 +135,9 @@ class PancanTileShards:
 		raise NotImplementedError
 
 
-class PancanTileBatch(Databatch, PancanTileShards):
+class PancanTileBags(Databatch, PancanTileShards):
 	DATABLOCK = PancanTileBag
-	FILE = "shard_lens.npz"
+	FILE = "bag_lens.npz"
 	@dataclass
 	class CONFIG:
 		source: str
@@ -164,39 +177,38 @@ class PancanTileBatch(Databatch, PancanTileShards):
 			for bagpath in self.bagpaths
 		]
 
-	@functools.cached_property
-	def shards(self):
-		return self.datablocks()
-
-	@functools.cached_property
-	def shard_lens(self):
-		shard_lens = self.read()
-		return shard_lens 
-
 	@property
 	def bags(self):
-		return self.shards
+		return self.datablocks()
 
 	@property
 	def bag_lens(self):
-		return self.shard_lens
+		return self.read()
 
 	def __len__(self):
-		return len(self.shards)
+		return len(self.bags)
 	
 	def __build__(self):
-		self.log.verbose(f"Computing shard lens")
+		self.log.verbose(f"Computing bag lens")
 		if self.verbose:
-			shardsitor = tqdm.tqdm(self.datablocks())
+			bagsitor = tqdm.tqdm(self.datablocks())
 		else:
-			shardsitor = self.datablocks()
-		shard_lens = [len(shard) for shard in shardsitor]
-		dbx.write_npz(self.path(), shard_lens=shard_lens)
+			bagsitor = self.datablocks()
+		bag_lens = [len(shard) for shard in bagsitor]
+		dbx.write_npz(self.path(), bag_lens=bag_lens)
 		return self
 
 	def __read__(self):
-		shard_lens = dbx.read_npz(self.path(), 'shard_lens')[0]
-		return shard_lens
+		bag_lens = dbx.read_npz(self.path(), 'bag_lens')[0]
+		return bag_lens
+
+	@functools.cached_property
+	def shards(self):
+		return self.bags
+
+	@functools.cached_property
+	def shard_lens(self):
+		return self.bag_lens
 
 
 class PancanTileSplit(Datablock):
@@ -207,13 +219,13 @@ class PancanTileSplit(Datablock):
 	}
 	@dataclass
 	class CONFIG:
-		tilebatch: PancanTileBatch
+		tileshards: PancanTileShards
 		train_fraction: float = 0.8
 		seed: int = 42
 
 	def __build__(self):
-		self.log.info(f"Building tile splits out of {len(self.config.tilebatch.shards)} shards using train fraction {self.config.train_fraction}")
-		N = len(self.config.tilebatch.shards)
+		self.log.info(f"Building tile splits out of {len(self.config.tileshards.shards)} shards using train fraction {self.config.train_fraction}")
+		N = len(self.config.tileshards.shards)
 		K = int(math.ceil(N*self.config.train_fraction))
 		np.random.seed(self.config.seed) #TODO: localize in a generator
 		perm = np.random.permutation(N)
@@ -224,13 +236,13 @@ class PancanTileSplit(Datablock):
 			train_shard_itor = tqdm.tqdm(train_shard_indices)
 		else:
 			train_shard_itor = train_shard_indices
-		train_shard_lens = torch.tensor([len(self.config.tilebatch.shards[i].dataset) for i in train_shard_itor])
+		train_shard_lens = torch.tensor([len(self.config.tileshards.shards[i].dataset) for i in train_shard_itor])
 		self.log.verbose(f"Computing test shard lens")
 		if self.verbose:
 			test_shard_itor = tqdm.tqdm(test_shard_indices)
 		else:
 			test_shard_itor = test_shard_indices
-		test_shard_lens = torch.tensor([len(self.config.tilebatch.shards[i].dataset) for i in test_shard_itor])
+		test_shard_lens = torch.tensor([len(self.config.tileshards.shards[i].dataset) for i in test_shard_itor])
 		dbx.write_tensor(train_shard_indices, self.path('train_shard_indices', ensure_dirpath=True),)
 		dbx.write_tensor(train_shard_lens, self.path('train_shard_lens', ensure_dirpath=True),)
 		dbx.write_tensor(test_shard_indices, self.path('test_shard_indices', ensure_dirpath=True),)
@@ -243,7 +255,7 @@ class PancanTileSplit(Datablock):
 
 	def shards(self, split):
 		shard_indices = self.read(f"{split}_shard_indices")
-		shards = [self.config.tilebatch.shards[i] for i in shard_indices]
+		shards = [self.config.tileshards.shards[i] for i in shard_indices]
 		return shards   
 
 	def shard_lens(self, split):
@@ -251,7 +263,7 @@ class PancanTileSplit(Datablock):
 		return shard_lens  	
 			
 
-class PancanTileFold(PancanTileBatch):
+class PancanTileFold(Databatch, PancanTileShards):
 	@dataclass
 	class CONFIG:
 		tilesplit: PancanTileSplit
@@ -262,6 +274,14 @@ class PancanTileFold(PancanTileBatch):
 
 	def datablocks(self):
 		return self.config.tilesplit.shards(self.config.fold)
+
+	@functools.cached_property
+	def shards(self):
+		return self.datablocks()
+
+	@functools.cached_property
+	def shard_lens(self):
+		return self.config.tilesplit.shard_lens(self.config.fold)
 			
 
 class PancanTileSet(Datablock):
@@ -288,7 +308,7 @@ class PancanTileSet(Datablock):
 		return self.dataset
 
 
-class PancanTileHand(Datablock):
+class PancanTileDeck(Datablock):
 	VERSION=1
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
@@ -340,7 +360,7 @@ class PancanTileHand(Datablock):
 		return self.config.end
 
 	
-class PancanTileDeck(Datablock):
+class PancanTileDecks(Datablock):
 	VERSION = 1
 	FILES = {'shard_lens': 'shard_lens.pt'}
 	@dataclass
@@ -354,7 +374,7 @@ class PancanTileDeck(Datablock):
 	@functools.cached_property
 	def shards(self):
 		N = len(self.config.tileset.dataset)
-		tilehands = [PancanTileHand(
+		tiledecks = [PancanTileDeck(
 								  root=self.root if not self._autoroot else None,
 								  spec=dict(tileset=self.spec.get('tileset'), 
 											start=shard_start, 
@@ -362,7 +382,7 @@ class PancanTileDeck(Datablock):
 						)
 						for shard_start in range(0, N, self.config.shard_size)
 		]
-		return tilehands
+		return tiledecks
 
 	def __len__(self):
 		return len(self.shards)

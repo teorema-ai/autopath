@@ -40,16 +40,16 @@ def dino_augmentations(name="DINO_DEFAULT"):
 
 def dino_pancan_tile_dataset(name):
     if name == "CPTAC_8020_TRAIN":
-        tileset = PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_8020_TRAIN')", 
+        tileset = PancanTileSet(spec=dict(tileshards=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_8020_TRAIN')", 
                                        transform=f"@autopath.gigaq.dinov2.pipelines.dino_augmentations('DINO_DEFAULT')"))
     elif name == "CPTAC_8020_TEST":
-        tileset = PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_8020_TEST')", 
+        tileset = PancanTileSet(spec=dict(tileshards=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_8020_TEST')", 
                                        transform=f"@autopath.gigaq.dinov2.pipelines.dino_augmentations('DINO_DEFAULT')"))
     elif name == "CPTAC_9802_TRAIN":
-        tileset = PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_9802_TRAIN')", 
+        tileset = PancanTileSet(spec=dict(tileshards=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_9802_TRAIN')", 
                                        transform=f"@autopath.gigaq.dinov2.pipelines.dino_augmentations('DINO_DEFAULT')"))
     elif name == "CPTAC_9802_TEST":
-        tileset =PancanTileSet(spec=dict(tilebatch=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_9802_TEST')", 
+        tileset =PancanTileSet(spec=dict(tileshards=f"@autopath.pancan.pipelines.pancan_tile_fold(name='CPTAC_9802_TEST')", 
                                        transform=f"@autopath.gigaq.dinov2.pipelines.dino_augmentations('DINO_DEFAULT')"))
     else:
         raise ValueError(f"Unknown dataset: {name}")

@@ -14,7 +14,7 @@
         #salloc --nodelist rhubarb -N 1 -n 1 --mem=8G --tres-per-node=gres/gpu:1
         salloc --nodelist rhubarb -N 1 -n 1 --mem=8G --gpus=1
         # alloc: CPU
-        salloc --nodelist rhubarb -N 1 -n 1 --mem=2G
+        salloc --nodelist rhubarb -N 1 -n 1 --mem=2G --gpus=0
         # job params: OPTIONAL
         env | grep SLURM_
         env | grep SLURM_JOBID
