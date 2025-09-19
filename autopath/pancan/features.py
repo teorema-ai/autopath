@@ -144,13 +144,14 @@ class FeatureBags(Datablock):
 			self.log.verbose(f"Skipping existing feature bag {featurebag.hashpath()}")
 			lenfeatures = len(featurebag)
 		else:
+			self.log.verbose(f"Building new feature bag {featurebag.hashpath()} on device: {device}")
 			tilebag = featurebag.config.tilebag
 			feature_list = []
 			for k in range(math.ceil(len(tilebag.tiles)/self.gpu_batch_size)):
 				m = k*self.gpu_batch_size
 				n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
 				batch = tilebag.tiles[m:n].to(device)
-				self.log.detailed(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}...")
+				self.log.detailed(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
 				features_ = self.config.extractor(batch).to('cpu')
 				del batch
 				gc.collect()
