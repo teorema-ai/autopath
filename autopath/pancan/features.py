@@ -130,8 +130,8 @@ class FeatureBags(Datablock):
 		bag_lens = []
 		for featurebag in featurebags:
 			featurelen = self.__build_bag__(featurebag, device)
-			bag_lens.append(feature_len)
-			result_queue.put(feature_len)
+			bag_lens.append(featurelen)
+			result_queue.put(featurelen)
 			progress_bar.update(1)
 		while True:
 			item = stop_queue.get()
