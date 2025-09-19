@@ -159,7 +159,7 @@ class FeatureBags(Datablock):
 			features = torch.cat(feature_list)
 			#
 			featurebag.store(features)
-		lenfeatures = len(features)
+			lenfeatures = len(features)
 		return lenfeatures
 
 	def __read__(self, topic):
