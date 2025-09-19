@@ -127,6 +127,7 @@ class FeatureBags(Datablock):
 		return self
 
 	def __build_bags__(self, featurebags: Sequence[FeatureBag], device: str, result_queue: queue.Queue, stop_queue: queue.Queue, progress_bar):
+		self.log.debug(f"Building {len(featurebags)} feature bags on device: {device}")
 		bag_lens = []
 		for featurebag in featurebags:
 			featurelen = self.__build_bag__(featurebag, device)
