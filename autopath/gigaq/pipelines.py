@@ -21,7 +21,7 @@ def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=1024,) -> Feat
 
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
-def gigapath_feature_bags(name, *, devices = 'cuda', gpu_batch_size=1536) -> FeatureBags:
+def gigapath_feature_bags(name, *, devices = 'cuda', gpu_batch_size=512) -> FeatureBags:
     if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         return FeatureBags(
                     devices=devices,
