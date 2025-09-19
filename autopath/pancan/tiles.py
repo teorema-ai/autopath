@@ -415,7 +415,7 @@ class PancanTileBatches(Datablock):
 		return self
 
 	def __read__(self, topic):
-		reuturn dbx.read_tensor(self.path(topic))
+		return dbx.read_tensor(self.path(topic))
 
 	@functools.cached_property
 	def batch_lens(self):

@@ -22,8 +22,23 @@ import scipy as sp
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.linear_model import LogisticRegression
 
-DBKSPACE = os.environ.get("DBKSPACE", "/mnt/labshare/PROJECTS/GIGAQ/dbx")
-DBKREPO = os.environ.get("DBKREPO", f"{os.environ.get('HOME')}/autopath")
+import dbx
+from dbx import (
+	Logger,
+	Datablock,
+    write_tensor, 
+    read_tensor,
+    write_npz,
+    read_npz,
+    write_pickle,
+    read_pickle,
+)
+
+
+from .features import FeatureBags
+
+
+
 
 class FeatureProbe:
     @staticmethod
@@ -98,24 +113,17 @@ class FeatureProbe:
                            fraction=0.8,
                            label1="(1)",
                            label2="(2)",
-                           verbose=False,
+                           log: Logger = Logger(),
     ):
-        if verbose:
-            print(f"Evaluating features {label1}: started at {datetime.datetime.now()}")
+        log.verbose(f"Evaluating features {label1}: started at {datetime.datetime.now()}")
         report1 = Evaluator.evaluate_features(Xy1, fraction=fraction)
-        if verbose:
-            print(f"Evaluating features {label1}: finished at {datetime.datetime.now()}")
-        if verbose:
-            print(f"Evaluating features {label2}: started at {datetime.datetime.now()}")
+        log.verbose(f"Evaluating features {label1}: finished at {datetime.datetime.now()}")
+        log.verbose(f"Evaluating features {label2}: started at {datetime.datetime.now()}")
         report2 = Evaluator.evaluate_features(Xy2, fraction=fraction)
-        if verbose:
-            print(f"Evaluating features {label2}: finished at {datetime.datetime.now()}")
+        log.verbose(f"Evaluating features {label2}: finished at {datetime.datetime.now()}")
 
-        if verbose:
-            print(f"---------- {label1} ------------")
-            print(report1)
-            print(f"---------- {label2} ------------")
-            print(report2)
+        rstr = f"---------- {label1} ------------\n{report1}\n---------- {label2} ------------\n{report2}"
+        log.verbose(rstr)
         return report1, report2
 
     def plot_features_umap(self,
@@ -126,7 +134,7 @@ class FeatureProbe:
                            label="",
                            use_umap_plot=False,
                            output_path=None,
-                           verbose=False,
+                           log: Logger = Logger(),
     ):
         features, labels = Xy
         import umap
@@ -142,17 +150,16 @@ class FeatureProbe:
 
         if output_path is not None:
             plt.savefig(output_path)
-            if verbose:
-                print(f"Wrote figure to '{output_path}'")
+            log.verbose(f"Wrote figure to '{output_path}'")
         else:
             plt.show()
         return umap_features
 
 
 #>>> #TODO: #TEST
-class DiscreteProbe(Datablock, FeatureProbe):
-    TOPICS = {
-        'labels': 'labels.parquet',
+class FeatureBagsProbe(Datablock, FeatureProbe):
+    FILES = {
+        'labels': 'labels.npz',
         'cdf': 'cdf.pt',
         'discretized_features': 'discretized_features.pt',
         'cdf_umap': 'cdf_umap.png',
@@ -161,78 +168,59 @@ class DiscreteProbe(Datablock, FeatureProbe):
     }
     @dataclass
     class CONFIG:
-        features: pd.DataFrame
-        slide_sources: dict[str, str]
+        featurebags: FeatureBags
         n_bins: int = 2
         evaluation_fraction: float = 0.8
         umap_fraction: float = 0.01
+        aggregation: str = "mean"
 
-    def build(self):
+    def __post_init__(self):
+        assert self.config.aggregation in ["mean"], f"Unknown aggregation: {self.config.aggregation}"
+        return self
+
+    def __build__(self):
         # labels
-        labels = pd.DataFrame({'labels': [scope.slide_sources[s] for s in scope.features.index]})
-        labels_path = self.path('labels')
-        labels_fs, _ = fsspec.url_to_fs(labels_path)
-        with labels_fs.open(labels_path, 'wb') as f:
-            labels.to_parquet(f)
-        self.log.verbose(f"build: wrote {len(labels)} labels to {labels_path}")
+        labels = np.array([bag.label for bag in self.config.featurebags.bags])
+        write_npz(self.path('labels'), labels=labels)
+
+        feature_list = []
+        for featurebag in self.config.featurebags.bags:
+            feature_list.append(torch.mean(featurebag.features(), dim=0))
+        features = torch.stack(feature_list)
+        write_tensor(features, self.path('features'))
+        assert len(labels) == len(features), f"len(labels) != len(features): {len(labels)} != {len(features)}"
 
         # cdf
         quantiles = np.arange(0.0, 1.0, 1.0/scope.n_bins)
-        cdf = torch.tensor(np.percentile(scope.features, quantiles, axis=0))
-        cdf_path = self.path('cdf')
-        cdf_fs, _ = fsspec.url_to_fs(cdf_path)
-        with cdf_fs.open(cdf_path, 'wb') as f:
-            torch.save(cdf, f)
-        self.log.verbose(f"build: wrote cdf Tensor of shape {cdf.shape} to {cdf_path}")
+        cdf = torch.tensor(np.percentile(features.numpy(), quantiles, axis=0))
+        write_tensor(cdf, self.path('cdf'))
 
         # discretized_features
-        discretized_features = torch.Tensor(self.discretize_features(scope.features, scope.n_bins))
-        discretized_features_path = self.path(scope, roots, 'discretized_features')
-        discretized_features_fs, _ = fsspec.url_to_fs(discretized_features_path)
-        with discretized_features_fs.open(discretized_features_path, 'wb') as f:
-            torch.save(discretized_features, f)
-        self.log.verbose(f"build: wrote {len(discretized_features)} discretized_features to {discretized_features_path}")
+        discretized_features = torch.Tensor(self.discretize_features(features.numpy(), self.config.n_bins))
+        write_tensor(discretized_features, self.path('discretized_features'))
         
         # evaluation_reports
         continuous, discretized = self.evaluate_features2(
-            (scope.features, labels), 
+            (features, labels), 
             (discretized_features, labels),
-            fraction=scope.evaluation_fraction,
+            fraction=self.config.evaluation_fraction,
             label1='continuous',
             label2='discretized',
-            verbose=self.verbose,
+            log=self.log,
         )
         evaluation_reports = {'continuous': continuous, 'discretized': discretized}
-        evaluation_reports_path = self.path(scope, roots, 'evaluation_reports')
-        evaluation_reports_fs, _ = fsspec.url_to_fs(evaluation_reports_path)
-        with evaluation_reports_fs.open(evaluation_reports_path, 'wb') as f:
-            pickle.dump(evaluation_reports, f)
+        write_pickle(evaluation_reports, self.path('evaluation_reports'))
+        return self
 
-    def read(self, topic):
-        if topic not in self.TOPICS:
-            raise ValueError(f"Unknown topic {repr(topic)}: not in {list(self.TOPICS.keys())}")
+    def __read__(self, topic):
         if topic == 'labels':
-            labels_path = self.path('labels')
-            labels_fs, _ = fsspec.url_to_fs(labels_path)
-            with labels_fs.open(labels_path, 'rb') as f:
-                labels = pd.read_parquet(f)
-            result = labels.values
-        if topic == 'discretized_features':
-            discretized_features_path = self.path('discretized_features')
-            discretized_features_fs, _ = fsspec.url_to_fs(discretized_features_path)
-            with discretized_features_fs.open(discretized_features_path, 'rb') as f:
-                discretized_features = torch.load(f).numpy()
-            result = discretized_features
-        if topic == 'cdf':
-            cdf_path = self.path('cdf')
-            cdf_fs, _ = fsspec.url_to_fs(cdf_path)
-            with cdf_fs.open(cdf_path, 'rb') as f:
-                cdf = torch.load(f).numpy()
-            result = cdf
-        if topic == 'evaluation_reports':
-            evaluation_reports_path = self.path('evaluation_reports')
-            evaluation_reports_fs, _ = fsspec.url_to_fs(evaluation_reports_path)
-            with evaluation_reports_fs.open(evaluation_reports_path, 'rb') as f:
-                evaluation_reports = pickle.load(f)
-            result = evaluation_reports
+            result = read_npz(self.path('labels'), 'labels')
+        elif topic == 'discretized_features':
+            result = read_tensor(self.path('discretized_features'))
+        elif topic == 'cdf':
+            result = read_tensor(self.path('cdf'))
+        elif topic == 'evaluation_reports':
+            result = read_pickle(self.path('evaluation_reports'))
+        else:
+            raise ValueError(f"Unknown topic: {topic}")
         return result

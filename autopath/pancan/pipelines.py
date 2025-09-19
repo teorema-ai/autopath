@@ -5,7 +5,7 @@ from typing import Optional
 # import torch.multiprocessing as mp
 # mp.set_start_method('spawn', force=True)
 
-from .tiles import PancanTileBag, PancanTileBags, PancanTileSplit, PancanTileFold, PancanTileSet, PancanTileDecks
+from .tiles import PancanTileBag, PancanTileBags, PancanTileSplit, PancanTileFold, PancanTileSet, PancanTileBatches
 
 
 PANCAN_CPTAC = os.environ.get("PANCAN_CPTAC", "/mnt/labshare/SLIDES/CPTAC_downloads")
@@ -84,66 +84,66 @@ def pancan_tile_set(name) -> PancanTileSet:
     else:
         raise ValueError(f"Unknown tile_set: {name}")
 
-# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_9802_TEST_8', num_workers=8).build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_9802_TEST_512', num_workers=8).build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_8020_TRAIN_512').build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_decks('CPTAC_8020_TEST', shard_size=128, num_workers=2).build()"
-def pancan_tile_decks(name, shard_size: Optional[int] = None, num_workers: int = 0) -> PancanTileDecks:
+# dbx "autopath.pancan.pipelines.pancan_tile_batches('CPTAC_9802_TEST_8', num_workers=8).build()"
+# dbx "autopath.pancan.pipelines.pancan_tile_batches('CPTAC_9802_TEST_512', num_workers=8).build()"
+# dbx "autopath.pancan.pipelines.pancan_tile_batches('CPTAC_8020_TRAIN_512').build()"
+# dbx "autopath.pancan.pipelines.pancan_tile_batches('CPTAC_8020_TEST', batch_size=128, num_workers=2).build()"
+def pancan_tile_batches(name, batch_size: Optional[int] = None, num_workers: int = 0) -> PancanTileBatches:
     if name == "CPTAC_8020_TEST":
-        assert shard_size is not None, "shard_size must be specified"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is not None, "batch_size must be specified"
+        return PancanTileBatches(spec=dict(
             tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_8020_TEST')",
-            shard_size=shard_size,),
+            batch_size=batch_size,),
             dataloader_num_workers=num_workers,
         )
     elif name == "CPTAC_8020_TRAIN":
-        assert shard_size is not None, "shard_size must be specified"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is not None, "batch_size must be specified"
+        return PancanTileBatches(spec=dict(
             tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_8020_TRAIN')",
-            shard_size=shard_size,),
+            batch_size=batch_size,),
             dataloader_num_workers=num_workers,
         )
     elif name == "CPTAC_8020_TEST_512":
-        assert shard_size is None or shard_size == 512, "shard_size must be 512"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is None or batch_size == 512, "batch_size must be 512"
+        return PancanTileBatches(spec=dict(
             tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_8020_TEST')",
-            shard_size=512,),
+            batch_size=512,),
             dataloader_num_workers=num_workers,
         )
     elif name == "CPTAC_8020_TRAIN_512":
-        assert shard_size is None or shard_size == 512, "shard_size must be 512"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is None or batch_size == 512, "batch_size must be 512"
+        return PancanTileBatches(spec=dict(
             tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_8020_TRAIN')",
-            shard_size=512,),
+            batch_size=512,),
             dataloader_num_workers=num_workers,
         )
     elif name == "CPTAC_9802_TEST_512":
-        assert shard_size is None or shard_size == 512, "shard_size must be 512"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is None or batch_size == 512, "batch_size must be 512"
+        return PancanTileBatches(spec=dict(
             tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_9802_TEST')",
-            shard_size=512,),
+            batch_size=512,),
             dataloader_num_workers=num_workers,
         )
     elif name == "CPTAC_9802_TRAIN_512":
-        assert shard_size is None or shard_size == 512, "shard_size must be 512"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is None or batch_size == 512, "batch_size must be 512"
+        return PancanTileBatches(spec=dict(
             tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_9802_TRAIN')",
-            shard_size=512,),
+            batch_size=512,),
             dataloader_num_workers=num_workers,
         )
     elif name == "CPTAC_9802_TEST_8":
-        assert shard_size is None or shard_size == 8, "shard_size must be 8"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is None or batch_size == 8, "batch_size must be 8"
+        return PancanTileBatches(spec=dict(
                                  tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_9802_TEST')",
-                                 shard_size=8,),
+                                 batch_size=8,),
             dataloader_num_workers=num_workers,
         )
     elif name == "CPTAC_9802_TRAIN_8":
-        assert shard_size is None or shard_size == 8, "shard_size must be 8"
-        return PancanTileDeck(spec=dict(
+        assert batch_size is None or batch_size == 8, "batch_size must be 8"
+        return PancanTileBatches(spec=dict(
             tileset=f"@autopath.pancan.pipelines.pancan_tile_set('CPTAC_9802_TRAIN')",
-            shard_size=8,),
+            batch_size=8,),
             dataloader_num_workers=num_workers,
         )
     else:
-        raise ValueError(f"Unknown tile deck: {name}")
+        raise ValueError(f"Unknown tile batches: {name}")
