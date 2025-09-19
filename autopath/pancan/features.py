@@ -128,9 +128,10 @@ class FeatureBags(Datablock):
 
 	def __build_bags__(self, featurebags: Sequence[FeatureBag], device: str, result_queue: queue.Queue, stop_queue: queue.Queue, progress_bar):
 		self.log.debug(f"Building {len(featurebags)} feature bags on device: {device}")
+		extractor = copy.deepcopy(self.config.extractor).to(device)
 		bag_lens = []
 		for featurebag in featurebags:
-			featurelen = self.__build_bag__(featurebag, device)
+			featurelen = self.__build_bag__(featurebag, extractor,device)
 			bag_lens.append(featurelen)
 			result_queue.put(featurelen)
 			progress_bar.update(1)
@@ -139,7 +140,7 @@ class FeatureBags(Datablock):
 			if item is None:
 				break
 
-	def __build_bag__(self, featurebag: FeatureBag, device: str):
+	def __build_bag__(self, featurebag: FeatureBag, extractor: Callable, device: str):
 		if featurebag.valid():
 			self.log.verbose(f"Skipping existing feature bag {featurebag.hashpath()}")
 			lenfeatures = len(featurebag)
@@ -152,7 +153,7 @@ class FeatureBags(Datablock):
 				n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
 				batch = tilebag.tiles[m:n].to(device)
 				self.log.detailed(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
-				features_ = self.config.extractor(batch).to('cpu')
+				features_ = extractor(batch).to('cpu')
 				del batch
 				gc.collect()
 				torch.cuda.empty_cache()
