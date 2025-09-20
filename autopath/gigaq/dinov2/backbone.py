@@ -448,6 +448,15 @@ class BackboneEvaluator:
             self.transform = dino_tile_transform()
         self.device = device
 
+    def to(self, device):
+        self.device = device
+        self.backbone = self.backbone.to(device)
+        return self
+
+    def eval(self):
+        self.backbone.eval()
+        return self
+
     def __call__(self, x):
         with torch.no_grad():
             y = self.transform(x.to(self.device))

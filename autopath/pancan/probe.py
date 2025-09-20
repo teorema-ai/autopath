@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+import torch
 
 import scipy as sp
 
@@ -38,8 +39,6 @@ from dbx import (
 from .features import FeatureBags
 
 
-
-
 class FeatureProbe:
     @staticmethod
     def ndarray(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame]):
@@ -57,7 +56,7 @@ class FeatureProbe:
 
     @staticmethod
     def discretize_features(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], d:int = 4) -> np.ndarray:
-        features = Evaluator.ndarray(X)
+        features = FeatureProbe.ndarray(X)
         return pd.DataFrame(features).apply(lambda c: pd.qcut(c, d, labels=False, duplicates='drop')).fillna(0.0).values
 
     @staticmethod
@@ -66,9 +65,9 @@ class FeatureProbe:
                          train_fraction:float=0.8
     ):
         #TODO: split_slides_labels_train_test() -> split_features_labels_train_test()
-        X = Evaluator.ndarray(X)
+        X = FeatureProbe.ndarray(X)
         if y is not None:
-            y = Evaluator.ndarray(y)
+            y = FeatureProbe.ndarray(y)
         N = y.shape[0]
         permutation = permutation = np.random.permutation(range(N))
         n = int(math.floor(N*train_fraction))
@@ -86,8 +85,8 @@ class FeatureProbe:
                           fraction=0.8
     ):
         features, labels = Xy
-        features = Evaluator.ndarray(features)
-        labels = Evaluator.ndarray(labels)
+        features = FeatureProbe.ndarray(features)
+        labels = FeatureProbe.ndarray(labels)
         N = len(labels)
         ntrain = int(N*fraction)
         randomidx = np.random.permutation(list(range(N)))
@@ -95,10 +94,10 @@ class FeatureProbe:
         testidx = randomidx[ntrain:]
        
         X_train = features[trainidx, :]
-        y_train = labels[trainidx, :]
+        y_train = labels[trainidx]
 
         X_test = features[testidx, :]
-        y_test = labels[testidx, :]
+        y_test = labels[testidx]
 
         clf = LogisticRegression()
         clf.fit(X_train, y_train)
@@ -116,10 +115,10 @@ class FeatureProbe:
                            log: Logger = Logger(),
     ):
         log.verbose(f"Evaluating features {label1}: started at {datetime.datetime.now()}")
-        report1 = Evaluator.evaluate_features(Xy1, fraction=fraction)
+        report1 = FeatureProbe.evaluate_features(Xy1, fraction=fraction)
         log.verbose(f"Evaluating features {label1}: finished at {datetime.datetime.now()}")
         log.verbose(f"Evaluating features {label2}: started at {datetime.datetime.now()}")
-        report2 = Evaluator.evaluate_features(Xy2, fraction=fraction)
+        report2 = FeatureProbe.evaluate_features(Xy2, fraction=fraction)
         log.verbose(f"Evaluating features {label2}: finished at {datetime.datetime.now()}")
 
         rstr = f"---------- {label1} ------------\n{report1}\n---------- {label2} ------------\n{report2}"
@@ -161,6 +160,7 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
     FILES = {
         'labels': 'labels.npz',
         'cdf': 'cdf.pt',
+        'aggregated_features': 'aggregated_features.pt',
         'discretized_features': 'discretized_features.pt',
         'cdf_umap': 'cdf_umap.png',
         'discretized_features_umap': 'discretized_features_umap.png',
@@ -181,27 +181,27 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
     def __build__(self):
         # labels
         labels = np.array([bag.label for bag in self.config.featurebags.bags])
-        write_npz(self.path('labels'), labels=labels)
+        write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
 
         feature_list = []
         for featurebag in self.config.featurebags.bags:
             feature_list.append(torch.mean(featurebag.features(), dim=0))
-        features = torch.stack(feature_list)
-        write_tensor(features, self.path('features'))
-        assert len(labels) == len(features), f"len(labels) != len(features): {len(labels)} != {len(features)}"
+        aggregated_features = torch.stack(feature_list)
+        assert len(labels) == len(aggregated_features), f"len(labels) != len(aggregate_features): {len(labels)} != {len(aggregated_features)}"
+        write_tensor(aggregated_features, self.path('aggregated_features', ensure_dirpath=True))
 
         # cdf
-        quantiles = np.arange(0.0, 1.0, 1.0/scope.n_bins)
-        cdf = torch.tensor(np.percentile(features.numpy(), quantiles, axis=0))
-        write_tensor(cdf, self.path('cdf'))
+        quantiles = np.arange(0.0, 1.0, 1.0/self.config.n_bins)
+        cdf = torch.tensor(np.percentile(aggregated_features.numpy(), quantiles, axis=0))
+        write_tensor(cdf, self.path('cdf', ensure_dirpath=True))
 
         # discretized_features
-        discretized_features = torch.Tensor(self.discretize_features(features.numpy(), self.config.n_bins))
-        write_tensor(discretized_features, self.path('discretized_features'))
+        discretized_features = torch.Tensor(self.discretize_features(aggregated_features.numpy(), self.config.n_bins))
+        write_tensor(discretized_features, self.path('discretized_features', ensure_dirpath=True))
         
         # evaluation_reports
         continuous, discretized = self.evaluate_features2(
-            (features, labels), 
+            (aggregated_features, labels), 
             (discretized_features, labels),
             fraction=self.config.evaluation_fraction,
             label1='continuous',
@@ -209,12 +209,14 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
             log=self.log,
         )
         evaluation_reports = {'continuous': continuous, 'discretized': discretized}
-        write_pickle(evaluation_reports, self.path('evaluation_reports'))
+        write_pickle(evaluation_reports, self.path('evaluation_reports', ensure_dirpath=True))
         return self
 
     def __read__(self, topic):
         if topic == 'labels':
             result = read_npz(self.path('labels'), 'labels')
+        elif topic == 'aggregated_features':
+            result = read_tensor(self.path('aggregated_features'))
         elif topic == 'discretized_features':
             result = read_tensor(self.path('discretized_features'))
         elif topic == 'cdf':

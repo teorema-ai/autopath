@@ -1,6 +1,7 @@
 import os
 
 from ..pancan.features import FeatureBag, FeatureBags
+from ..pancan.probe import FeatureBagsProbe
 import dbx
 
 from .dinov2.backbone import BackboneEvaluator
@@ -21,7 +22,7 @@ def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=1024,) -> Feat
 
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
-def gigapath_feature_bags(name, *, devices = 'cuda', gpu_batch_size=512) -> FeatureBags:
+def gigapath_feature_bags(name, *, devices = 'cuda', gpu_batch_size=1024) -> FeatureBags:
     if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         return FeatureBags(
                     devices=devices,
@@ -40,3 +41,12 @@ def gigapath_feature_bags(name, *, devices = 'cuda', gpu_batch_size=512) -> Feat
         raise ValueError(f"Unknown feature bags: {name}")
 
 
+# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
+def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBags:
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
+        return FeatureBagsProbe(
+                    spec=dict(featurebags="@autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')#",
+                              n_bins=n_bins,
+        ))
+    else:
+        raise ValueError(f"Unknown feature bags probe: {name}")
