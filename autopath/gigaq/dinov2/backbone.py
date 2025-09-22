@@ -55,9 +55,6 @@ from dinov2.models.vision_transformer import DinoVisionTransformer
 from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, dino_tile_transform
 
 
-logger = logging.getLogger("gigapath_uq_dinov2")
-
-
 def gigapath_tensor_block_class():
     from dinov2.layers import NestedTensorBlock
     class GigapathTensorBlock(NestedTensorBlock):
@@ -463,3 +460,47 @@ class BackboneEvaluator:
             z = self.backbone(y).cpu().detach()
             del y
             return z
+
+
+class SidebandBackboneEvaluator(BackboneEvaluator):
+    @staticmethod
+    def capture_layer(name, sideband):
+        def hook(model, input, output):
+            sideband[f"{name}.input"] = input[0].detach()
+            sideband[f"{name}.output"] = output.detach()
+        return hook
+
+    def __init__(self, 
+        backbone=None,
+        *,
+        transform=None,
+        capture_blocks: Optional[List[int]] = None,
+        device: str = 'cuda'
+    ):
+        super().__init__(backbone, transform=transform, device=device)
+        self.sideband = {}
+        blocks = backbone_blocks(self.backbone)
+        L = len(blocks)
+        for l in range(L):
+            if l not in capture_blocks:
+                continue
+            blocks[l].norm1.register_forward_hook(self.capture_layer(f'block.{l}_norm1'))
+            blocks[l].attn.qkv.register_forward_hook(self.capture_layer(f'block.{l}_attn_qkv'))
+            blocks[l].attn.proj.register_forward_hook(self.capture_layer(f'block.{l}_attn_proj'))
+            blocks[l].ls1.register_forward_hook(self.capture_layer(f'block.{l}_ls1'))
+            blocks[l].norm2.register_forward_hook(self.capture_layer(f'block.{l}_norm2'))
+            blocks[l].mlp.fc1.register_forward_hook(self.capture_layer(f'block.{l}_mlp_fc1'))
+            blocks[l].mlp.act.register_forward_hook(self.capture_layer(f'block.{l}_mlp_act'))
+            blocks[l].mlp.fc2.register_forward_hook(self.capture_layer(f'block.{l}_mlp_fc2'))
+            blocks[l].mlp.drop1.register_forward_hook(self.capture_layer(f'block.{l}_mlp_drop1'))
+            blocks[l].mlp.register_forward_hook(self.capture_layer(f'block.{l}_mlp'))
+            blocks[l].mlp.register_forward_hook(self.capture_layer(f'block.{l}_ls2'))
+        self.backbone.patch_embed.register_forward_hook(self.capture_layer('patch_embed'))
+        self.backbone.norm.register_forward_hook(self.capture_layer('norm'))
+        self.backbone.head.register_forward_hook(self.capture_layer('head'))
+        self.backbone.register_forward_hook(self.capture_layer('model'))
+        
+
+
+
+    

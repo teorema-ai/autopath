@@ -40,9 +40,22 @@ from dbx import (
 from .tiles import PancanTileBag, PancanTileBags
 
 
+def tensors_to_device(tensors, device, *, detach: bool = False):
+	_tensors = {k: v.to(device) for k, v in tensors.items()}
+	if detach:
+		_tensors = {k: v.detach() for k, v in _tensors.items()} 
+	return _tensors
+
+
+def cat_tensors(tensors):
+	_tensors = {k: torch.cat(v) for k, v in tensors.items()}
+	return _tensors
+
+
 class FeatureBag(Datablock):
 	VERSION = 1
-	FILE = "features.pt"
+	FILE = 'features.pt'
+
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		tilebag: PancanTileBag
@@ -50,7 +63,7 @@ class FeatureBag(Datablock):
 	def __len__(self):
 		return len(self.labels)
 
-	def store(self, features):
+	def store(self, features,):
 		#TODO: check for consistency with self.config.tilebag
 		self.__pre_build__()
 		dbx.write_tensor(features, self.path(ensure_dirpath=True))
@@ -154,6 +167,7 @@ class FeatureBags(Datablock):
 		self.log.verbose(f"Building new feature bag {featurebag.hashpath()} on device: {device}")
 		tilebag = featurebag.config.tilebag
 		feature_list = []
+		sideband_list = []
 		for k in range(math.ceil(len(tilebag.tiles)/self.gpu_batch_size)):
 			m = k*self.gpu_batch_size
 			n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
@@ -161,13 +175,21 @@ class FeatureBags(Datablock):
 			self.log.detailed(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
 			features_ = extractor(batch).to('cpu')
 			del batch
+			if hasattr(extractor, 'sideband'):
+				sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
+				del sideband
 			gc.collect()
 			torch.cuda.empty_cache()
 			self.log.detailed(f"done")
+			if hasattr(extractor, 'sideband'):
+				sideband_list.append(sideband)
 			feature_list.append(features_)
 		features = torch.cat(feature_list)
-		#
-		featurebag.store(features)
+		if hasattr(extractor, 'sideband'):
+			sideband = cat_tensors(sideband_list)
+			featurebag.store(features, sideband)
+		else:
+			featurebag.store(features)
 		lenfeatures = len(features)
 		return lenfeatures
 
@@ -178,3 +200,54 @@ class FeatureBags(Datablock):
 	@functools.cached_property
 	def bag_lens(self):
 		return self.read('bag_lens')
+
+
+class SidebandFeatureBag(FeatureBag):
+	VERSION = 1
+
+	@dataclass
+	class CONFIG(Datablock.CONFIG):
+		tilebag: PancanTileBag
+		extractor: Callable
+
+	def __post_init__(self):
+		self.FILES = {
+			'features': 'features.pt',
+			'sideband': {layer: f"{layer}.pt" for layer in self.config.extractor.sideband}
+		}
+		return self
+
+	def __len__(self):
+		return len(self.labels)
+
+	def store(self, features, sideband):
+		#TODO: check for consistency with self.config.tilebag
+		self.__pre_build__()
+		dbx.write_tensor(features, self.path('features', ensure_dirpath=True))
+		dbx.write_tensors(self.path('sideband', ensure_dirpath=True), **sideband)
+		self._write_journal_entry(event="store")
+		self.__post_build__()
+		return self
+
+	def read(self, topic):
+		if topic == 'features':
+			return dbx.read_tensor(self.path('features'))
+		elif topic == 'sideband':
+			return dbx.read_tensors(self.path('sideband'), *self.extractor.sideband.keys())
+
+	def features(self):
+		return self.read('features')
+	
+	def sideband(self):
+		return self.read('sideband')
+
+	
+class SidebandFeatureBags(FeatureBags):
+	@functools.cached_property
+	def bags(self):
+		featurebags = [SidebandFeatureBag(root=self.root if not self._autoroot else None,
+								          spec=dict(tilebag=dbx.quote(tilebag), 
+													extractor=self.spec.extractor,))
+						for tilebag in self.config.tilebags.datablocks()[self.config.lo:self.config.hi]
+		]
+		return featurebags
