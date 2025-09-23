@@ -52,6 +52,8 @@ from dinov2.models.vision_transformer import DinoVisionTransformer
 #from dinov2.layers.attention import Attention
 #from dinov2.layers import Mlp, PatchEmbed, NestedTensorBlock, DropPath
 
+import dbx
+
 from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, dino_tile_transform
 
 
@@ -436,14 +438,19 @@ class BackboneEvaluator:
         transform=None,
         device: str = 'cuda'
     ):
-        self.backbone = backbone
-        if self.backbone is None:
-            self.backbone = gigapath_tile_backbone()
-        self.backbone = self.backbone.to(device)
+        self._backbone = backbone
+        if self._backbone is None:
+            self._backbone = "@autopath.gigaq.dinov2.backbone.gigapath_tile_backbone()"
         self.transform = transform
         if self.transform is None:
             self.transform = dino_tile_transform()
         self.device = device
+
+    @property
+    def backbone(self):
+        if isinstance(self._backbone, str):
+            self._backbone = dbx.eval_term(self._backbone)
+        return self._backbone
 
     def to(self, device):
         self.device = device
