@@ -475,14 +475,24 @@ class BackboneEvaluator:
 
 class SidebandBackboneEvaluator(BackboneEvaluator):
 
+    def __init__(self, 
+        backbone=None,
+        *,
+        transform=None,
+        device: str = 'cuda'
+        capture_blocks: List[int] = None,
+    ):
+        super().__init__(backbone, transform=transform, device=device)
+        self.capture_blocks = capture_blocks
+
     @property
     def __pre_call__(self):
-        if not hasattr(self, '_sideband'):
+        if not hasattr(self, 'sideband'):
             self.sideband = {}
             blocks = backbone_blocks(self.backbone)
             L = len(blocks)
             for l in range(L):
-                if capture_blocks is not None and l not in capture_blocks:
+                if self.capture_blocks is not None and l not in self.capture_blocks:
                     continue
                 blocks[l].norm1.register_forward_hook(self.capture_layer(f'block.{l}_norm1'))
                 blocks[l].attn.qkv.register_forward_hook(self.capture_layer(f'block.{l}_attn_qkv'))
@@ -502,8 +512,8 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         
     def capture_layer(self, name):
         def hook(model, input, output):
-            self._sideband[f"{name}.input"] = input[0].detach()
-            self._sideband[f"{name}.output"] = output.detach()
+            self.sideband[f"{name}.input"] = input[0].detach()
+            self.sideband[f"{name}.output"] = output.detach()
         return hook
 
 
