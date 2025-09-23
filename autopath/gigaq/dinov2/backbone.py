@@ -454,7 +454,7 @@ class BackboneEvaluator:
 
     def to(self, device):
         self.device = device
-        self.backbone = self.backbone.to(device)
+        self._backbone = self._backbone.to(device)
         return self
 
     def eval(self):
@@ -463,7 +463,7 @@ class BackboneEvaluator:
 
     def __pre_call__(self):
         pass
-    
+
     def __call__(self, x):
         self.__pre_call__()
         with torch.no_grad():
