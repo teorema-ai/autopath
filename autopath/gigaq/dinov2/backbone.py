@@ -485,7 +485,6 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         super().__init__(backbone, transform=transform, device=device)
         self.capture_blocks = capture_blocks
 
-    @property
     def __pre_call__(self):
         if not hasattr(self, 'sideband'):
             self.sideband = {}
