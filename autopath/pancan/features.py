@@ -173,7 +173,7 @@ class FeatureBags(Datablock):
 			m = k*self.gpu_batch_size
 			n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
 			batch = tilebag.tiles[m:n].to(device)
-			self.log.detailed(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
+			self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
 			features_ = extractor(batch).to('cpu')
 			del batch
 			if hasattr(extractor, 'sideband'):
@@ -181,7 +181,7 @@ class FeatureBags(Datablock):
 				del sideband
 			gc.collect()
 			torch.cuda.empty_cache()
-			self.log.detailed(f"done")
+			self.log.verbose(f"done")
 			if hasattr(extractor, 'sideband'):
 				sideband_list.append(sideband)
 			feature_list.append(features_)
