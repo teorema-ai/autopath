@@ -461,7 +461,10 @@ class BackboneEvaluator:
         self.backbone.eval()
         return self
 
+    def __pre_call__(self):
+        pass
     def __call__(self, x):
+        self.__pre_call__()
         with torch.no_grad():
             y = self.transform(x.to(self.device))
             z = self.backbone(y).cpu().detach()
@@ -472,7 +475,7 @@ class BackboneEvaluator:
 class SidebandBackboneEvaluator(BackboneEvaluator):
 
     @property
-    def self.sideband(self):
+    def __pre_call__(self):
         if not hasattr(self, '_sideband'):
             self.sideband = {}
             blocks = backbone_blocks(self.backbone)
@@ -495,7 +498,6 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
             self.backbone.norm.register_forward_hook(self.capture_layer('norm'))
             self.backbone.head.register_forward_hook(self.capture_layer('head'))
             self.backbone.register_forward_hook(self.capture_layer('model'))
-        return self._sideband
         
     def capture_layer(self, name):
         def hook(model, input, output):
