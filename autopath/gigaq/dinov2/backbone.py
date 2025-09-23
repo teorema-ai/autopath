@@ -463,12 +463,6 @@ class BackboneEvaluator:
 
 
 class SidebandBackboneEvaluator(BackboneEvaluator):
-    @staticmethod
-    def capture_layer(name, sideband):
-        def hook(model, input, output):
-            sideband[f"{name}.input"] = input[0].detach()
-            sideband[f"{name}.output"] = output.detach()
-        return hook
 
     def __init__(self, 
         backbone=None,
@@ -482,7 +476,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         blocks = backbone_blocks(self.backbone)
         L = len(blocks)
         for l in range(L):
-            if l not in capture_blocks:
+            if capture_blocks is not None and l not in capture_blocks:
                 continue
             blocks[l].norm1.register_forward_hook(self.capture_layer(f'block.{l}_norm1'))
             blocks[l].attn.qkv.register_forward_hook(self.capture_layer(f'block.{l}_attn_qkv'))
@@ -500,7 +494,11 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         self.backbone.head.register_forward_hook(self.capture_layer('head'))
         self.backbone.register_forward_hook(self.capture_layer('model'))
         
-
+    def capture_layer(self, name):
+        def hook(model, input, output):
+            self.sideband[f"{name}.input"] = input[0].detach()
+            self.sideband[f"{name}.output"] = output.detach()
+        return hook
 
 
     
