@@ -53,7 +53,7 @@ def cat_tensors(tensors):
 
 
 class FeatureBag(Datablock):
-	VERSION = 1
+	VERSION = 2
 	FILE = 'features.pt'
 
 	@dataclass
@@ -89,7 +89,7 @@ class FeatureBag(Datablock):
 
 
 class FeatureBags(Datablock):
-	VERSION = 1
+	VERSION = 2
 	FILES = {'bag_lens': 'bag_lens.pt'}
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
