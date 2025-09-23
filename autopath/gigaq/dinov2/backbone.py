@@ -463,6 +463,7 @@ class BackboneEvaluator:
 
     def __pre_call__(self):
         pass
+    
     def __call__(self, x):
         self.__pre_call__()
         with torch.no_grad():
