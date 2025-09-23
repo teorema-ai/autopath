@@ -479,7 +479,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         backbone=None,
         *,
         transform=None,
-        device: str = 'cuda'
+        device: str = 'cuda',
         capture_blocks: List[int] = None,
     ):
         super().__init__(backbone, transform=transform, device=device)
