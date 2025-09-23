@@ -449,7 +449,7 @@ class BackboneEvaluator:
     @property
     def backbone(self):
         if isinstance(self._backbone, str):
-            self._backbone = dbx.eval_term(self._backbone)
+            self._backbone = dbx.eval_term(self._backbone).to(self.device)
         return self._backbone
 
     def to(self, device):
