@@ -59,6 +59,7 @@ class FeatureBag(Datablock):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		tilebag: PancanTileBag
+		extractor: Callable
 
 	def __len__(self):
 		return len(self.labels)
@@ -110,7 +111,7 @@ class FeatureBags(Datablock):
 	@functools.cached_property
 	def bags(self):
 		featurebags = [FeatureBag(root=self.root if not self._autoroot else None,
-								      spec=dict(tilebag=dbx.quote(tilebag)))
+								      spec=dict(tilebag=dbx.quote(tilebag), extractor=self.spec.extractor,))
 						for tilebag in self.config.tilebags.datablocks()[self.config.lo:self.config.hi]
 		]
 		return featurebags
