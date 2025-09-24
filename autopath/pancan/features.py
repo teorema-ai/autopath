@@ -103,6 +103,11 @@ class FeatureBag(Datablock):
 		else:
 			raise ValueError(f"Unknown topic: {topic}")
 
+	def UNSAFE_clear(self):
+		for bag in self.bags:
+			bag.UNSAFE_clear()
+		super().UNSAFE_clear()
+
 	@functools.cached_property
 	def features(self):
 		return self.read('features')
