@@ -436,7 +436,8 @@ class BackboneEvaluator:
         backbone=None,
         *,
         transform=None,
-        device: str = 'cuda'
+        device: str = 'cuda',
+        log: dbx.Logger = dbx.Logger(),
     ):
         self._backbone = backbone
         if self._backbone is None:
@@ -445,10 +446,12 @@ class BackboneEvaluator:
         if self.transform is None:
             self.transform = dino_tile_transform()
         self.device = device
+        self.log = log
 
     @property
     def backbone(self):
         if isinstance(self._backbone, str):
+            self.log.verbose(f"Evaluating {self._backbone}")
             self._backbone = dbx.eval_term(self._backbone).to(self.device)
         return self._backbone
 
@@ -486,6 +489,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
     @property
     def sideband(self):
         if self._sideband is None:
+            self.log.verbose(f"Setting up sideband layer captures")
             self._sideband = {}
             def capture_layer(name):
                 def hook(model, input, output):
