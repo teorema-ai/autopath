@@ -185,12 +185,11 @@ class FeatureBags(Datablock):
 			del batch
 			if hasattr(extractor, 'sideband'):
 				sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
+				sideband_list.append(sideband)
 				del sideband
 			gc.collect()
 			torch.cuda.empty_cache()
 			self.log.verbose(f"done")
-			if hasattr(extractor, 'sideband'):
-				sideband_list.append(sideband)
 			feature_list.append(features_)
 		features = torch.cat(feature_list)
 		if hasattr(extractor, 'sideband'):
