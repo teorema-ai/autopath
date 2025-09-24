@@ -461,11 +461,7 @@ class BackboneEvaluator:
         self.backbone.eval()
         return self
 
-    def __pre_call__(self):
-        pass
-
     def __call__(self, x):
-        self.__pre_call__()
         with torch.no_grad():
             y = self.transform(x.to(self.device))
             z = self.backbone(y).cpu().detach()
@@ -483,38 +479,39 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         capture_blocks: Optional[List[int]] = None,
     ):
         super().__init__(backbone, transform=transform, device=device)
-        self.sideband = None
+        self.has_sideband = True
+        self._sideband = None
         self.capture_blocks = capture_blocks
 
-    def __pre_call__(self):
-        if self.sideband is None:
-            self.sideband = {}
+    @property
+    def sideband(self):
+        if self._sideband is None:
+            self._sideband = {}
+            def capture_layer(name):
+                def hook(model, input, output):
+                    self._sideband[f"{name}.input"] = input[0].cpu().detach()
+                    self._sideband[f"{name}.output"] = output.cpu().detach()
+                return hook
+            
             blocks = backbone_blocks(self.backbone)
             L = len(blocks)
             for l in range(L):
                 if self.capture_blocks is None or l not in self.capture_blocks:
                     continue
-                blocks[l].norm1.register_forward_hook(self.capture_layer(f'block.{l}_norm1'))
-                blocks[l].attn.qkv.register_forward_hook(self.capture_layer(f'block.{l}_attn_qkv'))
-                blocks[l].attn.proj.register_forward_hook(self.capture_layer(f'block.{l}_attn_proj'))
-                blocks[l].ls1.register_forward_hook(self.capture_layer(f'block.{l}_ls1'))
-                blocks[l].norm2.register_forward_hook(self.capture_layer(f'block.{l}_norm2'))
-                blocks[l].mlp.fc1.register_forward_hook(self.capture_layer(f'block.{l}_mlp_fc1'))
-                blocks[l].mlp.act.register_forward_hook(self.capture_layer(f'block.{l}_mlp_act'))
-                blocks[l].mlp.fc2.register_forward_hook(self.capture_layer(f'block.{l}_mlp_fc2'))
-                blocks[l].mlp.drop1.register_forward_hook(self.capture_layer(f'block.{l}_mlp_drop1'))
-                blocks[l].mlp.register_forward_hook(self.capture_layer(f'block.{l}_mlp'))
-                blocks[l].mlp.register_forward_hook(self.capture_layer(f'block.{l}_ls2'))
-            self.backbone.patch_embed.register_forward_hook(self.capture_layer('patch_embed'))
-            self.backbone.norm.register_forward_hook(self.capture_layer('norm'))
-            self.backbone.head.register_forward_hook(self.capture_layer('head'))
-            self.backbone.register_forward_hook(self.capture_layer('model'))
+                blocks[l].norm1.register_forward_hook(capture_layer(f'block.{l}_norm1'))
+                blocks[l].attn.qkv.register_forward_hook(capture_layer(f'block.{l}_attn_qkv'))
+                blocks[l].attn.proj.register_forward_hook(capture_layer(f'block.{l}_attn_proj'))
+                blocks[l].ls1.register_forward_hook(capture_layer(f'block.{l}_ls1'))
+                blocks[l].norm2.register_forward_hook(capture_layer(f'block.{l}_norm2'))
+                blocks[l].mlp.fc1.register_forward_hook(capture_layer(f'block.{l}_mlp_fc1'))
+                blocks[l].mlp.act.register_forward_hook(capture_layer(f'block.{l}_mlp_act'))
+                blocks[l].mlp.fc2.register_forward_hook(capture_layer(f'block.{l}_mlp_fc2'))
+                blocks[l].mlp.drop1.register_forward_hook(capture_layer(f'block.{l}_mlp_drop1'))
+                blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_mlp'))
+                blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_ls2'))
+            self.backbone.patch_embed.register_forward_hook(capture_layer('patch_embed'))
+            self.backbone.norm.register_forward_hook(capture_layer('norm'))
+            self.backbone.head.register_forward_hook(capture_layer('head'))
+            self.backbone.register_forward_hook(capture_layer('model'))
+        return self._sideband
         
-    def capture_layer(self, name):
-        def hook(model, input, output):
-            self.sideband[f"{name}.input"] = input[0].cpu().detach()
-            self.sideband[f"{name}.output"] = output.cpu().detach()
-        return hook
-
-
-    
