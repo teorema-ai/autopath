@@ -48,7 +48,11 @@ def tensors_to_device(tensors, device, *, detach: bool = False):
 	return _tensors
 
 
-def cat_tensors(tensors):
+def cat_tensor_dicts(tensor_dicts):
+	tensors = {k: [] for k in tensor_dicts[0].keys()}
+	for tensor_dict in tensor_dicts:
+		for k, v in tensor_dict.items():
+			tensors[k].append(v)
 	_tensors = {k: torch.cat(v) for k, v in tensors.items()}
 	return _tensors
 
@@ -193,7 +197,7 @@ class FeatureBags(Datablock):
 			feature_list.append(features_)
 		features = torch.cat(feature_list)
 		if hasattr(extractor, 'sideband'):
-			sideband = cat_tensors(sideband_list)
+			sideband = cat_tensor_dicts(sideband_list)
 			featurebag.store(features, sideband)
 		else:
 			featurebag.store(features)
