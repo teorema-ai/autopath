@@ -158,6 +158,8 @@ class FeatureBags(Datablock):
 				featurelen = self.__build_bag__(featurebag, extractor, device)
 			except Exception as e:
 				self.log.info(f"ERROR building feature bag {featurebag.hashpath()}: {e}")
+				tbstr = traceback.format_tb(e.__traceback__)
+				self.log.verbose(f"TRACEBACK: {tbstr}")
 				featurelen = 0
 			bag_lens.append(featurelen)
 			result_queue.put(featurelen)
