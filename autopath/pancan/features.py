@@ -154,7 +154,11 @@ class FeatureBags(Datablock):
 		extractor = copy.deepcopy(self.config.extractor).to(device).eval()
 		bag_lens = []
 		for featurebag in featurebags:
-			featurelen = self.__build_bag__(featurebag, extractor, device)
+			try:
+				featurelen = self.__build_bag__(featurebag, extractor, device)
+			except Exception as e:
+				self.log.info(f"ERROR building feature bag {featurebag.hashpath()}: {e}")
+				featurelen = 0
 			bag_lens.append(featurelen)
 			result_queue.put(featurelen)
 			progress_bar.update(1)

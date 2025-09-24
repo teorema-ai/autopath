@@ -480,7 +480,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         *,
         transform=None,
         device: str = 'cuda',
-        capture_blocks: List[int] = None,
+        capture_blocks: Optional[List[int]] = None,
     ):
         super().__init__(backbone, transform=transform, device=device)
         self.capture_blocks = capture_blocks
@@ -491,7 +491,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
             blocks = backbone_blocks(self.backbone)
             L = len(blocks)
             for l in range(L):
-                if self.capture_blocks is not None and l not in self.capture_blocks:
+                if self.capture_blocks is None or l not in self.capture_blocks:
                     continue
                 blocks[l].norm1.register_forward_hook(self.capture_layer(f'block.{l}_norm1'))
                 blocks[l].attn.qkv.register_forward_hook(self.capture_layer(f'block.{l}_attn_qkv'))
