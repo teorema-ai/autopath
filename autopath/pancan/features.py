@@ -58,31 +58,55 @@ def cat_tensor_dicts(tensor_dicts):
 
 
 class FeatureBag(Datablock):
-	VERSION = 2
-	FILE = 'features.pt'
-
+	VERSION = 3
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		tilebag: PancanTileBag
 		extractor: Callable
 
+	def __post_init__(self):
+		self.has_sideband = hasattr(self.config.extractor, 'sideband')
+		self.FILES = {
+			'features': 'features.pt',
+			'sideband': None
+		}
+		if self.has_sideband:
+			self.FILES['sideband'] = {
+				layer: f"{layer}.pt" for layer in self.config.extractor.sideband
+		}
+		return self
+
 	def __len__(self):
 		return len(self.labels)
 
-	def store(self, features,):
+	def store(self, features, sideband=None):
+		assert sideband is not None or not self.has_sideband, "Expected sideband tensors to store"
 		#TODO: check for consistency with self.config.tilebag
 		self.__pre_build__()
-		dbx.write_tensor(features, self.path(ensure_dirpath=True))
+		dbx.write_tensor(features, self.path('features', ensure_dirpath=True))
+		if self.has_sideband:
+			dbx.write_tensors(self.path('sideband', ensure_dirpath=True), **sideband)
 		self._write_journal_entry(event="store")
 		self.__post_build__()
 		return self
 
-	def read(self):
-		features = dbx.read_tensor(self.path())
-		return features
+	def read(self, topic):
+		if topic == 'features':
+			return dbx.read_tensor(self.path(topic))
+		elif topic == 'sideband':
+			if self.has_sideband:
+				sideband = dbx.read_tensors(self.path('sideband'), *self.config.extractor.sideband.keys())
+				return sideband
+			else:
+				return None
+		else:
+			raise ValueError(f"Unknown topic: {topic}")
 
 	def features(self):
-		return self.read()
+		return self.read('features')
+	
+	def sideband(self):
+		return self.read('sideband') if self.has_sideband else None
 		
 	@functools.cached_property
 	def labels(self):
@@ -164,7 +188,7 @@ class FeatureBags(Datablock):
 			except Exception as e:
 				self.log.info(f"ERROR building feature bag {featurebag.hashpath()}: {e}")
 				tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
-				self.log.verbose(f"TRACEBACK: {tbstr}")
+				self.log.verbose(f"TRACEBACK:\n{tbstr}")
 				featurelen = 0
 			bag_lens.append(featurelen)
 			result_queue.put(featurelen)
@@ -251,14 +275,3 @@ class SidebandFeatureBag(FeatureBag):
 	
 	def sideband(self):
 		return self.read('sideband')
-
-	
-class SidebandFeatureBags(FeatureBags):
-	@functools.cached_property
-	def bags(self):
-		featurebags = [SidebandFeatureBag(root=self.root if not self._autoroot else None,
-								          spec=dict(tilebag=dbx.quote(tilebag), 
-													extractor=self.spec.extractor,))
-						for tilebag in self.config.tilebags.datablocks()[self.config.lo:self.config.hi]
-		]
-		return featurebags
