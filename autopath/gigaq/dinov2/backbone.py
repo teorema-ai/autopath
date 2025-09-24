@@ -483,10 +483,11 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         capture_blocks: Optional[List[int]] = None,
     ):
         super().__init__(backbone, transform=transform, device=device)
+        self.sideband = None
         self.capture_blocks = capture_blocks
 
     def __pre_call__(self):
-        if not hasattr(self, 'sideband'):
+        if self.sideband is None:
             self.sideband = {}
             blocks = backbone_blocks(self.backbone)
             L = len(blocks)

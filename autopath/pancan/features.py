@@ -81,6 +81,7 @@ class FeatureBag(Datablock):
 
 	def store(self, features, sideband=None):
 		assert sideband is not None or not self.has_sideband, "Expected sideband tensors to store"
+		assert self.has_sideband or sideband is None, "Need a sideband extractor to store sideband tensors"
 		#TODO: check for consistency with self.config.tilebag
 		self.__pre_build__()
 		dbx.write_tensor(features, self.path('features', ensure_dirpath=True))
