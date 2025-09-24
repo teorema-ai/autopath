@@ -102,9 +102,11 @@ class FeatureBag(Datablock):
 		else:
 			raise ValueError(f"Unknown topic: {topic}")
 
+	@functools.cached_property
 	def features(self):
 		return self.read('features')
 	
+	@functools.cached_property
 	def sideband(self):
 		return self.read('sideband') if self.has_sideband else None
 		
