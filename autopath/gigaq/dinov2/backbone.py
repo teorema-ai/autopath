@@ -532,5 +532,6 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
                     self.backbone.register_forward_hook(capture_layer(layer))
                 else:
                     getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
+            self.log.debug(f"Done setting up layer captures")
         return self._sideband
         
