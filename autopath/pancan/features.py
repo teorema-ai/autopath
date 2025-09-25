@@ -171,51 +171,65 @@ class FeatureBags(Datablock):
 				remaining_bags.append(featurebag)
 		if len(remaining_bags) > 0:
 			result_queue = queue.Queue()
-			stop_queue = queue.Queue()
+			done_queue = queue.Queue()
+			abort_event = threading.Event()
 			progress_bar = tqdm.tqdm(total=len(remaining_bags))
 			feature_bag_lists = np.array_split(remaining_bags, len(self.devices))
 			threads = [
-				threading.Thread(target=self.__build_bags__, args=(feature_bag_list, device, result_queue, stop_queue, progress_bar))
+				threading.Thread(target=self.__build_bags__, args=(feature_bag_list, device, result_queue, done_queue, abort_event, progress_bar))
 				for feature_bag_list, device in zip(feature_bag_lists, self.devices)
 			]
 			for thread in threads:
 				thread.start()
 			while len(bag_lens) < len(self.bags):
-				bag_lens.append(result_queue.get())
+				success, payload = result_queue.get()
+				if success:
+					bag_len = payload
+					bag_lens.append(bag_len)
+					e = None
+				else:
+					e = payload
+					break
 			for _ in range(len(self.devices)):
-				stop_queue.put(None)
+				done_queue.put(None)
 			for thread in threads:
 				thread.join()
+			if e is not None:
+				raise e
 		dbx.write_tensor(torch.tensor(bag_lens), self.path('bag_lens', ensure_dirpath=True))
 		return self
 
-	def __build_bags__(self, featurebags: Sequence[FeatureBag], device: str, result_queue: queue.Queue, stop_queue: queue.Queue, progress_bar):
+	def __build_bags__(self, featurebags: Sequence[FeatureBag], device: str, result_queue: queue.Queue, done_queue: queue.Queue, abort_event: threading.Event, progress_bar):
 		self.log.debug(f"Building {len(featurebags)} feature bags on device: {device}")
 		extractor = copy.deepcopy(self.config.extractor).to(device).eval()
-		bag_lens = []
 		for featurebag in featurebags:
+			exception = None
 			try:
-				featurelen = self.__build_bag__(featurebag, extractor, device)
+				featurelen = self.__build_bag__(featurebag, extractor, device, abort_event)
 			except Exception as e:
 				self.log.info(f"ERROR building feature bag {featurebag.hashpath()}: {e}")
 				tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
 				self.log.verbose(f"TRACEBACK:\n{tbstr}")
 				featurelen = 0
-			bag_lens.append(featurelen)
-			result_queue.put(featurelen)
+				exception = e
+			if exception is not None:
+				result_queue.put((False, exception))
+				break
+			result_queue.put((True, featurelen))
 			progress_bar.update(1)
 		while True:
-			item = stop_queue.get()
+			item = done_queue.get()
 			if item is None:
 				break
-		return bag_lens
 
-	def __build_bag__(self, featurebag: FeatureBag, extractor: Callable, device: str):
+	def __build_bag__(self, featurebag: FeatureBag, extractor: Callable, device: str, abort_event):
 		self.log.verbose(f"Building new feature bag {featurebag.hashpath()} on device: {device}")
 		tilebag = featurebag.config.tilebag
 		feature_list = []
 		sideband_list = []
 		for k in range(math.ceil(len(tilebag.tiles)/self.gpu_batch_size)):
+			if abort_event.is_set():
+				return
 			m = k*self.gpu_batch_size
 			n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
 			batch = tilebag.tiles[m:n].to(device)
