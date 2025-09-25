@@ -70,13 +70,11 @@ class FeatureBag(Datablock):
 
 	def __post_init__(self):
 		self.FILES = {
-			'features': 'features.pt',
+			'features': 'features.npy',
 			'sideband': None
 		}
 		if self.has_sideband:
-			self.FILES['sideband'] = {
-				layer: f"{layer}.pt" for layer in self.config.extractor.sideband_layers
-		}
+			self.FILES['sideband'] = 'sideband.npz'
 		return self
 
 	def __len__(self):
@@ -224,7 +222,10 @@ class FeatureBags(Datablock):
 				break
 			result_queue.put((True, featurelen))
 			progress_bar.update(1)
-		self.log.debug(f"Done building {len(featurebags)} feature bags on device: {device}")
+		if exception is None:
+			self.log.debug(f"Done building {len(featurebags)} feature bags on device: {device}")
+		else:
+			self.log.debug(f"Abandoning building {len(featurebags)} feature bags on device: {device} due to an exception")
 		self.log.debug(f"Waiting on the done_queue on device: {device}")
 		while True:
 			item = done_queue.get()
