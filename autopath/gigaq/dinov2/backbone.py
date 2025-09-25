@@ -487,7 +487,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
     ):
         super().__init__(backbone, transform=transform, device=device)
         self.capture_blocks = capture_blocks
-        self.capture_layers = ['patch_embed', 'norm', 'head', 'norm', 'model',]
+        self.capture_layers = ['patch_embed', 'norm', 'head', 'norm', 'backbone',]
         self._sideband = None
 
     @property
@@ -529,10 +529,9 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
                 for b in self.capture_blocks:
                     blocks[b].register_forward_hook(capture_layer(f'block.{b}'))
             for layer in self.capture_layers:
-                if layer == 'model':
+                if layer == 'backbone':
                     self.backbone.register_forward_hook(capture_layer(layer))
                 else:
                     getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
-            self.log.debug(f"Set up sideband layer captures: {self._sideband.keys()}")
         return self._sideband
         
