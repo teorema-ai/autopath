@@ -224,11 +224,11 @@ class FeatureBags(Datablock):
 			result_queue.put((True, featurelen))
 			progress_bar.update(1)
 		self.log.debug(f"Done building {len(featurebags)} feature bags on device: {device}")
-		self.log.debug("Waiting on the done_queue on device: {device}")
+		self.log.debug(f"Waiting on the done_queue on device: {device}")
 		while True:
 			item = done_queue.get()
 			if item is None:
-				self.log.debug("Done message received on the done_queue on device: {device}")
+				self.log.debug(f"Done message received on the done_queue on device: {device}")
 				break
 
 	def __build_bag__(self, featurebag: FeatureBag, extractor: Callable, device: str, abort_event):
@@ -243,16 +243,15 @@ class FeatureBags(Datablock):
 			n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
 			batch = tilebag.tiles[m:n].to(device)
 			self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
-			features_ = extractor(batch).to('cpu')
+			feature = extractor(batch).to('cpu')
 			del batch
 			if hasattr(extractor, 'sideband'):
 				sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
 				sideband_list.append(sideband)
-				del sideband
 			gc.collect()
 			torch.cuda.empty_cache()
 			self.log.verbose(f"done")
-			feature_list.append(features_)
+			feature_list.append(feature)
 		features = torch.cat(feature_list)
 		if hasattr(extractor, 'sideband'):
 			sideband = cat_tensor_dicts(sideband_list)
