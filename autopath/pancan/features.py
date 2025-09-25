@@ -247,13 +247,16 @@ class FeatureBags(Datablock):
 			del batch
 			if hasattr(extractor, 'sideband'):
 				sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
+				assert set(sideband.keys()) == set(extractor.sideband_layers), f"sideband keys must match sideband_layers: {sideband.keys()} != {extractor.sideband_layers}"
 				sideband_list.append(sideband)
 			gc.collect()
 			torch.cuda.empty_cache()
 			self.log.verbose(f"done")
 			feature_list.append(feature)
+		self.log.debug(f"Concatenating device batch features on device: {device}")
 		features = torch.cat(feature_list)
 		if hasattr(extractor, 'sideband'):
+			self.log.debug(f"Concatenating device batch sidebands on device: {device}")
 			sideband = cat_tensor_dicts(sideband_list)
 			featurebag.store(features, sideband)
 		else:
