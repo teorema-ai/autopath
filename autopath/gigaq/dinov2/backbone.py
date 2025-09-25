@@ -529,7 +529,10 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
                 for b in self.capture_blocks:
                     blocks[b].register_forward_hook(capture_layer(f'block.{b}'))
             for layer in self.capture_layers:
-                getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
+                if layer == 'model':
+                    self.backbone.register_forward_hook(capture_layer(layer))
+                else:
+                    getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
             self.log.debug(f"Set up sideband layer captures: {self._sideband.keys()}")
         return self._sideband
         
