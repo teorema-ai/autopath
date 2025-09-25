@@ -245,9 +245,9 @@ class FeatureBags(Datablock):
 			batch = tilebag.tiles[m:n].to(device)
 			self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
 			_feature = extractor(batch).to('cpu')
-			self.log.debug(f"Evaluated batch to a _feeature of shape {_feature.shape} on device: {device}")
+			self.log.debug(f"Evaluated batch to a _feature of shape {_feature.shape} on device: {device}")
 			del batch
-			if hasattr(extractor, 'sideband'):
+			if self.has_sideband:
 				_sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
 				assert set(sideband.keys()) == set(extractor.sideband_layers), f"sideband keys must match sideband_layers: {sideband.keys()} != {extractor.sideband_layers}"
 				_sideband_shapes = {k: v.shape for k, v in _sideband.items()}

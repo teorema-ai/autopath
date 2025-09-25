@@ -464,7 +464,11 @@ class BackboneEvaluator:
         self.backbone.eval()
         return self
 
+    def __pre_call__(self):
+        pass
+
     def __call__(self, x):
+        self.__pre_call__()
         with torch.no_grad():
             y = self.transform(x.to(self.device))
             z = self.backbone(y).cpu().detach()
@@ -492,6 +496,9 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
             [] if self.capture_blocks is None else 
             [f"block.{b}" for b in self.capture_blocks]
         )
+
+    def __pre_call__(self):
+        _ = self.sideband 
 
     @property
     def sideband(self):
