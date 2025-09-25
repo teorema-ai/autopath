@@ -507,8 +507,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
             self._sideband = {}
             def capture_layer(name):
                 def hook(model, input, output):
-                    self._sideband[f"{name}.input"] = input[0].cpu().detach()
-                    self._sideband[f"{name}.output"] = output.cpu().detach()
+                    self._sideband[f"{name}"] = output.cpu().detach()
                 return hook
             
             blocks = backbone_blocks(self.backbone)
