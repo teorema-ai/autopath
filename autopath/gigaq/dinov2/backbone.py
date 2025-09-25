@@ -437,7 +437,7 @@ class BackboneEvaluator:
         *,
         transform=None,
         device: str = 'cuda',
-        log: dbx.Logger = dbx.Logger(),
+        log: dbx.Logger = dbx.Logger(stack_depth=3),
     ):
         self._backbone = backbone
         if self._backbone is None:
@@ -482,9 +482,16 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         capture_blocks: Optional[List[int]] = None,
     ):
         super().__init__(backbone, transform=transform, device=device)
-        self.has_sideband = True
-        self._sideband = None
         self.capture_blocks = capture_blocks
+        self.capture_layers = ['patch_embed', 'norm', 'head', 'norm', 'model',]
+        self._sideband = None
+
+    @property
+    def sideband_layers(self):
+        return self.capture_layers + (
+            [] if self.capture_blocks is None else 
+            [f"block.{b}" for b in self.capture_blocks]
+        )
 
     @property
     def sideband(self):
@@ -498,10 +505,8 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
                 return hook
             
             blocks = backbone_blocks(self.backbone)
-            L = len(blocks)
-            for l in range(L):
-                if self.capture_blocks is None or l not in self.capture_blocks:
-                    continue
+            if self.capture_blocks is not None:
+                """
                 blocks[l].norm1.register_forward_hook(capture_layer(f'block.{l}_norm1'))
                 blocks[l].attn.qkv.register_forward_hook(capture_layer(f'block.{l}_attn_qkv'))
                 blocks[l].attn.proj.register_forward_hook(capture_layer(f'block.{l}_attn_proj'))
@@ -513,9 +518,10 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
                 blocks[l].mlp.drop1.register_forward_hook(capture_layer(f'block.{l}_mlp_drop1'))
                 blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_mlp'))
                 blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_ls2'))
-            self.backbone.patch_embed.register_forward_hook(capture_layer('patch_embed'))
-            self.backbone.norm.register_forward_hook(capture_layer('norm'))
-            self.backbone.head.register_forward_hook(capture_layer('head'))
-            self.backbone.register_forward_hook(capture_layer('model'))
+                """
+                for b in self.capture_blocks:
+                    blocks[b].register_forward_hook(capture_layer(f'block.{b}'))
+            for layer in self.capture_layers:
+                getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
         return self._sideband
         

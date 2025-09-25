@@ -64,14 +64,18 @@ class FeatureBag(Datablock):
 		tilebag: PancanTileBag
 		extractor: Callable
 
+	@property
+	def has_sideband(self):
+		return hasattr(self.config.extractor, 'sideband_layers')
+
 	def __post_init__(self):
 		self.FILES = {
 			'features': 'features.pt',
 			'sideband': None
 		}
-		if self.config.extractor.has_sideband:
+		if self.has_sideband:
 			self.FILES['sideband'] = {
-				layer: f"{layer}.pt" for layer in self.config.extractor.sideband
+				layer: f"{layer}.pt" for layer in self.config.extractor.sideband_layers
 		}
 		return self
 
@@ -79,12 +83,12 @@ class FeatureBag(Datablock):
 		return len(self.labels)
 
 	def store(self, features, sideband=None):
-		assert sideband is not None or not self.config.extractor.has_sideband, "Expected sideband tensors to store"
-		assert self.config.extractor.has_sideband or sideband is None, "Need a sideband extractor to store sideband tensors"
+		assert sideband is not None or not self.has_sideband, "Expected sideband tensors to store"
+		assert self.has_sideband or sideband is None, "Need a sideband extractor to store sideband tensors"
 		#TODO: check for consistency with self.config.tilebag
 		self.__pre_build__()
 		dbx.write_tensor(features, self.path('features', ensure_dirpath=True))
-		if self.config.extractor.has_sideband:
+		if self.has_sideband:
 			dbx.write_tensors(self.path('sideband', ensure_dirpath=True), **sideband)
 		self._write_journal_entry(event="store")
 		self.__post_build__()
@@ -94,8 +98,8 @@ class FeatureBag(Datablock):
 		if topic == 'features':
 			return dbx.read_tensor(self.path(topic))
 		elif topic == 'sideband':
-			if self.config.extractor.has_sideband:
-				sideband = dbx.read_tensors(self.path('sideband'), *self.config.extractor.sideband.keys())
+			if self.has_sideband:
+				sideband = dbx.read_tensors(self.path('sideband'), *self.config.extractor.sideband_layers)
 				return sideband
 			else:
 				return None
@@ -113,7 +117,7 @@ class FeatureBag(Datablock):
 	
 	@functools.cached_property
 	def sideband(self):
-		return self.read('sideband') if self.config.extractor.has_sideband else None
+		return self.read('sideband') if self.has_sideband else None
 		
 	@functools.cached_property
 	def labels(self):
