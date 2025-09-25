@@ -216,9 +216,6 @@ class FeatureBags(Datablock):
 			try:
 				featurelen = self.__build_bag__(featurebag, extractor, device, abort_event)
 			except Exception as e:
-				self.log.info(f"ERROR building feature bag {featurebag.hashpath()}: {e}")
-				tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
-				self.log.verbose(f"TRACEBACK:\n{tbstr}")
 				featurelen = 0
 				exception = e
 				self.log.info(f"ERROR building feature bag {featurebag.hashpath()} on device: {device}")
