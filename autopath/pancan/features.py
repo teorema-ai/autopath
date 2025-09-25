@@ -189,13 +189,18 @@ class FeatureBags(Datablock):
 					e = None
 				else:
 					e = payload
+					self.log.info(f"Received error from one of the threads on result_queue. Abandoning result_queue polling.")
 					break
+			self.log.debug(f"Production loop done, feeding done_queue")
 			for _ in range(len(self.devices)):
 				done_queue.put(None)
+			self.log.debug(f"Joining threads")
 			for thread in threads:
 				thread.join()
 			if e is not None:
+				self.log.debug("Raising exception")
 				raise e
+			self.log.debug("Threads successfully joined")
 		dbx.write_tensor(torch.tensor(bag_lens), self.path('bag_lens', ensure_dirpath=True))
 		return self
 
@@ -212,14 +217,18 @@ class FeatureBags(Datablock):
 				self.log.verbose(f"TRACEBACK:\n{tbstr}")
 				featurelen = 0
 				exception = e
+				self.log.info(f"ERROR building feature bag {featurebag.hashpath()} on device: {device}")
 			if exception is not None:
 				result_queue.put((False, exception))
 				break
 			result_queue.put((True, featurelen))
 			progress_bar.update(1)
+		self.log.debug(f"Done building {len(featurebags)} feature bags on device: {device}")
+		self.log.debug("Waiting on the done_queue on device: {device}")
 		while True:
 			item = done_queue.get()
 			if item is None:
+				self.log.debug("Done message received on the done_queue on device: {device}")
 				break
 
 	def __build_bag__(self, featurebag: FeatureBag, extractor: Callable, device: str, abort_event):
