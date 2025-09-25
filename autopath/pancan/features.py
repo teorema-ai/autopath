@@ -148,6 +148,10 @@ class FeatureBags(Datablock):
 			self.devices = [self.devices]
 		return self
 
+	@property
+	def has_sideband(self):
+		return hasattr(self.config.extractor, 'sideband_layers')
+
 	@functools.cached_property
 	def bags(self):
 		featurebags = [FeatureBag(root=self.root if not self._autoroot else None,
@@ -243,16 +247,19 @@ class FeatureBags(Datablock):
 			n = min((k+1)*self.gpu_batch_size, len(tilebag.tiles))
 			batch = tilebag.tiles[m:n].to(device)
 			self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(tilebag.tiles)} on device: {device}")
-			feature = extractor(batch).to('cpu')
+			_feature = extractor(batch).to('cpu')
+			self.log.debug(f"Evaluated batch to a _feeature of shape {_feature.shape} on device: {device}")
 			del batch
 			if hasattr(extractor, 'sideband'):
-				sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
+				_sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
 				assert set(sideband.keys()) == set(extractor.sideband_layers), f"sideband keys must match sideband_layers: {sideband.keys()} != {extractor.sideband_layers}"
-				sideband_list.append(sideband)
+				_sideband_shapes = {k: v.shape for k, v in _sideband.items()}
+				self.log.debug(f"Captured _sideband with shapes {_sideband_shapes} on device: {device}")
+				sideband_list.append(_sideband)
 			gc.collect()
 			torch.cuda.empty_cache()
 			self.log.verbose(f"done")
-			feature_list.append(feature)
+			feature_list.append(_feature)
 		self.log.debug(f"Concatenating {len(feature_list)} device batch features on device: {device}")
 		features = torch.cat(feature_list)
 		if hasattr(extractor, 'sideband'):
