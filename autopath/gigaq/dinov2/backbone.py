@@ -496,7 +496,7 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
     @property
     def sideband(self):
         if self._sideband is None:
-            self.log.debug(f"Setting up sideband layer captures")
+            self.log.debug(f"Setting up sideband layer captures for layers {self.capture_layers} and blocks {self.capture_blocks}")
             self._sideband = {}
             def capture_layer(name):
                 def hook(model, input, output):
