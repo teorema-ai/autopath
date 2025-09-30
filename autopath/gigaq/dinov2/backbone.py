@@ -312,6 +312,112 @@ def backbone_blocks(model):
     return blocks
 
 
+class BackboneEvaluator:
+    def __init__(self, 
+        backbone=None,
+        *,
+        transform=None,
+        device: str = 'cuda',
+        log: dbx.Logger = dbx.Logger(stack_depth=3),
+    ):
+        self._backbone = backbone
+        if self._backbone is None:
+            self._backbone = "@autopath.gigaq.dinov2.backbone.gigapath_tile_backbone()"
+        self.transform = transform
+        if self.transform is None:
+            self.transform = dino_tile_transform()
+        self.device = device
+        self.log = log
+
+    @property
+    def backbone(self):
+        if isinstance(self._backbone, str):
+            self.log.verbose(f"Evaluating {self._backbone}")
+            self._backbone = dbx.eval_term(self._backbone).to(self.device)
+        return self._backbone
+
+    def to(self, device):
+        self.device = device
+        self._backbone = self.backbone.to(device)
+        return self
+
+    def eval(self):
+        self.backbone.eval()
+        return self
+
+    def __pre_call__(self):
+        pass
+
+    def __call__(self, x):
+        self.__pre_call__()
+        with torch.no_grad():
+            y = self.transform(x.to(self.device))
+            z = self.backbone(y).cpu().detach()
+            del y
+            return z
+
+
+class SidebandBackboneEvaluator(BackboneEvaluator):
+
+    def __init__(self, 
+        backbone=None,
+        *,
+        transform=None,
+        device: str = 'cuda',
+        capture_blocks: Optional[List[int]] = None,
+    ):
+        super().__init__(backbone, transform=transform, device=device)
+        self.capture_blocks = capture_blocks
+        self.capture_layers = ['patch_embed', 'norm', 'head', 'norm', 'backbone',]
+        self._sideband = None
+
+    @property
+    def sideband_layers(self):
+        return self.capture_layers + (
+            [] if self.capture_blocks is None else 
+            [f"block.{b}" for b in self.capture_blocks]
+        )
+
+    def __pre_call__(self):
+        _ = self.sideband 
+
+    @property
+    def sideband(self):
+        if self._sideband is None:
+            self.log.debug(f"Setting up sideband layer captures for layers {self.capture_layers} and blocks {self.capture_blocks}")
+            self._sideband = {}
+            def capture_layer(name):
+                def hook(model, input, output):
+                    self._sideband[f"{name}"] = output.cpu().detach()
+                return hook
+            
+            blocks = backbone_blocks(self.backbone)
+            if self.capture_blocks is not None:
+                """
+                blocks[l].norm1.register_forward_hook(capture_layer(f'block.{l}_norm1'))
+                blocks[l].attn.qkv.register_forward_hook(capture_layer(f'block.{l}_attn_qkv'))
+                blocks[l].attn.proj.register_forward_hook(capture_layer(f'block.{l}_attn_proj'))
+                blocks[l].ls1.register_forward_hook(capture_layer(f'block.{l}_ls1'))
+                blocks[l].norm2.register_forward_hook(capture_layer(f'block.{l}_norm2'))
+                blocks[l].mlp.fc1.register_forward_hook(capture_layer(f'block.{l}_mlp_fc1'))
+                blocks[l].mlp.act.register_forward_hook(capture_layer(f'block.{l}_mlp_act'))
+                blocks[l].mlp.fc2.register_forward_hook(capture_layer(f'block.{l}_mlp_fc2'))
+                blocks[l].mlp.drop1.register_forward_hook(capture_layer(f'block.{l}_mlp_drop1'))
+                blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_mlp'))
+                blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_ls2'))
+                """
+                for b in self.capture_blocks:
+                    blocks[b].register_forward_hook(capture_layer(f'block.{b}'))
+            for layer in self.capture_layers:
+                if layer == 'backbone':
+                    self.backbone.register_forward_hook(capture_layer(layer))
+                else:
+                    getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
+            self.log.debug(f"Done setting up layer captures")
+        return self._sideband
+
+
+# DEPRECATED: internalize attention capture in a BackboneEvaluator and remove
 def gigapath_tile_backbone_with_sideband_and_preprocessor(
     *, 
     type: str = 'prov-gigapath',
@@ -430,108 +536,4 @@ def apply(backbone, sideband, transform, image, *, output_root: str = None, scal
             np.savez(f, **sideband_)
     return output, sideband_
 
-
-class BackboneEvaluator:
-    def __init__(self, 
-        backbone=None,
-        *,
-        transform=None,
-        device: str = 'cuda',
-        log: dbx.Logger = dbx.Logger(stack_depth=3),
-    ):
-        self._backbone = backbone
-        if self._backbone is None:
-            self._backbone = "@autopath.gigaq.dinov2.backbone.gigapath_tile_backbone()"
-        self.transform = transform
-        if self.transform is None:
-            self.transform = dino_tile_transform()
-        self.device = device
-        self.log = log
-
-    @property
-    def backbone(self):
-        if isinstance(self._backbone, str):
-            self.log.verbose(f"Evaluating {self._backbone}")
-            self._backbone = dbx.eval_term(self._backbone).to(self.device)
-        return self._backbone
-
-    def to(self, device):
-        self.device = device
-        self._backbone = self.backbone.to(device)
-        return self
-
-    def eval(self):
-        self.backbone.eval()
-        return self
-
-    def __pre_call__(self):
-        pass
-
-    def __call__(self, x):
-        self.__pre_call__()
-        with torch.no_grad():
-            y = self.transform(x.to(self.device))
-            z = self.backbone(y).cpu().detach()
-            del y
-            return z
-
-
-class SidebandBackboneEvaluator(BackboneEvaluator):
-
-    def __init__(self, 
-        backbone=None,
-        *,
-        transform=None,
-        device: str = 'cuda',
-        capture_blocks: Optional[List[int]] = None,
-    ):
-        super().__init__(backbone, transform=transform, device=device)
-        self.capture_blocks = capture_blocks
-        self.capture_layers = ['patch_embed', 'norm', 'head', 'norm', 'backbone',]
-        self._sideband = None
-
-    @property
-    def sideband_layers(self):
-        return self.capture_layers + (
-            [] if self.capture_blocks is None else 
-            [f"block.{b}" for b in self.capture_blocks]
-        )
-
-    def __pre_call__(self):
-        _ = self.sideband 
-
-    @property
-    def sideband(self):
-        if self._sideband is None:
-            self.log.debug(f"Setting up sideband layer captures for layers {self.capture_layers} and blocks {self.capture_blocks}")
-            self._sideband = {}
-            def capture_layer(name):
-                def hook(model, input, output):
-                    self._sideband[f"{name}"] = output.cpu().detach()
-                return hook
-            
-            blocks = backbone_blocks(self.backbone)
-            if self.capture_blocks is not None:
-                """
-                blocks[l].norm1.register_forward_hook(capture_layer(f'block.{l}_norm1'))
-                blocks[l].attn.qkv.register_forward_hook(capture_layer(f'block.{l}_attn_qkv'))
-                blocks[l].attn.proj.register_forward_hook(capture_layer(f'block.{l}_attn_proj'))
-                blocks[l].ls1.register_forward_hook(capture_layer(f'block.{l}_ls1'))
-                blocks[l].norm2.register_forward_hook(capture_layer(f'block.{l}_norm2'))
-                blocks[l].mlp.fc1.register_forward_hook(capture_layer(f'block.{l}_mlp_fc1'))
-                blocks[l].mlp.act.register_forward_hook(capture_layer(f'block.{l}_mlp_act'))
-                blocks[l].mlp.fc2.register_forward_hook(capture_layer(f'block.{l}_mlp_fc2'))
-                blocks[l].mlp.drop1.register_forward_hook(capture_layer(f'block.{l}_mlp_drop1'))
-                blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_mlp'))
-                blocks[l].mlp.register_forward_hook(capture_layer(f'block.{l}_ls2'))
-                """
-                for b in self.capture_blocks:
-                    blocks[b].register_forward_hook(capture_layer(f'block.{b}'))
-            for layer in self.capture_layers:
-                if layer == 'backbone':
-                    self.backbone.register_forward_hook(capture_layer(layer))
-                else:
-                    getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
-            self.log.debug(f"Done setting up layer captures")
-        return self._sideband
         

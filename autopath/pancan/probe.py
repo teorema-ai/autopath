@@ -1,6 +1,7 @@
 
 from dataclasses import dataclass, asdict
 import datetime
+import functools
 import json
 import math
 import os
@@ -26,6 +27,7 @@ from sklearn.linear_model import LogisticRegression
 import dbx
 from dbx import (
 	Logger,
+    Databag,
 	Datablock,
     write_tensor, 
     read_tensor,
@@ -33,6 +35,7 @@ from dbx import (
     read_npz,
     write_pickle,
     read_pickle,
+    MultiDeviceDatabagBuilder,
 )
 
 
@@ -155,7 +158,6 @@ class FeatureProbe:
         return umap_features
 
 
-#>>> #TODO: #TEST
 class FeatureBagsProbe(Datablock, FeatureProbe):
     FILES = {
         'labels': 'labels.npz',
@@ -225,4 +227,64 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
             result = read_pickle(self.path('evaluation_reports'))
         else:
             raise ValueError(f"Unknown topic: {topic}")
+        return result
+
+
+class FeatureBagsDimProbe(Datablock, FeatureProbe):
+    FILES = {
+        'pairwise_distances': 'pairwise_distances.npz',
+        'dimension_fit_report': 'dimension_fit_report',
+    }
+    @dataclass
+    class CONFIG:
+        featurebags: FeatureBags
+        sideband_layer: Optional[str] = None
+
+    class FeatureDistances(Databag):
+        def __init__(self, features: torch.Tensor, rows: List[int], log: Logger):
+            self.features = features
+            self.rows = rows
+            self.pairwise_distances = None
+            self.log = log
+        
+        def __str__(self):
+            return f"FeatureDistances({self.rows})"
+
+        def to(self, device):
+            self.features = self.features.to(device)
+            return self
+
+        def build(self):
+            if self.pairwise_distances is None:
+                self.log.verbose(f"Building FeatureDistances with rows {self.rows} on device {self.features.device}")
+                self.pairwise_distances = torch.cdist(self.features[self.rows], self.features)
+                self.log.verbose(f"Build FeatureDistances with shape {self.pairwise_distances.shape} on device {self.features.device}")
+            return self
+
+    def __init__(self, *args, row_batch_size: int = 1, devices: list[str] = ['cuda:0'], **kwargs):
+        super().__init__(*args, row_batch_size=row_batch_size, devices=devices, **kwargs)
+        
+    @functools.cached_property
+    def features(self):
+        feature_list = []
+        for featurebag in self.config.featurebags.bags:
+            feature_list.extend(featurebag.features)
+        features = torch.stack(feature_list)
+        return features
+
+    def __build__(self):
+        rows_bounds = torch.arange(0, len(self.features), self.row_batch_size).tolist()
+        rows_list = [list(range(rows_bounds[i], rows_bounds[i+1])) for i in range(len(rows_bounds)-1)]
+        feature_distances_list = [self.FeatureDistances(self.features, rows, log=self.log) for rows in rows_list]
+        feature_distances_list = MultiDeviceDatabagBuilder(devices=self.devices).build(feature_distances_list)
+        pairwise_distances = torch.cat([feature_distances.pairwise_distances for feature_distances in feature_distances_list])
+        self.log.verbose(f"Built pairwise_distances with shape: {pairwise_distances.shape}")
+        write_tensor(pairwise_distances, self.path('pairwise_distances', ensure_dirpath=True))
+        return self
+    
+    def __read__(self, topic):
+        if topic == 'pairwise_distances':
+            result = read_tensor(self.path('pairwise_distances'))
+        elif topic == 'dimension_fit_report':
+            result = read_pickle(self.path('dimension_fit_report'))
         return result
