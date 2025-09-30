@@ -276,7 +276,7 @@ class FeatureBagsDimProbe(Datablock, FeatureProbe):
         rows_bounds = torch.arange(0, len(self.features), self.row_batch_size).tolist()
         rows_list = [list(range(rows_bounds[i], rows_bounds[i+1])) for i in range(len(rows_bounds)-1)]
         feature_distances_list = [self.FeatureDistances(self.features, rows, log=self.log) for rows in rows_list]
-        feature_distances_list = MultiDeviceDatabagBuilder(devices=self.devices).build(feature_distances_list)
+        feature_distances_list = MultiDeviceDatabagBuilder(devices=self.devices).build_bags(feature_distances_list)
         pairwise_distances = torch.cat([feature_distances.pairwise_distances for feature_distances in feature_distances_list])
         self.log.verbose(f"Built pairwise_distances with shape: {pairwise_distances.shape}")
         write_tensor(pairwise_distances, self.path('pairwise_distances', ensure_dirpath=True))
