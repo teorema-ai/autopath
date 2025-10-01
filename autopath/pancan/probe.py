@@ -241,7 +241,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
             self.log.detailed(f"Building FeatureDistanceChunk {self.index} with rows {self.rows} on device {features.device}")
             pairwise_distances = torch.cdist(features[self.rows], features)
             self.log.debug(f"Built FeatureDistanceChunk {self.index} with shape {pairwise_distances.shape} on device {features.device}")
-            write_tensor(pairwise_distances, self.path, ensure_dirpath=True)
+            write_tensor(pairwise_distances, self.path)
             del pairwise_distances
             return self
 
@@ -264,7 +264,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
 
     def __build__(self):
         missing_row_chunks = [(i, row_chunk) for i, row_chunk in enumerate(self.row_chunks) if not self.validpath(self.path(str(i)))]
-        _feature_distance_chunks = [self.FeatureDistanceChunk(row_chunk, index=i, path=self.path(str(i)), log=self.log) for i, row_chunk in missing_row_chunks]
+        _feature_distance_chunks = [self.FeatureDistanceChunk(row_chunk, index=i, path=self.path(str(i), ensure_dirpath=True), log=self.log) for i, row_chunk in missing_row_chunks]
         feature_distance_chunks = MultiDeviceDatashardBuilder(devices=self.devices, log=self.log).build_shards(_feature_distance_chunks, self.features)
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(feature_distance_chunks)}")
         return self
