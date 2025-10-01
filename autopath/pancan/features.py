@@ -69,12 +69,12 @@ class FeatureBag(Datablock):
 		return hasattr(self.config.extractor, 'sideband_layers')
 
 	def __post_init__(self):
-		self.FILES = {
+		self.TOPICFILES = {
 			'features': 'features.npy',
 			'sideband': None
 		}
 		if self.has_sideband:
-			self.FILES['sideband'] = 'sideband.npz'
+			self.TOPICFILES['sideband'] = 'sideband.npz'
 		return self
 
 	def __len__(self):
@@ -128,7 +128,7 @@ class FeatureBag(Datablock):
 
 class FeatureBags(Datablock):
 	VERSION = 2
-	FILES = {'bag_lens': 'bag_lens.pt'}
+	TOPICFILES = {'bag_lens': 'bag_lens.pt'}
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		extractor: Callable

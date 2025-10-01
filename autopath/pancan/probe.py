@@ -35,7 +35,7 @@ from dbx import (
     read_npz,
     write_pickle,
     read_pickle,
-    MultiDeviceDatabagBuilder,
+    MultiDeviceDatashardBuilder,
 )
 
 
@@ -159,7 +159,7 @@ class FeatureProbe:
 
 
 class FeatureBagsProbe(Datablock, FeatureProbe):
-    FILES = {
+    TOPICFILES = {
         'labels': 'labels.npz',
         'cdf': 'cdf.pt',
         'aggregated_features': 'aggregated_features.pt',
@@ -231,7 +231,7 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
 
 
 class FeatureBagsDimProbe(Datablock, FeatureProbe):
-    FILES = {
+    TOPICFILES = {
         'pairwise_distances': 'pairwise_distances.npz',
         'dimension_fit_report': 'dimension_fit_report',
     }
@@ -241,8 +241,7 @@ class FeatureBagsDimProbe(Datablock, FeatureProbe):
         sideband_layer: Optional[str] = None
 
     class FeatureDistances(Databag):
-        def __init__(self, features: torch.Tensor, rows: List[int], log: Logger):
-            self.features = features
+        def __init__(self, rows: List[int], log: Logger):
             self.rows = rows
             self.pairwise_distances = None
             self.log = log
@@ -251,14 +250,15 @@ class FeatureBagsDimProbe(Datablock, FeatureProbe):
             return f"FeatureDistances({self.rows})"
 
         def to(self, device):
-            self.features = self.features.to(device)
+            if self.pairwise_distances is not None:
+                self.pairwise_distances = self.pairwise_distances.to(device)
             return self
 
-        def build(self):
+        def build(self, features):
             if self.pairwise_distances is None:
-                self.log.verbose(f"Building FeatureDistances with rows {self.rows} on device {self.features.device}")
-                self.pairwise_distances = torch.cdist(self.features[self.rows], self.features)
-                self.log.verbose(f"Build FeatureDistances with shape {self.pairwise_distances.shape} on device {self.features.device}")
+                self.log.verbose(f"Building FeatureDistances with rows {self.rows} on device {features.device}")
+                self.pairwise_distances = torch.cdist(self.features[self.rows], features)
+                self.log.verbose(f"Build FeatureDistances with shape {self.pairwise_distances.shape} on device {features.device}")
             return self
 
     def __init__(self, *args, row_batch_size: int = 1, devices: list[str] = ['cuda:0'], **kwargs):
@@ -275,8 +275,8 @@ class FeatureBagsDimProbe(Datablock, FeatureProbe):
     def __build__(self):
         rows_bounds = torch.arange(0, len(self.features), self.row_batch_size).tolist()
         rows_list = [list(range(rows_bounds[i], rows_bounds[i+1])) for i in range(len(rows_bounds)-1)]
-        feature_distances_list = [self.FeatureDistances(self.features, rows, log=self.log) for rows in rows_list]
-        feature_distances_list = MultiDeviceDatabagBuilder(devices=self.devices, log=self.log).build_bags(feature_distances_list)
+        feature_distances_list = [self.FeatureDistances(rows, log=self.log) for rows in rows_list]
+        feature_distances_list = MultiDeviceDatashardBuilder(devices=self.devices, log=self.log).build_shards(feature_distances_list)
         pairwise_distances = torch.cat([feature_distances.pairwise_distances for feature_distances in feature_distances_list])
         self.log.verbose(f"Built pairwise_distances with shape: {pairwise_distances.shape}")
         write_tensor(pairwise_distances, self.path('pairwise_distances', ensure_dirpath=True))

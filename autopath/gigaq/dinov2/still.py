@@ -264,7 +264,7 @@ def dino_tile_dataloader(dataset,
 
 class GigaqStill(Datablock):
     VERSION = 1
-    FILES = {'arch': 'arch.yaml', 'ckpts': None, 'tensorboard': None, 'training_metrics': None, 'breadcrumbs': 'breadcrumbs'}
+    TOPICFILES = {'arch': 'arch.yaml', 'ckpts': None, 'tensorboard': None, 'training_metrics': None, 'breadcrumbs': 'breadcrumbs'}
 
     @dataclass
     class CONFIG(Datablock.CONFIG):

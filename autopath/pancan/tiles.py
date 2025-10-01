@@ -62,7 +62,7 @@ class PancanTileBag(Datablock, PancanTileShard):
 		self.name, _  = os.path.splitext(records)
 		tilesfile = os.path.basename(self.config.source)
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
-		self.FILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}
+		self.TOPICFILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}
 		self._dirpath = os.path.dirname(self.config.source)
 		self._tensor = None
 
@@ -70,7 +70,7 @@ class PancanTileBag(Datablock, PancanTileShard):
 		return self._dirpath
 
 	def path(self, topic, *, ensure_dirpath: bool = False):
-		return os.path.join(self._dirpath, self.FILES[topic]) if self.FILES[topic] is not None else None
+		return os.path.join(self._dirpath, self.TOPICFILES[topic]) if self.TOPICFILES[topic] is not None else None
 
 	def UNSAFE_clear(self):
 		raise ValueError(f"Read-Only datablock: {self}")
@@ -137,7 +137,7 @@ class PancanTileShards:
 
 class PancanTileBags(Databatch, PancanTileShards):
 	DATABLOCK = PancanTileBag
-	FILE = "bag_lens.npz"
+	TOPICFILE = "bag_lens.npz"
 	@dataclass
 	class CONFIG:
 		source: str
@@ -212,7 +212,7 @@ class PancanTileBags(Databatch, PancanTileShards):
 
 
 class PancanTileSplit(Datablock):
-	FILES = {"train_shard_indices": "train_shard_indices.pt", 
+	TOPICFILES = {"train_shard_indices": "train_shard_indices.pt", 
 			 "train_shard_lens":    "train_shard_lens.pt",
 			 "test_shard_indices":  "test_shard_indices.pt",
 			 "test_shard_lens":     "test_shard_lens.pt",
@@ -317,7 +317,7 @@ class PancanTileBatch(Datablock):
 		end: int
 
 	def __post_init__(self):
-		self.FILES = {
+		self.TOPICFILES = {
 			"tiles": f"{self.config.start}-{self.config.end}-tiles.pt",
 			"labels": f"{self.config.start}-{self.config.end}-labels.pt",
 		}
@@ -362,7 +362,7 @@ class PancanTileBatch(Datablock):
 	
 class PancanTileBatches(Datablock):
 	VERSION = 1
-	FILES = {'batch_lens': 'batch_lens.pt'}
+	TOPICFILES = {'batch_lens': 'batch_lens.pt'}
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		tileset: PancanTileSet
