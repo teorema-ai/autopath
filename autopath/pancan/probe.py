@@ -239,7 +239,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
 
         def build(self, features):
             self.log.detailed(f"Building FeatureDistanceChunk {self.index} with rows {self.rows} on device {features.device}")
-            pairwise_distances = torch.cdist(features[self.rows], features)
+            pairwise_distances = torch.cdist(features[self.rows], features).to('cpu')
             self.log.debug(f"Built FeatureDistanceChunk {self.index} with shape {pairwise_distances.shape} on device {features.device}")
             write_tensor(pairwise_distances, self.path)
             del pairwise_distances
