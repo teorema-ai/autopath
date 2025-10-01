@@ -220,11 +220,9 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
         return result
 
 
-class FeatureBagsDimProbe(Datablock, FeatureProbe):
-    TOPICFILES = {
-        'pairwise_distances': 'pairwise_distances.npz',
-        'dimension_fit_report': 'dimension_fit_report',
-    }
+class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
+    TOPICFILE = 'pairwise_distances.npz'
+
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
@@ -272,9 +270,6 @@ class FeatureBagsDimProbe(Datablock, FeatureProbe):
         write_tensor(pairwise_distances, self.path('pairwise_distances', ensure_dirpath=True))
         return self
     
-    def __read__(self, topic):
-        if topic == 'pairwise_distances':
-            result = read_tensor(self.path('pairwise_distances'))
-        elif topic == 'dimension_fit_report':
-            result = read_pickle(self.path('dimension_fit_report'))
+    def __read__(self,):
+        result = read_tensor(self.path())
         return result
