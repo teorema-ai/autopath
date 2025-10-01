@@ -1,33 +1,23 @@
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import datetime
 import functools
-import json
 import math
-import os
-import pickle
-import sys
-import time
-from typing import List, Dict, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple
 
-import fsspec
 
 import numpy as np
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 import torch
 
-import scipy as sp
 
-
-from sklearn.metrics import accuracy_score, f1_score, classification_report
+from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
 
-import dbx
+
 from dbx import (
 	Logger,
-    Databag,
+    Datashard,
 	Datablock,
     write_tensor, 
     read_tensor,
@@ -240,7 +230,7 @@ class FeatureBagsDimProbe(Datablock, FeatureProbe):
         featurebags: FeatureBags
         sideband_layer: Optional[str] = None
 
-    class FeatureDistances(Databag):
+    class FeatureDistances(Datashard):
         def __init__(self, rows: List[int], log: Logger):
             self.rows = rows
             self.pairwise_distances = None
