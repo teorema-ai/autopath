@@ -67,8 +67,8 @@ def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optiona
         return FeatureBagsPairwiseDistancesProbe(
                     spec=dict(featurebags=f"@autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband={sideband}, capture_blocks={capture_blocks})",
                               sideband_layer=sideband_layer,
+                              row_batch_size=row_batch_size,
                     ),
-                    row_batch_size=row_batch_size,
                     devices=devices,  
         )
     else:

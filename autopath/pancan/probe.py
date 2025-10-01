@@ -221,32 +221,27 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
 
 
 class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
-    TOPICFILE = 'pairwise_distances.npz'
-
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
+        row_batch_size: int
         sideband_layer: Optional[str] = None
 
-    class FeatureDistances(Datashard):
-        def __init__(self, rows: List[int], log: Logger):
+    class FeatureDistanceChunk(Datashard):
+        def __init__(self, rows: List[int], *, path: str, log: Logger):
             self.rows = rows
-            self.pairwise_distances = None
+            self.path = path
             self.log = log
-        
+            
         def __str__(self):
-            return f"FeatureDistances({self.rows})"
-
-        def to(self, device):
-            if self.pairwise_distances is not None:
-                self.pairwise_distances = self.pairwise_distances.to(device)
-            return self
+            return f"FeatureDistanceChunk({self.rows})"
 
         def build(self, features):
-            if self.pairwise_distances is None:
-                self.log.detailed(f"Building FeatureDistances with rows {self.rows} on device {features.device}")
-                self.pairwise_distances = torch.cdist(features[self.rows], features)
-                self.log.debug(f"Built FeatureDistances with shape {self.pairwise_distances.shape} on device {features.device}")
+            self.log.detailed(f"Building FeatureDistanceChunk with rows {self.rows} on device {features.device}")
+            pairwise_distances = torch.cdist(features[self.rows], features)
+            self.log.debug(f"Built FeatureDistanceChunk with shape {self.pairwise_distances.shape} on device {features.device}")
+            write_tensor(pairwise_distances, self.path, ensure_dirpath=True)
+            del pairwise_distances
             return self
 
     def __init__(self, *args, row_batch_size: int = 1, devices: list[str] = ['cuda:0'], **kwargs):
@@ -259,17 +254,20 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
             feature_list.extend(featurebag.features)
         features = torch.stack(feature_list)
         return features
+    
+    def __post_init__(self):
+        self.row_bounds = torch.arange(0, len(self.features), self.config.row_batch_size).tolist()
+        self.row_chunks = [list(range(self.row_bounds[i], self.row_bounds[i+1])) for i in range(len(self.row_bounds)-1)]
+        self.TOPICFILES = {f'{i}': 'pairwise_distances_{i}.pt' for i in range(len(self.row_chunks))}
+        return self
 
     def __build__(self):
-        rows_bounds = torch.arange(0, len(self.features), self.row_batch_size).tolist()
-        rows_list = [list(range(rows_bounds[i], rows_bounds[i+1])) for i in range(len(rows_bounds)-1)]
-        feature_distances_list = [self.FeatureDistances(rows, log=self.log) for rows in rows_list]
-        feature_distances_list = MultiDeviceDatashardBuilder(devices=self.devices, log=self.log).build_shards(feature_distances_list, self.features)
-        pairwise_distances = torch.cat([feature_distances.pairwise_distances for feature_distances in feature_distances_list])
-        self.log.verbose(f"Built pairwise_distances with shape: {pairwise_distances.shape}")
-        write_tensor(pairwise_distances, self.path('pairwise_distances', ensure_dirpath=True))
+        missing_row_chunks = [(i, row_chunk) for i, row_chunk in enumerate(self.row_chunks) if not self.validpath(self.path(str(i)))]
+        _feature_distance_chunks = [self.FeatureDistanceChunk(row_chunk, index=i, path=self.path(str(i)), log=self.log) for i, row_chunk in missing_row_chunks]
+        feature_distance_chunks = MultiDeviceDatashardBuilder(devices=self.devices, log=self.log).build_shards(_feature_distance_chunks, self.features)
+        self.log.verbose(f"Built all pairwise feature distance chunks: {len(feature_distance_chunks)}")
         return self
     
-    def __read__(self,):
-        result = read_tensor(self.path())
+    def __read__(self, i):
+        result = read_tensor(self.path(str(i)))
         return result
