@@ -247,7 +247,7 @@ class FeatureBagsDimProbe(Datablock, FeatureProbe):
         def build(self, features):
             if self.pairwise_distances is None:
                 self.log.verbose(f"Building FeatureDistances with rows {self.rows} on device {features.device}")
-                self.pairwise_distances = torch.cdist(self.features[self.rows], features)
+                self.pairwise_distances = torch.cdist(features[self.rows], features)
                 self.log.verbose(f"Build FeatureDistances with shape {self.pairwise_distances.shape} on device {features.device}")
             return self
 
