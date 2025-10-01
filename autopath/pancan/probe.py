@@ -259,7 +259,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
     def __post_init__(self):
         self.row_bounds = torch.arange(0, len(self.features), self.config.row_batch_size).tolist()
         self.row_chunks = [list(range(self.row_bounds[i], self.row_bounds[i+1])) for i in range(len(self.row_bounds)-1)]
-        self.TOPICFILES = {f'{i}': 'pairwise_distances_{i}.pt' for i in range(len(self.row_chunks))}
+        self.TOPICFILES = {f'{i}': f'pairwise_distances_{i}.pt' for i in range(len(self.row_chunks))}
         return self
 
     def __build__(self):
