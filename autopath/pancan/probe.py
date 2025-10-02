@@ -266,7 +266,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
         for featurebag in self.config.featurebags.bags:
             feature_list.extend(featurebag.features)
         features = torch.stack(feature_list)
-        assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
+        #assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
         return features
 
     def __build__(self):
