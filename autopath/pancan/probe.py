@@ -272,7 +272,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
 
     def __build__(self):
         features_size = len(self.features)
-        chunks = [self.FeaturePairwiseDistanceChunk(spec=dict(
+        chunks = [FeaturePairwiseDistancesChunk(spec=dict(
                 featurebags=self.spec.featurebags, 
                 row_batch_offset=i, 
                 row_batch_size=self.config.row_batch_size)) for i in range(0, features_size, self.config.row_batch_size)]
