@@ -25,7 +25,7 @@ from dbx import (
     read_npz,
     write_pickle,
     read_pickle,
-    MultiDeviceDatashardBuilder,
+    MultithreadingDatashardBuilder,
 )
 
 
@@ -220,30 +220,42 @@ class FeatureBagsProbe(Datablock, FeatureProbe):
         return result
 
 
+class FeaturePairwiseDistancesChunk(Datablock):
+    TOPICFILE = "pairwise_distances.pt"
+
+    @dataclass
+    class CONFIG:
+        featurebags: FeatureBags
+        row_batch_offset: NotImplementedError
+        row_batch_size: int
+        sideband_layer: Optional[str] = None
+
+    def __post_init__(self):
+        self.rows = list(range(self.config.row_batch_offset, 
+                               min(self.config.row_batch_offset + self.config.row_batch_size,
+                                   self.config.featurebags.size())))
+        return self
+
+    def __build__(self, features):
+        self.log.detailed(f"Building FeaturePairwiseDistancesChunk with rows {self.rows} on device {features.device}")
+        pairwise_distances = torch.cdist(features[self.rows], features).to('cpu')
+        self.log.debug(f"Built FeatureDistanceChunk {self.index} with shape {pairwise_distances.shape} on device {features.device}")
+        write_tensor(pairwise_distances, self.path(ensure_dirpath=True))
+        del pairwise_distances
+        return self
+    
+    def __read__(self):
+        result = read_tensor(self.path())
+        return result
+        
+
 class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
+    TOPICFILE = "breadcrumbs"
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
         row_batch_size: int
         sideband_layer: Optional[str] = None
-
-    class FeatureDistanceChunk(Datashard):
-        def __init__(self, rows: List[int], *, index: int, path: str, log: Logger):
-            self.rows = rows
-            self.index = index
-            self.path = path
-            self.log = log
-            
-        def __str__(self):
-            return f"FeatureDistanceChunk({self.rows})"
-
-        def build(self, features):
-            self.log.detailed(f"Building FeatureDistanceChunk {self.index} with rows {self.rows} on device {features.device}")
-            pairwise_distances = torch.cdist(features[self.rows], features).to('cpu')
-            self.log.debug(f"Built FeatureDistanceChunk {self.index} with shape {pairwise_distances.shape} on device {features.device}")
-            write_tensor(pairwise_distances, self.path)
-            del pairwise_distances
-            return self
 
     def __init__(self, *args, row_batch_size: int = 1, devices: list[str] = ['cuda:0'], **kwargs):
         super().__init__(*args, row_batch_size=row_batch_size, devices=devices, **kwargs)
@@ -254,21 +266,21 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
         for featurebag in self.config.featurebags.bags:
             feature_list.extend(featurebag.features)
         features = torch.stack(feature_list)
+        assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
         return features
-    
-    def __post_init__(self):
-        self.row_bounds = torch.arange(0, len(self.features), self.config.row_batch_size).tolist()
-        self.row_chunks = [list(range(self.row_bounds[i], self.row_bounds[i+1])) for i in range(len(self.row_bounds)-1)]
-        self.TOPICFILES = {f'{i}': f'pairwise_distances_{i}.pt' for i in range(len(self.row_chunks))}
-        return self
 
     def __build__(self):
-        missing_row_chunks = [(i, row_chunk) for i, row_chunk in enumerate(self.row_chunks) if not self.validpath(self.path(str(i)))]
-        _feature_distance_chunks = [self.FeatureDistanceChunk(row_chunk, index=i, path=self.path(str(i), ensure_dirpath=True), log=self.log) for i, row_chunk in missing_row_chunks]
-        feature_distance_chunks = MultiDeviceDatashardBuilder(devices=self.devices, log=self.log).build_shards(_feature_distance_chunks, self.features)
-        self.log.verbose(f"Built all pairwise feature distance chunks: {len(feature_distance_chunks)}")
+        features_size = len(self.features)
+        chunks = [self.FeaturePairwiseDistanceChunk(spec=dict(
+                featurebags=self.spec.featurebags, 
+                row_batch_offset=i, 
+                row_batch_size=self.spec.row_batch_size)) for i in range(0, features_size, self.spec.row_batch_size)]
+        missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
+        built_chunks = MultithreadingDatashardBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, self.features)
+        self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
+        self.leave_breadcrumbs()
         return self
     
-    def __read__(self, i):
+    def chunk(self, i):
         result = read_tensor(self.path(str(i)))
         return result

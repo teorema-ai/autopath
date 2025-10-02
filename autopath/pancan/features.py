@@ -137,14 +137,15 @@ class FeatureBags(Datablock):
 		hi: Optional[int] = None
 
 	def __init__(self, *args, devices: list[str] = 'cuda:0', gpu_batch_size: int = 16, **kwargs):
-		super().__init__(*args, devices=devices, gpu_batch_size=gpu_batch_size, **kwargs)
-	
-	def __post_init__(self):
-		if self.config.hi is None:
-			self.config = replace(self.config, hi=len(self.config.tilebags))
-		if isinstance(self.devices, str):
-			self.devices = [self.devices]
-		return self
+		super().__init__(*args, devices=[devices] if isinstance(devices, str) else devices, gpu_batch_size=gpu_batch_size, **kwargs)
+
+	@property
+	def lo(self):
+		return self.config.lo
+
+	@property
+	def hi(self):
+		return self.config.hi if self.config.hi is not None else len(self.config.tilebags)
 
 	@property
 	def has_sideband(self):
@@ -154,12 +155,15 @@ class FeatureBags(Datablock):
 	def bags(self):
 		featurebags = [FeatureBag(root=self.root if not self._autoroot else None,
 								      spec=dict(tilebag=dbx.quote(tilebag), extractor=self.spec['extractor'],))
-						for tilebag in self.config.tilebags.datablocks()[self.config.lo:self.config.hi]
+						for tilebag in self.config.tilebags.datablocks()[self.lo:self.hi]
 		]
 		return featurebags
 
 	def __len__(self):
 		return len(self.bags)
+	
+	def size(self):
+		return sum([len(bag) for bag in self.bags])
 
 	def __build__(self):
 		self.log.verbose(f"Building {len(self.bags)} feature bags")
