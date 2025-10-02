@@ -273,9 +273,9 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
     def __build__(self):
         features_size = len(self.features)
         chunks = [FeaturePairwiseDistancesChunk(spec=dict(
-                featurebags=self.spec.featurebags, 
+                featurebags=self.spec['featurebags'], 
                 row_batch_offset=i, 
-                row_batch_size=self.config.row_batch_size)) for i in range(0, features_size, self.config.row_batch_size)]
+                row_batch_size=self.spec['row_batch_size'])) for i in range(0, features_size, self.spec['row_batch_size'])]
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
         built_chunks = MultithreadingDatashardBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, self.features)
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
