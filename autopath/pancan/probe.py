@@ -294,7 +294,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
     def features_size(self):
         if self.valid():
             self.log.debug(f"Reading features_size from {self.path('features_size')}")
-            return read_tensor(self.path('features_size'))
+            return read_tensor(self.path('features_size')).item()
         else:
             self.log.debug(f"Calculating features_size")
             return len(self.features())
