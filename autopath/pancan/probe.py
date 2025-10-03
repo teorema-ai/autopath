@@ -278,13 +278,17 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
             #assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
         return self._features
 
-    @property
+    @functools.cached_property
     def chunks(self):
         return [FeaturePairwiseDistancesChunk(spec=dict(
                     featurebags=self.spec['featurebags'],
                     featurebags_size=self.features_size, 
                     row_batch_offset=i, 
                     row_batch_size=self.spec['row_batch_size'])) for i in range(0, self.features_size, self.spec['row_batch_size'])]
+    
+    @property
+    def num_chunks(self):
+        return len(self.chunks)
     
     @functools.cached_property
     def features_size(self):
