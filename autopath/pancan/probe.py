@@ -240,7 +240,7 @@ class FeaturePairwiseDistancesChunk(Datablock):
     def __build__(self, features):
         self.log.detailed(f"Building FeaturePairwiseDistancesChunk with rows {self.rows} on device {features.device}")
         pairwise_distances = torch.cdist(features[self.rows], features).to('cpu')
-        self.log.debug(f"Built FeatureDistanceChunk {self.index} with shape {pairwise_distances.shape} on device {features.device}")
+        self.log.debug(f"Built FeatureDistanceChunk at offset {self.config.row_batch_offset} with shape {pairwise_distances.shape} on device {features.device}")
         write_tensor(pairwise_distances, self.path(ensure_dirpath=True))
         del pairwise_distances
         return self
@@ -272,13 +272,18 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
         return features
 
     def __build__(self):
+        self.log.debug("Calculating features size")
         features_size = len(self.features)
+        self.log.debug(f"Forming FeaturePairwiseDistancesChunks with size {features_size} and batch size {self.spec['row_batch_size']}")
         chunks = [FeaturePairwiseDistancesChunk(spec=dict(
                 featurebags=self.spec['featurebags'],
                 featurebags_size=features_size, 
                 row_batch_offset=i, 
                 row_batch_size=self.spec['row_batch_size'])) for i in range(0, features_size, self.spec['row_batch_size'])]
+        self.log.debug(f"Found {len(chunks)} FeaturePairwiseDistancesChunks.  Looking for missing chunks")
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
+        self.log.debug(f"Found {len(missing_chunks)} missing chunks")
+        self.log.debug(f"Building all missingpairwise feature distance chunks")
         built_chunks = MultithreadingDatashardBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, self.features)
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
         self.leave_breadcrumbs()
