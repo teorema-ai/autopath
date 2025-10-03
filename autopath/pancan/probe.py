@@ -249,6 +249,7 @@ class FeaturePairwiseDistancesChunk(Datablock):
         result = read_tensor(self.path())
         return result
     
+    @property
     def tensor(self):
         return self.read()
         
