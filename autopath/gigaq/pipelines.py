@@ -2,7 +2,11 @@ import os
 from typing import Optional, List
 
 from ..pancan.features import FeatureBag, FeatureBags
-from ..pancan.probe import FeatureBagsProbe, FeatureBagsPairwiseDistancesProbe
+from ..pancan.probe import (
+    FeatureBagsProbe, 
+    FeatureBagsPairwiseDistancesProbe,
+    FeatureBags2NNDimProbe,
+)
 
 from .dinov2.backbone import BackboneEvaluator, SidebandBackboneEvaluator
 
@@ -50,7 +54,7 @@ def gigapath_feature_bags(name, *, sideband: bool = False, capture_blocks: Optio
 
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
-def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBags:
+def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBagsProbe(
                     spec=dict(featurebags="@autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
@@ -60,7 +64,7 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBags:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, num_gpus=4).build()"
-def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, num_gpus: int = 1) -> FeatureBags:
+def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, num_gpus: int = 1) -> FeatureBagsPairwiseDistancesProbe:
     sideband = sideband_layer is not None
     devices = [f"cuda:{i}" for i in range(num_gpus)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
@@ -75,3 +79,12 @@ def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optiona
         raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
 
 
+# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_2nn_dim_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000).build()"
+def gigapath_feature_bags_2nn_dim_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, ) -> FeatureBags2NNDimProbe:
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
+        return FeatureBags2NNDimProbe(
+                    spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer={sideband_layer}, capture_blocks={capture_blocks}, row_batch_size={row_batch_size})",
+                    ),
+        )
+    else:
+        raise ValueError(f"Unknown feature bags 2nn dim probe: {name}")

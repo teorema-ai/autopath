@@ -254,7 +254,7 @@ class FeaturePairwiseDistancesChunk(Datablock):
         return self.read()
         
 
-class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
+class FeatureBagsPairwiseDistancesProbe(Datablock):
     TOPICFILES = {"features_size": "features_size.pt"}
     @dataclass
     class CONFIG:
@@ -319,3 +319,48 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
         if topic == 'features_size':
             result = read_tensor(self.path('features_size'))    
         return result
+    
+
+class FeatureBags2NNDistanceChunk(Datablock):
+    TOPICFILE = "twonn_distances.pt"
+    @dataclass
+    class CONFIG:
+        featuredist_chunk: FeaturePairwiseDistancesChunk
+
+    def __build__(self):
+        firstdist = torch.kthvalue(self.config.featuredist_chunk.tensor, 1, dim=1)
+        seconddist = torch.kthvalue(self.config.featuredist_chunk.tensor, 2, dim=1)
+        twonn_distances = torch.cat([firstdist.values, seconddist.values], dim=1)
+        write_tensor(twonn_distances, self.path(ensure_dirpath=True))
+        return self
+    
+    def __read__(self):
+        result = read_tensor(self.path())
+        return result
+    
+    @functools.cached_property
+    def tensor(self):
+        return self.read()
+    
+
+class FeatureBags2NNDimProbe(Datablock, FeatureProbe):
+    TOPICFILES = {"twonn_distances": "twonn_distances.pt"}
+    @dataclass
+    class CONFIG:
+        featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
+
+    def __build__(self):
+        featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
+        twonndist_chunks = [] 
+        self.log.debug(f"Building FeatureBags2NNDistanceChunks from {len(featuredist_chunks)} FeaturePairwiseDistancesChunks")
+        for i, chunk in enumerate(featuredist_chunks):
+            self.log.debug(f"Building {i}-th FeatureBags2NNDistanceChunk")
+            twonndist_chunk = FeatureBags2NNDistanceChunk(spec=dict(featuredist_chunk=chunk)).build()
+            twonndist_chunks.append(twonndist_chunk)
+            self.log.debug(f"Built {i}-th FeatureBags2NNDistanceChunk of shape {twonndist_chunk.tensor.shape}")
+        return self
+                            
+
+
+
+
