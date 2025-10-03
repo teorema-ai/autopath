@@ -248,10 +248,13 @@ class FeaturePairwiseDistancesChunk(Datablock):
     def __read__(self):
         result = read_tensor(self.path())
         return result
+    
+    def tensor(self):
+        return self.read()
         
 
 class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
-    TOPICFILE = "breadcrumbs"
+    TOPICFILES = {"features_size": "features_size.pt"}
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
@@ -260,18 +263,19 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
 
     def __init__(self, *args, row_batch_size: int = 1, devices: list[str] = ['cuda:0'], **kwargs):
         super().__init__(*args, row_batch_size=row_batch_size, devices=devices, **kwargs)
+        self._features = None
         
-    @functools.cached_property
     def features(self):
-        self.log.debug(f"Reading features from {len(self.config.featurebags.bags)} feature bags")
-        feature_list = []
-        for featurebag in self.config.featurebags.bags:
-            feature_list.extend(featurebag.features)
-        features = torch.stack(feature_list)
-        self.log.debug(f"Combined features: shape: {features.shape}")
-        #REMOVE: DEADLOCK
-        #assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
-        return features
+        if self._features is None:
+            self.log.debug(f"Reading features from {len(self.config.featurebags.bags)} feature bags")
+            feature_list = []
+            for featurebag in self.config.featurebags.bags:
+                feature_list.extend(featurebag.features)
+            self._features = torch.stack(feature_list)
+            self.log.debug(f"Combined features: shape: {self._features.shape}")
+            #REMOVE: DEADLOCK
+            #assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
+        return self._features
 
     @property
     def chunks(self):
@@ -283,19 +287,30 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
     
     @functools.cached_property
     def features_size(self):
-        return len(self.features)
+        if self.valid():
+            self.log.debug(f"Reading features_size from {self.path('features_size')}")
+            return read_tensor(self.path('features_size'))
+        else:
+            self.log.debug(f"Calculating features_size")
+            return len(self.features())
 
     def __build__(self):
         chunks = self.chunks
-        self.log.debug("Calculating features size")
-        features_size = len(self.features)
+        self.log.debug("Retrieving features")
+        features = self.features()
+        features_size = self.features_size
         self.log.debug(f"Forming FeaturePairwiseDistancesChunks with size {features_size} and batch size {self.spec['row_batch_size']}")
         
         self.log.debug(f"Found {len(chunks)} FeaturePairwiseDistancesChunks.  Looking for missing chunks")
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_chunks)} missing chunks")
         self.log.debug(f"Building all missingpairwise feature distance chunks")
-        built_chunks = MultithreadingDatashardBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, self.features)
+        built_chunks = MultithreadingDatashardBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
-        self.leave_breadcrumbs()
+        write_tensor(torch.tensor([features_size]), self.path('features_size', ensure_dirpath=True))
         return self
+    
+    def __read__(self, topic):
+        if topic == 'features_size':
+            result = read_tensor(self.path('features_size'))    
+        return result
