@@ -335,7 +335,7 @@ class FeatureBags2NNDistanceChunk(Datablock):
         seconddist = torch.kthvalue(featuredist_chunk_tensor, 2, dim=1)
         del featuredist_chunk_tensor
         twonn_distances = torch.stack([firstdist.values, seconddist.values], dim=-1)
-        self.log.debug(f"Built FeatureBags2NNDistanceChunk {twonn_distances.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
+        self.log.debug(f"Built FeatureBags2NNDistanceChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
         write_tensor(twonn_distances, self.path(ensure_dirpath=True))
         return self
     
