@@ -249,7 +249,7 @@ class FeaturePairwiseDistancesChunk(Datablock):
         result = read_tensor(self.path())
         return result
     
-    @property
+    @functools.cached_property
     def tensor(self):
         return self.read()
         
@@ -328,9 +328,12 @@ class FeatureBags2NNDistanceChunk(Datablock):
         featuredist_chunk: FeaturePairwiseDistancesChunk
 
     def __build__(self):
+        self.log.debug(f"Locating smallest pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()}")
         firstdist = torch.kthvalue(self.config.featuredist_chunk.tensor, 1, dim=1)
+        self.log.debug(f"Locating second smallest pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()}")
         seconddist = torch.kthvalue(self.config.featuredist_chunk.tensor, 2, dim=1)
         twonn_distances = torch.cat([firstdist.values, seconddist.values], dim=1)
+        self.log.debug(f"Built FeatureBags2NNDistanceChunk at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
         write_tensor(twonn_distances, self.path(ensure_dirpath=True))
         return self
     
