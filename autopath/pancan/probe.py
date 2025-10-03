@@ -226,14 +226,15 @@ class FeaturePairwiseDistancesChunk(Datablock):
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
-        row_batch_offset: NotImplementedError
+        featurebags_size: int
+        row_batch_offset: int
         row_batch_size: int
         sideband_layer: Optional[str] = None
 
     def __post_init__(self):
         self.rows = list(range(self.config.row_batch_offset, 
                                min(self.config.row_batch_offset + self.config.row_batch_size,
-                                   self.config.featurebags.size())))
+                                   self.config.featurebags_size)))
         return self
 
     def __build__(self, features):
@@ -273,7 +274,8 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
     def __build__(self):
         features_size = len(self.features)
         chunks = [FeaturePairwiseDistancesChunk(spec=dict(
-                featurebags=self.spec['featurebags'], 
+                featurebags=self.spec['featurebags'],
+                featurebags_size=features_size, 
                 row_batch_offset=i, 
                 row_batch_size=self.spec['row_batch_size'])) for i in range(0, features_size, self.spec['row_batch_size'])]
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
