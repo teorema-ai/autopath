@@ -5,6 +5,8 @@ import functools
 import math
 from typing import List, Optional, Union, Tuple
 
+import tqdm
+
 
 import numpy as np
 import pandas as pd
@@ -358,7 +360,10 @@ class FeatureBags2NNDimProbe(Datablock, FeatureProbe):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
         twonndist_chunks = [] 
         self.log.debug(f"Building FeatureBags2NNDistanceChunks from {len(featuredist_chunks)} FeaturePairwiseDistancesChunks")
-        for i, chunk in enumerate(featuredist_chunks):
+        chunkitor = i, chunk in enumerate(featuredist_chunks)
+        if self.verbose:
+            chunkitor = tqdm.tqdm(chunkitor)
+        for i, chunk in chunkitor:
             self.log.debug(f"Building {i}-th FeatureBags2NNDistanceChunk")
             twonndist_chunk = FeatureBags2NNDistanceChunk(spec=dict(featuredist_chunk=chunk)).build()
             twonndist_chunks.append(twonndist_chunk)
