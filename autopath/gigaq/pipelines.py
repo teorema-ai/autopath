@@ -83,7 +83,7 @@ def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optiona
 def gigapath_feature_bags_2nn_dim_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, ) -> FeatureBags2NNDimProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBags2NNDimProbe(
-                    spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer={sideband_layer}, capture_blocks={capture_blocks}, row_batch_size={row_batch_size})",
+                    spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size})",
                     ),
         )
     else:
