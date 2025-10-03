@@ -360,7 +360,7 @@ class FeatureBags2NNDimProbe(Datablock, FeatureProbe):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
         twonndist_chunks = [] 
         self.log.debug(f"Building FeatureBags2NNDistanceChunks from {len(featuredist_chunks)} FeaturePairwiseDistancesChunks")
-        chunkitor = i, chunk in enumerate(featuredist_chunks)
+        chunkitor = enumerate(featuredist_chunks)
         if self.verbose:
             chunkitor = tqdm.tqdm(chunkitor)
         for i, chunk in chunkitor:
