@@ -263,10 +263,12 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
         
     @functools.cached_property
     def features(self):
+        self.log.debug("Computing features from {len(self.config.featurebags.bags)} feature bags")
         feature_list = []
         for featurebag in self.config.featurebags.bags:
             feature_list.extend(featurebag.features)
         features = torch.stack(feature_list)
+        self.log.debug(f"Computed features: shape: {features.shape}")
         #REMOVE: DEADLOCK
         #assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
         return features
