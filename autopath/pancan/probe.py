@@ -273,15 +273,24 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
         #assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
         return features
 
+    @property
+    def chunks(self):
+        return [FeaturePairwiseDistancesChunk(spec=dict(
+                    featurebags=self.spec['featurebags'],
+                    featurebags_size=self.features_size, 
+                    row_batch_offset=i, 
+                    row_batch_size=self.spec['row_batch_size'])) for i in range(0, self.features_size, self.spec['row_batch_size'])]
+    
+    @functools.cached_property
+    def features_size(self):
+        return len(self.features)
+
     def __build__(self):
+        chunks = self.chunks
         self.log.debug("Calculating features size")
         features_size = len(self.features)
         self.log.debug(f"Forming FeaturePairwiseDistancesChunks with size {features_size} and batch size {self.spec['row_batch_size']}")
-        chunks = [FeaturePairwiseDistancesChunk(spec=dict(
-                featurebags=self.spec['featurebags'],
-                featurebags_size=features_size, 
-                row_batch_offset=i, 
-                row_batch_size=self.spec['row_batch_size'])) for i in range(0, features_size, self.spec['row_batch_size'])]
+        
         self.log.debug(f"Found {len(chunks)} FeaturePairwiseDistancesChunks.  Looking for missing chunks")
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_chunks)} missing chunks")
@@ -290,7 +299,3 @@ class FeatureBagsPairwiseDistancesProbe(Datablock, FeatureProbe):
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
         self.leave_breadcrumbs()
         return self
-    
-    def chunk(self, i):
-        result = read_tensor(self.path(str(i)))
-        return result
