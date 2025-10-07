@@ -14,7 +14,7 @@ import torch
 
 
 from sklearn.metrics import classification_report
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 
 
 from dbx import (
@@ -350,8 +350,13 @@ class FeatureBags2NNDistanceChunk(Datablock):
         return self.read()
     
 
-class FeatureBags2NNDimProbe(Datablock, FeatureProbe):
-    TOPICFILES = {"twonn_distances": "twonn_distances.pt"}
+class FeatureBags2NNDimProbe(Datablock):
+    TOPICFILES = {
+        "twonn_distances": "twonn_distances.pt", 
+        "dimension": "dimension.pt",
+        "model": "model.pkl",
+                  
+    }
     @dataclass
     class CONFIG:
         featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
@@ -368,6 +373,19 @@ class FeatureBags2NNDimProbe(Datablock, FeatureProbe):
             twonndist_chunk = FeatureBags2NNDistanceChunk(spec=dict(featuredist_chunk=chunk)).build()
             twonndist_chunks.append(twonndist_chunk)
             self.log.debug(f"Built {i}-th FeatureBags2NNDistanceChunk of shape {twonndist_chunk.tensor.shape}")
+        twonndists = torch.cat([chunk.tensor for chunk in twonndist_chunks], dim=0)
+        mus = twonndists[:, 1]/twonndists[:, 0]
+        assert all(mus >= 1.0), f"mus must be >= 1.0: {mus}"
+        logmus = torch.log(torch.sort(mus, descending=False))
+        cumprob = torch.arange(0, len(logmus))/len(logmus)
+        x = logmus
+        y = -torch.log(1.0 - cumprob)
+        model = LinearRegression()
+        self.log.debug(f"Fitting linear model on {len(x)} mu points")
+        model.fit(x, y)
+        self.log.debug(f"Built linear model of dimension {model.coef_[0]}")
+        write_tensor(torch.tensor([model.coef_[0]]), self.path('dimension', ensure_dirpath=True))
+        write_pickle(model, self.path('model', ensure_dirpath=True))
         return self
                             
 
