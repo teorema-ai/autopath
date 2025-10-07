@@ -392,9 +392,11 @@ class FeatureBags2NNDimProbe(Datablock):
         twonndists = torch.cat([chunk.tensor for chunk in twonndist_chunks], dim=0)
         mus = twonndists[:, 1]/twonndists[:, 0]
         assert all(mus >= 1.0), f"mus must be >= 1.0: {mus}"
-        logmus = torch.log(torch.sort(mus, descending=False))
-        cumprob = torch.arange(0, len(logmus))/len(logmus)
-        x = logmus
+        sortedmus, _ = torch.sort(mus, descending=False)
+        del mus
+        logsortedmus = torch.log(sortedmus)
+        cumprob = torch.arange(0, len(logsortedmus))/len(logsortedmus)
+        x = logsortedmus
         y = -torch.log(1.0 - cumprob)
         model = LinearRegression()
         self.log.debug(f"Fitting linear model on {len(x)} mu points")
