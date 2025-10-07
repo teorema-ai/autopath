@@ -328,13 +328,20 @@ class FeatureBags2NNDistanceChunk(Datablock):
     @dataclass
     class CONFIG:
         featuredist_chunk: FeaturePairwiseDistancesChunk
+        selfdist_eps: float = 1e-6
 
     def __build__(self):
         featuredist_chunk_tensor = self.config.featuredist_chunk.read()
+        self.log.debug(f"Replacing distances below {self.config.selfdist_eps} with {torch.inf}")
+        featuredist_chunk_tensor[featuredist_chunk_tensor < self.config.selfdist_eps] = torch.inf
         self.log.debug(f"Locating smallest pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape}")
         firstdist = torch.kthvalue(featuredist_chunk_tensor, 1, dim=1)
         self.log.debug(f"Locating second smallest pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape}")
         seconddist = torch.kthvalue(featuredist_chunk_tensor, 2, dim=1)
+        assert firstdist > 0.0, f"firstdist must be > 0.0: {firstdist}"
+        assert seconddist > 0.0, f"seconddist must be > 0.0: {seconddist}"
+        assert firstdist < torch.inf, f"firstdist must be < torch.inf: {firstdist}"
+        assert seconddist < torch.inf, f"seconddist must be < torch.inf: {seconddist}"
         del featuredist_chunk_tensor
         twonn_distances = torch.stack([firstdist.values, seconddist.values], dim=-1)
         self.log.debug(f"Built FeatureBags2NNDistanceChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
@@ -355,11 +362,11 @@ class FeatureBags2NNDimProbe(Datablock):
         "twonn_distances": "twonn_distances.pt", 
         "dimension": "dimension.pt",
         "model": "model.pkl",
-                  
     }
     @dataclass
     class CONFIG:
         featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
+        selfdist_eps: float = 1e-6
 
     def __build__(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
@@ -370,7 +377,7 @@ class FeatureBags2NNDimProbe(Datablock):
             chunkitor = tqdm.tqdm(chunkitor)
         for i, chunk in chunkitor:
             self.log.debug(f"Building {i}-th FeatureBags2NNDistanceChunk")
-            twonndist_chunk = FeatureBags2NNDistanceChunk(spec=dict(featuredist_chunk=chunk)).build()
+            twonndist_chunk = FeatureBags2NNDistanceChunk(spec=dict(featuredist_chunk=chunk, selfdist_eps=self.config.selfdist_eps)).build()
             twonndist_chunks.append(twonndist_chunk)
             self.log.debug(f"Built {i}-th FeatureBags2NNDistanceChunk of shape {twonndist_chunk.tensor.shape}")
         twonndists = torch.cat([chunk.tensor for chunk in twonndist_chunks], dim=0)
