@@ -378,7 +378,7 @@ class FeatureBags2NNDimProbe(Datablock):
                             for chunk in featuredist_chunks
         ]
         self.log.debug(f"Found {len(twonndist_chunks)} FeaturePairwiseDistancesChunks")
-        missing_twonndist_chunks = [chunk for chunk in twonndists if not chunk.valid()]
+        missing_twonndist_chunks = [chunk for chunk in twonndist_chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_twonndist_chunks)} missing FeaturePairwiseDistancesChunks")
         self.log.debug(f"Building {len(missing_twonndist_chunks)} FeatureBags2NNDistanceChunks")
         built_twonndist_chunks = TorchMultiprocessingDatashardBatchBuilder(n_workers=self.config.n_workers, log=self.log).build_shards(missing_twonndist_chunks)

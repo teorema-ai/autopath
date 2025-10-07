@@ -1,6 +1,8 @@
 import os
 from typing import Optional, List
 
+import torch.multiprocessing as mp
+
 from ..pancan.features import FeatureBag, FeatureBags
 from ..pancan.probe import (
     FeatureBagsProbe, 
@@ -9,6 +11,9 @@ from ..pancan.probe import (
 )
 
 from .dinov2.backbone import BackboneEvaluator, SidebandBackboneEvaluator
+
+
+mp.set_start_method("spawn", force=True)
 
 
 def gigapath_backbone_evaluator(name, *, device: str = 'cuda', sideband: bool = False, capture_blocks: Optional[List[int]] = None):
