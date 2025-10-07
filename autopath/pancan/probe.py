@@ -27,7 +27,8 @@ from dbx import (
     read_npz,
     write_pickle,
     read_pickle,
-    MultithreadingDatashardBuilder,
+    TorchMultithreadingDatashardBatchBuilder,
+    TorchMultiprocessingDatashardBatchBuilder,
 )
 
 
@@ -312,7 +313,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_chunks)} missing chunks")
         self.log.debug(f"Building all missingpairwise feature distance chunks")
-        built_chunks = MultithreadingDatashardBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
+        built_chunks = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
         write_tensor(torch.tensor([features_size]), self.path('features_size', ensure_dirpath=True))
         return self
@@ -368,18 +369,20 @@ class FeatureBags2NNDimProbe(Datablock):
         featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
         selfdist_eps: float = 1e-6
 
+    def __init__(self, *args, n_workers: int = 1, **kwargs):
+        super().__init__(*args, n_workers=n_workers, **kwargs)
+
     def __build__(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        twonndist_chunks = [] 
-        self.log.debug(f"Building FeatureBags2NNDistanceChunks from {len(featuredist_chunks)} FeaturePairwiseDistancesChunks")
-        chunkitor = enumerate(featuredist_chunks)
-        if self.verbose:
-            chunkitor = tqdm.tqdm(chunkitor)
-        for i, chunk in chunkitor:
-            self.log.debug(f"Building {i}-th FeatureBags2NNDistanceChunk")
-            twonndist_chunk = FeatureBags2NNDistanceChunk(spec=dict(featuredist_chunk=chunk, selfdist_eps=self.config.selfdist_eps)).build()
-            twonndist_chunks.append(twonndist_chunk)
-            self.log.debug(f"Built {i}-th FeatureBags2NNDistanceChunk of shape {twonndist_chunk.tensor.shape}")
+        twonndist_chunks = [FeatureBags2NNDistanceChunk(spec=dict(featuredist_chunk=chunk, selfdist_eps=self.config.selfdist_eps)) 
+                            for chunk in featuredist_chunks
+        ]
+        self.log.debug(f"Found {len(twonndist_chunks)} FeaturePairwiseDistancesChunks")
+        missing_twonndist_chunks = [chunk for chunk in twonndists if not chunk.valid()]
+        self.log.debug(f"Found {len(missing_twonndist_chunks)} missing FeaturePairwiseDistancesChunks")
+        self.log.debug(f"Building {len(missing_twonndist_chunks)} FeatureBags2NNDistanceChunks")
+        built_twonndist_chunks = TorchMultiprocessingDatashardBatchBuilder(n_workers=self.config.n_workers, log=self.log).build_shards(missing_twonndist_chunks)
+        self.log.verbose(f"Built all missing FeatureBags2NNDistance chunks: {len(built_twonndist_chunks)}")
         twonndists = torch.cat([chunk.tensor for chunk in twonndist_chunks], dim=0)
         mus = twonndists[:, 1]/twonndists[:, 0]
         assert all(mus >= 1.0), f"mus must be >= 1.0: {mus}"
