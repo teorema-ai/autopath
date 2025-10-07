@@ -338,10 +338,10 @@ class FeatureBags2NNDistanceChunk(Datablock):
         firstdist = torch.kthvalue(featuredist_chunk_tensor, 1, dim=1)
         self.log.debug(f"Locating second smallest pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape}")
         seconddist = torch.kthvalue(featuredist_chunk_tensor, 2, dim=1)
-        assert firstdist > 0.0, f"firstdist must be > 0.0: {firstdist}"
-        assert seconddist > 0.0, f"seconddist must be > 0.0: {seconddist}"
-        assert firstdist < torch.inf, f"firstdist must be < torch.inf: {firstdist}"
-        assert seconddist < torch.inf, f"seconddist must be < torch.inf: {seconddist}"
+        assert all(firstdist.values > 0.0), f"firstdist must be > 0.0: {firstdist.values}"
+        assert all(seconddist.values > 0.0), f"seconddist must be > 0.0: {seconddist.values}"
+        assert all(firstdist.values < torch.inf), f"firstdist must be < torch.inf: {firstdist.values}"
+        assert all(seconddist.values < torch.inf), f"seconddist must be < torch.inf: {seconddist.values}"
         del featuredist_chunk_tensor
         twonn_distances = torch.stack([firstdist.values, seconddist.values], dim=-1)
         self.log.debug(f"Built FeatureBags2NNDistanceChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
