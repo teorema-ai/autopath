@@ -396,7 +396,7 @@ class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
 
     def __build__(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        uniquedist_chunks = [FeatureBagsUniquePairwiseDistancesChunk(spec=dict(featuredist_chunk=featuredist_chunk, subsample_fraction=self.config.subsample_fraction, dist_eps=self.config.selfdist_eps)) 
+        uniquedist_chunks = [FeatureBagsUniquePairwiseDistancesChunk(spec=dict(featuredist_chunk=featuredist_chunk, subsample_fraction=self.config.subsample_fraction, selfdist_eps=self.config.selfdist_eps)) 
                             for featuredist_chunk in featuredist_chunks
         ]
         self.log.debug(f"Formed {len(uniquedist_chunks)} FeatureBagsUniquePairwiseDistancesChunks")
