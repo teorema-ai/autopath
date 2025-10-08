@@ -90,7 +90,7 @@ def gigapath_feature_bags_unique_pairwise_distances_probe(name, sideband_layer: 
     devices = [f"cuda:{i}" for i in range(n_gpus)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBagsUniquePairwiseDistancesProbe(
-                    spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size}, subsample_fraction={subsample_fraction})",),
+                    spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size})", subsample_fraction=subsample_fraction,),
                     devices=devices,
         )
     else:
