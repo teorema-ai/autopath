@@ -324,44 +324,63 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
     
 
 class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
-    TOPICFILE = "unique_distances.pt"
+    TOPICFILES = {"subsample_indices": "subsample_indices.npy",
+                  "original_order_indices": "original_order_indices.npy",
+                  "unique_value_indices": "unique_value_indices.npy"
+    }
+    
     @dataclass
     class CONFIG:
         featuredist_chunk: FeaturePairwiseDistancesChunk
+        subsample_fraction: float = 1.0
         selfdist_eps: float = 1e-6
 
     def __build__(self):
-        featuredist_chunk_tensor = self.config.featuredist_chunk.read().to(self.device)
+        _chunk = self.config.featuredist_chunk.read()
+        if self.config.subsample_fraction < 1.0:
+            subsample_permutation = np.random.permutation(len(_chunk))
+            subsample_indices = subsample_permutation[:int(len(_chunk)*self.config.subsample_fraction)]
+            chunk = _chunk[subsample_indices]
+            self.log.debug(f"Subsampled tensor down to shape {chunk.shape} on device {self.device}")
+        else:
+            chunk = _chunk
+            subsample_indices = torch.arange(0)
+        write_tensor(subsample_indices, self.path('subsample_indices', ensure_dirpath=True))
+        del subsample_indices
         self.log.debug(f"Replacing distances below {self.config.selfdist_eps} with {torch.inf}")
-        featuredist_chunk_tensor[featuredist_chunk_tensor < self.config.selfdist_eps] = torch.inf
-        self.log.debug(f"Computing unique pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape} on device {self.device}")
-        unique_rows = []
-        max_row_size = 0
-        for i in range(featuredist_chunk_tensor.shape[0]):
-            row = featuredist_chunk_tensor[i, :]
-            unique_row = torch.unique(row)
-            unique_rows.append(unique_row)
-            max_row_size = max(max_row_size, len(unique_row))
-        for i in range(len(unique_rows)):
-            size = len(unique_rows[i])
-            unique_rows[i].resize_(max_row_size)
-            unique_rows[i][size:] = torch.inf
-        unique_distances = torch.stack(unique_rows, dim=0)
-        del featuredist_chunk_tensor
-        del unique_rows
+        chunk[chunk < self.config.selfdist_eps] = torch.inf
+        self.log.debug(f"Sorting pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {chunk.shape} on device {self.device}")
+        sorted_chunk, original_order_indices = torch.sort(chunk, dim=-1, descending=False)
+        write_tensor(original_order_indices, self.path('original_order_indices', ensure_dirpath=True))
+        del chunk
+        del original_order_indices
         gc.collect()
+        self.log.debug(f"Finding unique pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {sorted_chunk.shape} on device {self.device}")
+        unique_distances, unique_value_indices = torch.unique_consecutive(sorted_chunk, return_inverse=True)
+        write_tensor(unique_value_indices, self.path('unique_value_indices', ensure_dirpath=True))
+        del sorted_chunk
+        del unique_distances
+        del unique_value_indices
+        gc.collect()    
         self.log.debug(f"Built FeatureBagsUniquePairwiseDistancesChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {unique_distances.shape} on device {self.device}")
-        write_tensor(unique_distances, self.path(ensure_dirpath=True))
         return self
     
-    def __read__(self):
-        result = read_tensor(self.path())
+    def __read__(self, topic):
+        result = read_tensor(self.path(topic))
         return result
     
     @functools.cached_property
     def tensor(self):
-        return self.read()
+        subsample_indices = self.read('subsample_indices')
+        original_order_indices = self.read('original_order_indices')
+        _chunk = self.config.featuredist_chunk.read()
+        tensor = _chunk[subsample_indices][original_order_indices]
+        return tensor
     
+    @functools.cached_property
+    def unique_value_indices(self):
+        return self.read('unique_value_indices')
+        
 
 class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
     TOPICFILE = "breadcumbs"
@@ -371,7 +390,7 @@ class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
         featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
         selfdist_eps: float = 1e-6
 
-    def __init__(self, *args, devices: list[str] = ['cuda:0'], , **kwargs):
+    def __init__(self, *args, devices: list[str] = ['cuda:0'], **kwargs):
         super().__init__(*args, devices=devices, **kwargs)
 
     def __build__(self):
