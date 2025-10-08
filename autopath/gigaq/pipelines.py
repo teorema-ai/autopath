@@ -69,10 +69,10 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     else:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, num_gpus=4).build()"
-def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, num_gpus: int = 1) -> FeatureBagsPairwiseDistancesProbe:
+# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_gpus=4).build()"
+def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, n_gpus: int = 1) -> FeatureBagsPairwiseDistancesProbe:
     sideband = sideband_layer is not None
-    devices = [f"cuda:{i}" for i in range(num_gpus)]
+    devices = [f"cuda:{i}" for i in range(n_gpus)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBagsPairwiseDistancesProbe(
                     spec=dict(featurebags=f"@autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband={sideband}, capture_blocks={capture_blocks})",
@@ -85,15 +85,16 @@ def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optiona
         raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_workers=3).build()"
-def gigapath_feature_bags_unique_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, n_workers: int = 1) -> FeatureBagsUniquePairwiseDistancesProbe:
+# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_gpus=3).build()"
+def gigapath_feature_bags_unique_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, n_gpus: int = 1) -> FeatureBagsUniquePairwiseDistancesProbe:
+    devices = [f"cuda:{i}" for i in range(n_gpus)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBagsUniquePairwiseDistancesProbe(
                     spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size})",),
-                    n_workers=n_workers,
+                    devices=devices,
         )
     else:
-        raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
+        raise ValueError(f"Unknown feature bags unique pairwise distances probe: {name}")
     
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags_2nn_dim_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_workers=3).build()"

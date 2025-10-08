@@ -331,10 +331,10 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         selfdist_eps: float = 1e-6
 
     def __build__(self):
-        featuredist_chunk_tensor = self.config.featuredist_chunk.read()
+        featuredist_chunk_tensor = self.config.featuredist_chunk.read().to(self.device)
         self.log.debug(f"Replacing distances below {self.config.selfdist_eps} with {torch.inf}")
         featuredist_chunk_tensor[featuredist_chunk_tensor < self.config.selfdist_eps] = torch.inf
-        self.log.debug(f"Computing unique pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape}")
+        self.log.debug(f"Computing unique pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape} on device {self.device}")
         unique_rows = []
         max_row_size = 0
         for i in range(featuredist_chunk_tensor.shape[0]):
@@ -350,7 +350,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         del featuredist_chunk_tensor
         del unique_rows
         gc.collect()
-        self.log.debug(f"Built FeatureBagsUniquePairwiseDistancesChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {unique_distances.shape}")
+        self.log.debug(f"Built FeatureBagsUniquePairwiseDistancesChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {unique_distances.shape} on device {self.device}")
         write_tensor(unique_distances, self.path(ensure_dirpath=True))
         return self
     
@@ -371,8 +371,8 @@ class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
         featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
         selfdist_eps: float = 1e-6
 
-    def __init__(self, *args, n_workers: int = 1, **kwargs):
-        super().__init__(*args, n_workers=n_workers, **kwargs)
+    def __init__(self, *args, devices: list[str] = ['cuda:0'], , **kwargs):
+        super().__init__(*args, devices=devices, **kwargs)
 
     def __build__(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
@@ -383,7 +383,7 @@ class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
         missing_uniquedist_chunks = [chunk for chunk in uniquedist_chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_uniquedist_chunks)} missing FeatureBagsUniquePairwiseDistancesChunks")
         self.log.debug(f"Building {len(missing_uniquedist_chunks)} FeatureBagsUniquePairwiseDistancesChunks")
-        built_uniquedist_chunks = TorchMultiprocessingDatashardBatchBuilder(n_workers=self.n_workers, log=self.log).build_shards(missing_uniquedist_chunks)
+        built_uniquedist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_uniquedist_chunks)
         self.leave_breadcrumbs()
         self.log.verbose(f"Built all missing FeatureBagsUniquePairwiseDistancesChunks: {len(built_uniquedist_chunks)}")
         return self
