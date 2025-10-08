@@ -2,10 +2,9 @@
 from dataclasses import dataclass
 import datetime
 import functools
+import gc
 import math
-from typing import List, Optional, Union, Tuple
-
-import tqdm
+from typing import Optional, Union, Tuple
 
 
 import numpy as np
@@ -322,6 +321,72 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
         if topic == 'features_size':
             result = read_tensor(self.path('features_size'))    
         return result
+    
+
+class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
+    TOPICFILE = "unique_distances.pt"
+    @dataclass
+    class CONFIG:
+        featuredist_chunk: FeaturePairwiseDistancesChunk
+        selfdist_eps: float = 1e-6
+
+    def __build__(self):
+        featuredist_chunk_tensor = self.config.featuredist_chunk.read()
+        self.log.debug(f"Replacing distances below {self.config.selfdist_eps} with {torch.inf}")
+        featuredist_chunk_tensor[featuredist_chunk_tensor < self.config.selfdist_eps] = torch.inf
+        self.log.debug(f"Computing unique pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape}")
+        unique_rows = []
+        max_row_size = 0
+        for i in range(featuredist_chunk_tensor.shape[0]):
+            row = featuredist_chunk_tensor[i, :]
+            unique_row = torch.unique(row)
+            unique_rows.append(unique_row)
+            max_row_size = max(max_row_size, len(unique_row))
+        for i in range(len(unique_rows)):
+            size = len(unique_rows[i])
+            unique_rows[i].resize_(max_row_size)
+            unique_rows[i][size:] = torch.inf
+        unique_distances = torch.stack(unique_rows, dim=0)
+        del featuredist_chunk_tensor
+        del unique_rows
+        gc.collect()
+        self.log.debug(f"Built FeatureBagsUniquePairwiseDistancesChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {unique_distances.shape}")
+        write_tensor(unique_distances, self.path(ensure_dirpath=True))
+        return self
+    
+    def __read__(self):
+        result = read_tensor(self.path())
+        return result
+    
+    @functools.cached_property
+    def tensor(self):
+        return self.read()
+    
+
+class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
+    TOPICFILE = "breadcumbs"
+
+    @dataclass
+    class CONFIG:
+        featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
+        selfdist_eps: float = 1e-6
+
+    def __init__(self, *args, n_workers: int = 1, **kwargs):
+        super().__init__(*args, n_workers=n_workers, **kwargs)
+
+    def __build__(self):
+        featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
+        uniquedist_chunks = [FeatureBagsUniquePairwiseDistancesChunk(spec=dict(featuredist_chunk=featuredist_chunk, selfdist_eps=self.config.selfdist_eps)) 
+                            for featuredist_chunk in featuredist_chunks
+        ]
+        self.log.debug(f"Formed {len(uniquedist_chunks)} FeatureBagsUniquePairwiseDistancesChunks")
+        missing_uniquedist_chunks = [chunk for chunk in uniquedist_chunks if not chunk.valid()]
+        self.log.debug(f"Found {len(missing_uniquedist_chunks)} missing FeatureBagsUniquePairwiseDistancesChunks")
+        self.log.debug(f"Building {len(missing_uniquedist_chunks)} FeatureBagsUniquePairwiseDistancesChunks")
+        built_uniquedist_chunks = TorchMultiprocessingDatashardBatchBuilder(n_workers=self.n_workers, log=self.log).build_shards(missing_uniquedist_chunks)
+        self.leave_breadcrumbs()
+        self.log.verbose(f"Built all missing FeatureBagsUniquePairwiseDistancesChunks: {len(built_uniquedist_chunks)}")
+        return self
     
 
 class FeatureBags2NNDistanceChunk(Datablock):

@@ -7,6 +7,7 @@ from ..pancan.features import FeatureBag, FeatureBags
 from ..pancan.probe import (
     FeatureBagsProbe, 
     FeatureBagsPairwiseDistancesProbe,
+    FeatureBagsUniquePairwiseDistancesProbe,
     FeatureBags2NNDimProbe,
 )
 
@@ -84,7 +85,18 @@ def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optiona
         raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_2nn_dim_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_workers=8).build()"
+# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_workers=3).build()"
+def gigapath_feature_bags_unique_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, n_workers: int = 1) -> FeatureBagsUniquePairwiseDistancesProbe:
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
+        return FeatureBagsUniquePairwiseDistancesProbe(
+                    spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size})",),
+                    n_workers=n_workers,
+        )
+    else:
+        raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
+    
+
+# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_2nn_dim_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_workers=3).build()"
 def gigapath_feature_bags_2nn_dim_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, n_workers: int = 1) -> FeatureBags2NNDimProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBags2NNDimProbe(
