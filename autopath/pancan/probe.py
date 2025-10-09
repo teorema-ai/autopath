@@ -325,7 +325,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
 
 class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
     VERSION = 1
-    TOPICFILES = {"subsample_indices": "subsample_indices.npz",
+    TOPICFILES = {"row_subsample_indices": "row_subsample_indices.npz",
                   "original_order_indices": "original_order_indices.npy",
                   "unique_value_indices": "unique_value_indices.npy"
     }
@@ -333,28 +333,38 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
     @dataclass
     class CONFIG:
         featuredist_chunk: FeaturePairwiseDistancesChunk
-        subsample_fraction: float = 1.0
+        row_subsample_fraction: float = 1.0
+        col_subsample_fraction: float = 1.0
 
     def __build__(self):
         _chunk = self.config.featuredist_chunk.read().to(self.device)
         _diagrows = range(self.config.featuredist_chunk.config.row_batch_size)
-        assert self.config.featuredist_chunk.config.row_batch_size == _chunk.shape[0], \
-            f"self.config.featuredist_chunk.config.row_batch_size != _chunk.shape[0]: " \
-            f"{self.config.featuredist_chunk.config.row_batch_size} != {_chunk.shape[0]}"
         _diagcols = range(self.config.featuredist_chunk.config.row_batch_offset, 
                           self.config.featuredist_chunk.config.row_batch_offset + self.config.featuredist_chunk.config.row_batch_size)
         self.log.debug(f"Setting diagonal to {torch.inf}")
         _chunk[_diagrows, _diagcols] = torch.inf
-        if self.config.subsample_fraction < 1.0:
-            subsample_permutation = np.random.permutation(len(_chunk))
-            subsample_indices = subsample_permutation[:int(len(_chunk)*self.config.subsample_fraction)]
-            chunk = _chunk[subsample_indices]
-            self.log.debug(f"Subsampled tensor down to shape {chunk.shape} on device {self.device}")
+        #
+        if self.config.row_subsample_fraction < 1.0:
+            row_subsample_permutation = np.random.permutation(_chunk.shape[0])
+            row_subsample_indices = row_subsample_permutation[:int(_chunk.shape[0]*self.config.row_subsample_fraction)]
+            chunk = _chunk[row_subsample_indices, :]
+            self.log.debug(f"Subsampled tensor rows down to shape {chunk.shape} on device {self.device}")
         else:
             chunk = _chunk
-            subsample_indices = torch.arange(0)
-        write_npz(self.path('subsample_indices', ensure_dirpath=True), subsample_indices=subsample_indices)
-        del subsample_indices
+            row_subsample_indices = torch.arange(_chunk.shape[0])
+        write_npz(self.path('row_subsample_indices', ensure_dirpath=True), row_subsample_indices=row_subsample_indices)
+        del row_subsample_indices
+        #
+        if self.config.col_subsample_fraction < 1.0:
+            col_subsample_permutation = np.random.permutation(_chunk.shape[1])
+            col_subsample_indices = col_subsample_permutation[:int(_chunk.shape[1]*self.config.col_subsample_fraction)]
+            chunk = _chunk[col_subsample_indices, :]
+            self.log.debug(f"Subsampled tensor rows down to shape {chunk.shape} on device {self.device}")
+        else:
+            chunk = _chunk
+            col_subsample_indices = torch.arange(_chunk.shape[1])
+        write_npz(self.path('col_subsample_indices', ensure_dirpath=True), col_subsample_indices=col_subsample_indices)
+        del col_subsample_indices
         
         self.log.debug(f"Sorting pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {chunk.shape} on device {self.device}")
         sorted_chunk, original_order_indices = torch.sort(chunk, dim=-1, descending=False)
@@ -404,14 +414,18 @@ class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
     @dataclass
     class CONFIG:
         featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
-        subsample_fraction: float = 1.0
+        row_subsample_fraction: float = 1.0
+        col_subsample_fraction: float = 1.0
 
     def __init__(self, *args, devices: list[str] = ['cuda:0'], **kwargs):
         super().__init__(*args, devices=devices, **kwargs)
 
     def __build__(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        uniquedist_chunks = [FeatureBagsUniquePairwiseDistancesChunk(spec=dict(featuredist_chunk=featuredist_chunk, subsample_fraction=self.config.subsample_fraction,)) 
+        uniquedist_chunks = [FeatureBagsUniquePairwiseDistancesChunk(
+                                spec=dict(featuredist_chunk=featuredist_chunk, 
+                                          row_subsample_fraction=self.config.row_subsample_fraction, 
+                                          col_subsample_fraction=self.config.col_subsample_fraction)) 
                             for featuredist_chunk in featuredist_chunks
         ]
         self.log.debug(f"Formed {len(uniquedist_chunks)} FeatureBagsUniquePairwiseDistancesChunks")
