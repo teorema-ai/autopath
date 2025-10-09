@@ -358,7 +358,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         if self.config.col_subsample_fraction < 1.0:
             col_subsample_permutation = np.random.permutation(_chunk.shape[1])
             col_subsample_indices = col_subsample_permutation[:int(_chunk.shape[1]*self.config.col_subsample_fraction)]
-            chunk = _chunk[col_subsample_indices, :]
+            chunk = _chunk[:, col_subsample_indices]
             self.log.debug(f"Subsampled tensor rows down to shape {chunk.shape} on device {self.device}")
         else:
             chunk = _chunk
