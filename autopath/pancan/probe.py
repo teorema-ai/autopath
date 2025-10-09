@@ -366,6 +366,9 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         _unique_distances, _unique_value_indices = torch.unique_consecutive(sorted_chunk, dim=-1, return_inverse=True)
         unique_distances = _unique_distances.to('cpu')
         unique_value_indices = _unique_value_indices.to('cpu')
+        del _unique_distances
+        del _unique_value_indices
+        gc.collect()
         self.log.debug(f"Found unique pairwise distances: {unique_distances.shape=}, {unique_value_indices.shape=}")
         write_tensor(unique_value_indices, self.path('unique_value_indices', ensure_dirpath=True))
         self.log.debug(f"Built FeatureBagsUniquePairwiseDistancesChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {unique_distances.shape} on device {self.device}")
