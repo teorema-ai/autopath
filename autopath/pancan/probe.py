@@ -324,7 +324,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
     
 
 class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
-    VERSION = 1
+    VERSION = 2
     TOPICFILES = {"row_subsample_indices": "row_subsample_indices.npz",
                   "col_subsample_indices": "col_subsample_indices.npz",
                   "original_order_indices": "original_order_indices.npy",
@@ -348,24 +348,27 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         if self.config.row_subsample_fraction < 1.0:
             row_subsample_permutation = np.random.permutation(_chunk.shape[0])
             row_subsample_indices = row_subsample_permutation[:int(_chunk.shape[0]*self.config.row_subsample_fraction)]
-            chunk = _chunk[row_subsample_indices, :]
-            self.log.debug(f"Subsampled tensor rows down to shape {chunk.shape} on device {self.device}")
+            _chunk_ = _chunk[row_subsample_indices, :]
+            self.log.debug(f"Subsampled tensor rows down to shape {_chunk_.shape} on device {self.device}")
         else:
-            chunk = _chunk
+            _chunk_ = _chunk
             row_subsample_indices = torch.arange(_chunk.shape[0])
+        del _chunk
         write_npz(self.path('row_subsample_indices', ensure_dirpath=True), row_subsample_indices=row_subsample_indices)
         del row_subsample_indices
         #
         if self.config.col_subsample_fraction < 1.0:
-            col_subsample_permutation = np.random.permutation(_chunk.shape[1])
-            col_subsample_indices = col_subsample_permutation[:int(_chunk.shape[1]*self.config.col_subsample_fraction)]
-            chunk = _chunk[:, col_subsample_indices]
+            col_subsample_permutation = np.random.permutation(_chunk_.shape[1])
+            col_subsample_indices = col_subsample_permutation[:int(_chunk_.shape[1]*self.config.col_subsample_fraction)]
+            chunk = _chunk_[:, col_subsample_indices]
             self.log.debug(f"Subsampled tensor cols down to shape {chunk.shape} on device {self.device}")
         else:
-            chunk = _chunk
-            col_subsample_indices = torch.arange(_chunk.shape[1])
+            chunk = _chunk_
+            col_subsample_indices = torch.arange(_chunk_.shape[1])
+        del _chunk_
         write_npz(self.path('col_subsample_indices', ensure_dirpath=True), col_subsample_indices=col_subsample_indices)
         del col_subsample_indices
+        gc.collect()
         
         self.log.debug(f"Sorting pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {chunk.shape} on device {self.device}")
         sorted_chunk, original_order_indices = torch.sort(chunk, dim=-1, descending=False)
