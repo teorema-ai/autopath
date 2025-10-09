@@ -85,9 +85,9 @@ def gigapath_feature_bags_pairwise_distances_probe(name, sideband_layer: Optiona
         raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, subsample_fraction=0.05, n_gpus=3).build()"
-def gigapath_feature_bags_unique_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, subsample_fraction: float = 1.0, n_gpus: int = 1) -> FeatureBagsUniquePairwiseDistancesProbe:
-    devices = [f"cuda:{i}" for i in range(n_gpus)]
+# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, subsample_fraction=0.05, n_workers=3,).build()"
+def gigapath_feature_bags_unique_pairwise_distances_probe(name, sideband_layer: Optional[str] = None, capture_blocks: Optional[List[int]] = None, row_batch_size: int = 1000, subsample_fraction: float = 1.0, n_workers: int = 1, use_gpus: bool = False) -> FeatureBagsUniquePairwiseDistancesProbe:
+    devices = [f"cuda:{i}" if use_gpus else "cpu" for i in range(n_workers)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBagsUniquePairwiseDistancesProbe(
                     spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_feature_bags_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size})", subsample_fraction=subsample_fraction,),
