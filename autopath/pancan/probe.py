@@ -326,6 +326,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
 class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
     VERSION = 1
     TOPICFILES = {"row_subsample_indices": "row_subsample_indices.npz",
+                  "col_subsample_indices": "col_subsample_indices.npz",
                   "original_order_indices": "original_order_indices.npy",
                   "unique_value_indices": "unique_value_indices.npy"
     }
