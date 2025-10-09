@@ -360,7 +360,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
             col_subsample_permutation = np.random.permutation(_chunk.shape[1])
             col_subsample_indices = col_subsample_permutation[:int(_chunk.shape[1]*self.config.col_subsample_fraction)]
             chunk = _chunk[:, col_subsample_indices]
-            self.log.debug(f"Subsampled tensor rows down to shape {chunk.shape} on device {self.device}")
+            self.log.debug(f"Subsampled tensor cols down to shape {chunk.shape} on device {self.device}")
         else:
             chunk = _chunk
             col_subsample_indices = torch.arange(_chunk.shape[1])
