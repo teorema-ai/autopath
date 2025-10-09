@@ -333,10 +333,17 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
     class CONFIG:
         featuredist_chunk: FeaturePairwiseDistancesChunk
         subsample_fraction: float = 1.0
-        selfdist_eps: float = 1e-6
 
     def __build__(self):
         _chunk = self.config.featuredist_chunk.read()
+        _diagrows = range(self.config.featuredist_chunk.config.row_batch_size)
+        assert self.config.featuredist_chunk.config.row_batch_size == _chunk.shape[0], \
+            f"self.config.featuredist_chunk.config.row_batch_size != _chunk.shape[0]: " \
+            f"{self.config.featuredist_chunk.config.row_batch_size} != {_chunk.shape[0]}"
+        _diagcols = range(self.config.featuredist_chunk.config.row_batch_offset, 
+                          self.config.featuredist_chunk.config.row_batch_offset + self.config.featuredist_chunk.config.row_batch_size)
+        self.log.debug(f"Setting diagonal to {torch.inf}")
+        _chunk[_diagrows, _diagcols] = torch.inf
         if self.config.subsample_fraction < 1.0:
             subsample_permutation = np.random.permutation(len(_chunk))
             subsample_indices = subsample_permutation[:int(len(_chunk)*self.config.subsample_fraction)]
@@ -347,8 +354,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
             subsample_indices = torch.arange(0)
         write_tensor(subsample_indices, self.path('subsample_indices', ensure_dirpath=True))
         del subsample_indices
-        self.log.debug(f"Replacing distances below {self.config.selfdist_eps} with {torch.inf}")
-        chunk[chunk < self.config.selfdist_eps] = torch.inf
+        
         self.log.debug(f"Sorting pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {chunk.shape} on device {self.device}")
         sorted_chunk, original_order_indices = torch.sort(chunk, dim=-1, descending=False)
         write_tensor(original_order_indices, self.path('original_order_indices', ensure_dirpath=True))
@@ -357,6 +363,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         gc.collect()
         self.log.debug(f"Finding unique pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {sorted_chunk.shape} on device {self.device}")
         unique_distances, unique_value_indices = torch.unique_consecutive(sorted_chunk, return_inverse=True)
+        self.log.debug(f"Found unique pairwise distances: {unique_distances.shape=}, {unique_value_indices.shape=}")
         write_tensor(unique_value_indices, self.path('unique_value_indices', ensure_dirpath=True))
         del sorted_chunk
         del unique_distances
