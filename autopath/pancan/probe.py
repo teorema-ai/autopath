@@ -396,14 +396,13 @@ class FeatureBagsUniquePairwiseDistancesProbe(Datablock):
     class CONFIG:
         featurebags_pairwise_distances_probe: FeatureBagsPairwiseDistancesProbe
         subsample_fraction: float = 1.0
-        selfdist_eps: float = 1e-6
 
     def __init__(self, *args, devices: list[str] = ['cuda:0'], **kwargs):
         super().__init__(*args, devices=devices, **kwargs)
 
     def __build__(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        uniquedist_chunks = [FeatureBagsUniquePairwiseDistancesChunk(spec=dict(featuredist_chunk=featuredist_chunk, subsample_fraction=self.config.subsample_fraction, selfdist_eps=self.config.selfdist_eps)) 
+        uniquedist_chunks = [FeatureBagsUniquePairwiseDistancesChunk(spec=dict(featuredist_chunk=featuredist_chunk, subsample_fraction=self.config.subsample_fraction,)) 
                             for featuredist_chunk in featuredist_chunks
         ]
         self.log.debug(f"Formed {len(uniquedist_chunks)} FeatureBagsUniquePairwiseDistancesChunks")
