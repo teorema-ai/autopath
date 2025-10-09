@@ -324,7 +324,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
     
 
 class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
-    TOPICFILES = {"subsample_indices": "subsample_indices.npy",
+    TOPICFILES = {"subsample_indices": "subsample_indices.npz",
                   "original_order_indices": "original_order_indices.npy",
                   "unique_value_indices": "unique_value_indices.npy"
     }
@@ -352,7 +352,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         else:
             chunk = _chunk
             subsample_indices = torch.arange(0)
-        write_tensor(subsample_indices, self.path('subsample_indices', ensure_dirpath=True))
+        write_npz(self.path('subsample_indices', ensure_dirpath=True), subsample_indices=subsample_indices)
         del subsample_indices
         
         self.log.debug(f"Sorting pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {chunk.shape} on device {self.device}")
@@ -373,7 +373,10 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         return self
     
     def __read__(self, topic):
-        result = read_tensor(self.path(topic))
+        if topic == 'subsample_indices':
+            result = read_npz(self.path('subsample_indices'), 'subsample_indices')
+        else:
+            result = read_tensor(self.path(topic))
         return result
     
     @functools.cached_property
