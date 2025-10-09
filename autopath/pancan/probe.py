@@ -311,7 +311,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
         self.log.debug(f"Found {len(chunks)} FeaturePairwiseDistancesChunks.  Looking for missing chunks")
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_chunks)} missing chunks")
-        self.log.debug(f"Building all missingpairwise feature distance chunks")
+        self.log.debug(f"Building all missing pairwise feature distance chunks")
         built_chunks = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
         write_tensor(torch.tensor([features_size]), self.path('features_size', ensure_dirpath=True))
@@ -324,6 +324,7 @@ class FeatureBagsPairwiseDistancesProbe(Datablock):
     
 
 class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
+    VERSION = 1
     TOPICFILES = {"subsample_indices": "subsample_indices.npz",
                   "original_order_indices": "original_order_indices.npy",
                   "unique_value_indices": "unique_value_indices.npy"
@@ -335,7 +336,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         subsample_fraction: float = 1.0
 
     def __build__(self):
-        _chunk = self.config.featuredist_chunk.read()
+        _chunk = self.config.featuredist_chunk.read().to(self.device)
         _diagrows = range(self.config.featuredist_chunk.config.row_batch_size)
         assert self.config.featuredist_chunk.config.row_batch_size == _chunk.shape[0], \
             f"self.config.featuredist_chunk.config.row_batch_size != _chunk.shape[0]: " \
@@ -362,7 +363,7 @@ class FeatureBagsUniquePairwiseDistancesChunk(Datablock):
         del original_order_indices
         gc.collect()
         self.log.debug(f"Finding unique pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {sorted_chunk.shape} on device {self.device}")
-        unique_distances, unique_value_indices = torch.unique_consecutive(sorted_chunk, return_inverse=True)
+        unique_distances, unique_value_indices = torch.unique_consecutive(sorted_chunk, dim=-1, return_inverse=True)
         self.log.debug(f"Found unique pairwise distances: {unique_distances.shape=}, {unique_value_indices.shape=}")
         write_tensor(unique_value_indices, self.path('unique_value_indices', ensure_dirpath=True))
         self.log.debug(f"Built FeatureBagsUniquePairwiseDistancesChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {unique_distances.shape} on device {self.device}")
