@@ -340,7 +340,7 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         _chunk = self.config.featuredist_chunk.read().to(self.device)
         _diagrows = range(min(self.config.featuredist_chunk.config.row_batch_size, _chunk.shape[0]))
         _diagcols = range(self.config.featuredist_chunk.config.row_batch_offset, 
-                          min(self.config.featuredist_chunk.config.row_batch_offset + self.config.featuredist_chunk.config.row_batch_size, _chunk.shape[0])
+                          self.config.featuredist_chunk.config.row_batch_offset + min(self.config.featuredist_chunk.config.row_batch_size, _chunk.shape[0])
         )
         self.log.debug(f"Setting diagonal to {torch.inf}")
         _chunk[_diagrows, _diagcols] = torch.inf
