@@ -414,8 +414,8 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         
 
 class FeaturesUniquePairwiseDistancesProbe(Datablock):
-    VERSION = 1
-    TOPICFILES = {"select_chunks_indices": "select_chunks_indices.npz"}
+    VERSION = 2
+    TOPICFILES = {"chunks_indices": "chunks_indices.npz"}
 
     @dataclass
     class CONFIG:
@@ -429,11 +429,28 @@ class FeaturesUniquePairwiseDistancesProbe(Datablock):
         super().__init__(*args, devices=devices, **kwargs)
 
     def __build__(self):
+        select_uniquedist_chunks = self.chunks
+        chunk_indices = self.chunk_indices
+        self.log.debug(f"Selected {len(select_uniquedist_chunks)} FeaturesUniquePairwiseDistancesChunks")
+        #
+        missing_uniquedist_chunks = [chunk for chunk in select_uniquedist_chunks if not chunk.valid()]
+        self.log.debug(f"Found among them {len(missing_uniquedist_chunks)} missing FeaturesUniquePairwiseDistancesChunks")
+        self.log.debug(f"Building {len(missing_uniquedist_chunks)} FeaturesUniquePairwiseDistancesChunks")
+        built_uniquedist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_uniquedist_chunks)
+        write_npz(self.path('chunks_indices', ensure_dirpath=True), chunks_indices=chunk_indices)
+        self.log.verbose(f"Built all missing FeaturesUniquePairwiseDistancesChunks: {len(built_uniquedist_chunks)}")
+        return self
+    
+    def __read__(self, topic):
+        if topic == 'chunks_indices':
+            result = read_npz(self.path('chunks_indices'), 'chunks_indices')
+        return result
+    
+    @functools.cached_property
+    def chunks(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        rng = np.random.default_rng(self.config.seed)
-        permutation = rng.permutation(len(featuredist_chunks))
-        max_n_chunks = self.config.max_n_chunks if self.config.max_n_chunks is not None else len(featuredist_chunks)
-        select_featuredist_chunks = [featuredist_chunks[i] for i in permutation[:max_n_chunks]]
+        chunk_indices = self.chunk_indices
+        select_featuredist_chunks = [featuredist_chunks[i] for i in chunk_indices]
         select_uniquedist_chunks = [FeaturesUniquePairwiseDistancesChunk(
                                 spec=dict(featuredist_chunk=featuredist_chunk, 
                                           row_subsample_fraction=self.config.row_subsample_fraction, 
@@ -442,25 +459,20 @@ class FeaturesUniquePairwiseDistancesProbe(Datablock):
                                 ) 
                             for featuredist_chunk in select_featuredist_chunks
         ]
-        self.log.debug(f"Selected {len(select_uniquedist_chunks)} FeaturesUniquePairwiseDistancesChunks")
-        #
-        missing_uniquedist_chunks = [chunk for chunk in select_uniquedist_chunks if not chunk.valid()]
-        self.log.debug(f"Found among them {len(missing_uniquedist_chunks)} missing FeaturesUniquePairwiseDistancesChunks")
-        self.log.debug(f"Building {len(missing_uniquedist_chunks)} FeaturesUniquePairwiseDistancesChunks")
-        built_uniquedist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_uniquedist_chunks)
-        write_npz(self.path('select_chunks_indices', ensure_dirpath=True), select_chunks_indices=permutation[:max_n_chunks])
-        self.log.verbose(f"Built all missing FeaturesUniquePairwiseDistancesChunks: {len(built_uniquedist_chunks)}")
-        return self
-    
-    def __read__(self, topic):
-        if topic == 'select_chunks_indices':
-            result = read_npz(self.path('select_chunks_indices'), 'select_chunks_indices')
-        return result
+        return select_uniquedist_chunks
     
     @functools.cached_property
-    def select_chunks(self):
-        return self.read('select_chunks_indices')
-    
+    def chunk_indices(self):
+        if self.valid():
+            self.log.debug(f"Reading chunk_indices from {self.path('chunk_indices')}")
+            return self.read('chunks_indices')
+        else:
+            n_chunks = self.config.featurebags_pairwise_distances_probe.n_chunks
+            rng = np.random.default_rng(self.config.seed)
+            permutation = rng.permutation(n_chunks)
+            max_n_chunks = self.config.max_n_chunks if self.config.max_n_chunks is not None else n_chunks
+            return permutation[:max_n_chunks]
+
 
 class Features2NNDistanceChunk(Datablock):
     TOPICFILE = "twonn_distances.pt"

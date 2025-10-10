@@ -85,7 +85,7 @@ def gigapath_features_pairwise_distances_probe(name, sideband_layer: Optional[st
         raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_features_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, row_subsample_fraction=0.05, col_subsample_fraction=0.005, max_n_chunks=10, n_workers=3,).build()"
+# dbx "autopath.gigaq.pipelines.gigapath_features_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, row_subsample_fraction=0.05, col_subsample_fraction=0.005, max_n_chunks=25, n_workers=3,).build()"
 def gigapath_features_unique_pairwise_distances_probe(
         name, 
         sideband_layer: Optional[str] = None, 
