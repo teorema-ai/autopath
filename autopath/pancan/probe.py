@@ -344,8 +344,9 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         self.log.debug(f"Setting diagonal to {torch.inf}")
         _chunk[_diagrows, _diagcols] = torch.inf
         #
+        rng = np.random.default_rng(self.config.seed)
         if self.config.row_subsample_fraction < 1.0:
-            row_subsample_permutation = np.random.permutation(_chunk.shape[0])
+            row_subsample_permutation = rng.permutation(_chunk.shape[0])
             row_subsample_indices = row_subsample_permutation[:int(_chunk.shape[0]*self.config.row_subsample_fraction)]
             _chunk_ = _chunk[row_subsample_indices, :]
             self.log.debug(f"Subsampled tensor rows down to shape {_chunk_.shape} on device {self.device}")
@@ -357,7 +358,7 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         del row_subsample_indices
         #
         if self.config.col_subsample_fraction < 1.0:
-            col_subsample_permutation = np.random.permutation(_chunk_.shape[1])
+            col_subsample_permutation = rng.permutation(_chunk_.shape[1])
             col_subsample_indices = col_subsample_permutation[:int(_chunk_.shape[1]*self.config.col_subsample_fraction)]
             chunk = _chunk_[:, col_subsample_indices]
             self.log.debug(f"Subsampled tensor cols down to shape {chunk.shape} on device {self.device}")
@@ -412,7 +413,8 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         
 
 class FeaturesUniquePairwiseDistancesProbe(Datablock):
-    TOPICFILE = "breadcumbs"
+    VERSION = 1
+    TOPICFILES = {"select_chunks_indices": "select_chunks_indices.npz"}
 
     @dataclass
     class CONFIG:
@@ -427,20 +429,36 @@ class FeaturesUniquePairwiseDistancesProbe(Datablock):
 
     def __build__(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        uniquedist_chunks = [FeaturesUniquePairwiseDistancesChunk(
+        rng = np.random.default_rng(self.config.seed)
+        permutation = rng.permutation(len(featuredist_chunks))
+        max_n_chunks = self.config.max_n_chunks if self.config.max_n_chunks is not None else len(featuredist_chunks)
+        select_featuredist_chunks = [featuredist_chunks[i] for i in permutation[:max_n_chunks]]
+        select_uniquedist_chunks = [FeaturesUniquePairwiseDistancesChunk(
                                 spec=dict(featuredist_chunk=featuredist_chunk, 
                                           row_subsample_fraction=self.config.row_subsample_fraction, 
-                                          col_subsample_fraction=self.config.col_subsample_fraction)) 
-                            for featuredist_chunk in featuredist_chunks
+                                          col_subsample_fraction=self.config.col_subsample_fraction),
+                                          seed=self.config.seed,
+                                ) 
+                            for featuredist_chunk in select_featuredist_chunks
         ]
-        self.log.debug(f"Formed {len(uniquedist_chunks)} FeaturesUniquePairwiseDistancesChunks")
-        missing_uniquedist_chunks = [chunk for chunk in uniquedist_chunks if not chunk.valid()]
-        self.log.debug(f"Found {len(missing_uniquedist_chunks)} missing FeaturesUniquePairwiseDistancesChunks")
+        self.log.debug(f"Selected {len(select_uniquedist_chunks)} FeaturesUniquePairwiseDistancesChunks")
+        #
+        missing_uniquedist_chunks = [chunk for chunk in select_uniquedist_chunks if not chunk.valid()]
+        self.log.debug(f"Found among them {len(missing_uniquedist_chunks)} missing FeaturesUniquePairwiseDistancesChunks")
         self.log.debug(f"Building {len(missing_uniquedist_chunks)} FeaturesUniquePairwiseDistancesChunks")
         built_uniquedist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_uniquedist_chunks)
-        self.leave_breadcrumbs()
+        write_npz(self.path('select_chunks_indices', ensure_dirpath=True), select_chunks_indices=permutation[:max_n_chunks])
         self.log.verbose(f"Built all missing FeaturesUniquePairwiseDistancesChunks: {len(built_uniquedist_chunks)}")
         return self
+    
+    def __read__(self, topic):
+        if topic == 'select_chunks_indices':
+            result = read_npz(self.path('select_chunks_indices'), 'select_chunks_indices')
+        return result
+    
+    @functools.cached_property
+    def select_chunks(self):
+        return self.read('select_chunks_indices')
     
 
 class Features2NNDistanceChunk(Datablock):
