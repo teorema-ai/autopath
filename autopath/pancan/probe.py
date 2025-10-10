@@ -462,9 +462,9 @@ class FeaturesUniquePairwiseDistancesProbe(Datablock):
         return select_uniquedist_chunks
     
     @functools.cached_property
-    def chunk_indices(self):
+    def chunks_indices(self):
         if self.valid():
-            self.log.debug(f"Reading chunk_indices from {self.path('chunk_indices')}")
+            self.log.debug(f"Reading chunks_indices from {self.path('chunks_indices')}")
             return self.read('chunks_indices')
         else:
             n_chunks = self.config.featurebags_pairwise_distances_probe.n_chunks
