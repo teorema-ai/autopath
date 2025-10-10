@@ -102,6 +102,7 @@ def gigapath_features_unique_pairwise_distances_probe(
         return FeaturesUniquePairwiseDistancesProbe(
                     spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_features_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', "
                                                                    f"sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size})", 
+                              max_n_chunks=max_n_chunks,
                               row_subsample_fraction=row_subsample_fraction,
                               col_subsample_fraction=col_subsample_fraction,
                     ),
