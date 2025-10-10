@@ -449,7 +449,7 @@ class FeaturesUniquePairwiseDistancesProbe(Datablock):
     @functools.cached_property
     def chunks(self):
         featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        chunk_indices = self.chunk_indices
+        chunk_indices = self.chunks_indices
         select_featuredist_chunks = [featuredist_chunks[i] for i in chunk_indices]
         select_uniquedist_chunks = [FeaturesUniquePairwiseDistancesChunk(
                                 spec=dict(featuredist_chunk=featuredist_chunk, 
