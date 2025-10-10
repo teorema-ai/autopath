@@ -443,7 +443,7 @@ class FeaturesUniquePairwiseDistancesProbe(Datablock):
     
     def __read__(self, topic):
         if topic == 'chunks_indices':
-            result = read_npz(self.path('chunks_indices'), 'chunks_indices')
+            result = read_npz(self.path('chunks_indices'), 'chunks_indices')[0]
         return result
     
     @functools.cached_property
