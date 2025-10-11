@@ -407,10 +407,6 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         _chunk = self.config.featuredist_chunk.read()
         tensor = _chunk[subsample_indices][original_order_indices]
         return tensor
-    
-    @functools.cached_property
-    def unique_value_indices(self):
-        return self.read('unique_value_indices')
         
 
 class FeaturesUniquePairwiseDistancesProbe(Datablock):
