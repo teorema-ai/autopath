@@ -414,7 +414,7 @@ class FeaturesSortedDistancesChunk(Datablock):
 
 class FeaturesSortedDistancesProbe(Datablock):
     VERSION = 3
-    TOPICFILES = {"chunks_indices": "chunks_indices.npz"}
+    TOPICFILES = {"chunk_indices": "chunk_indices.npz"}
 
     @dataclass
     class CONFIG:
