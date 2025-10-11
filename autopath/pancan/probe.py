@@ -450,15 +450,15 @@ class FeaturesSortedDistancesProbe(Datablock):
         distchunks = self.config.featurebags_pairwise_distances_probe.chunks
         chunk_indices = self.chunks_indices
         select_featuredist_chunks = [distchunks[i] for i in chunk_indices]
-        select_uniquedist_chunks = [FeaturesSortedDistancesChunk(
-                                spec=dict(featuredist_chunk=featuredist_chunk, 
+        select_sorteddist_chunks = [FeaturesSortedDistancesChunk(
+                                spec=dict(distchunk=distchunk, 
                                           row_subsample_fraction=self.config.row_subsample_fraction, 
                                           col_subsample_fraction=self.config.col_subsample_fraction),
                                           seed=self.config.seed,
                                 ) 
-                            for featuredist_chunk in select_featuredist_chunks
+                            for distchunk in distchunks
         ]
-        return select_uniquedist_chunks
+        return select_sorteddist_chunks
     
     @functools.cached_property
     def chunks_indices(self):
