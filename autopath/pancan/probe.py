@@ -394,9 +394,11 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         return self
     
     def __read__(self, topic):
-        if topic == 'subsample_indices':
-            result = read_npz(self.path('subsample_indices'), 'subsample_indices')
-        else:
+        if topic == 'row_subsample_indices':
+            result = read_npz(self.path('row_subsample_indices'), 'row_subsample_indices')
+        elif topic == 'col_subsample_indices':
+            result = read_npz(self.path('col_subsample_indices'), 'col_subsample_indices')
+        elif topic == 'original_order_indices':
             result = read_tensor(self.path(topic))
         return result
     
@@ -407,7 +409,7 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         original_order_indices = self.read('original_order_indices')
         _chunk = self.config.featuredist_chunk.read()
         _tensor = _chunk[row_subsample_indices][col_subsample_indices]
-        tensor = _tensor[original_order_indices]
+        tensor = _tensor[:, original_order_indices]
         return tensor
         
 
