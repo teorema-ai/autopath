@@ -408,6 +408,7 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         col_subsample_indices = self.read('col_subsample_indices')
         original_order_indices = self.read('original_order_indices')
         _chunk = self.config.featuredist_chunk.read()
+        self.log.debug(f"_chunk.shape: {_chunk.shape}")
         _tensor = _chunk[row_subsample_indices, :]
         self.log.debug(f"_tensor.shape: {_tensor.shape}")
         _tensor_ = _tensor[:, col_subsample_indices]
