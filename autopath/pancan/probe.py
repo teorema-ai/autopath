@@ -400,6 +400,10 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
             result = read_npz(self.path('col_subsample_indices'), 'col_subsample_indices')
         elif topic == 'original_order_indices':
             result = read_tensor(self.path(topic))
+        elif topic == 'unique_value_indices':
+            result = read_tensor(self.path(topic))
+        else:
+            raise ValueError(f"Unknown topic: {topic}")
         return result
     
     @functools.cached_property
