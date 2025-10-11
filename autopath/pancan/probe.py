@@ -416,7 +416,9 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         #
         tensor = torch.zeros_like(_tensor_)
         for i in range(_tensor.shape[0]):
-            tensor[i, :] = _tensor_[i, original_order_indices]
+            row = _tensor_[i, original_order_indices]
+            self.log.debug(f"{i}: row.shape: {row.shape}")
+            tensor[i, :] = row
         return tensor
         
 
