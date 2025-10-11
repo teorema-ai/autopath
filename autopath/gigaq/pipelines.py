@@ -7,7 +7,7 @@ from ..pancan.features import FeatureBag, FeatureBags
 from ..pancan.probe import (
     FeatureBagsProbe, 
     FeaturesPairwiseDistancesProbe,
-    FeaturesUniquePairwiseDistancesProbe,
+    FeaturesSortedDistancesProbe,
     Features2NNDimProbe,
 )
 
@@ -85,8 +85,8 @@ def gigapath_features_pairwise_distances_probe(name, sideband_layer: Optional[st
         raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_features_unique_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, row_subsample_fraction=0.05, col_subsample_fraction=0.005, max_n_chunks=25, n_workers=3,).build()"
-def gigapath_features_unique_pairwise_distances_probe(
+# dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, row_subsample_fraction=0.05, col_subsample_fraction=0.005, max_n_chunks=25, n_workers=3,).build()"
+def gigapath_features_sorted_distances_probe(
         name, 
         sideband_layer: Optional[str] = None, 
         capture_blocks: Optional[List[int]] = None, 
@@ -96,10 +96,10 @@ def gigapath_features_unique_pairwise_distances_probe(
         max_n_chunks: int = None, 
         n_workers: int = 1, 
         use_gpus: bool = False
-) -> FeaturesUniquePairwiseDistancesProbe:
+) -> FeaturesSortedDistancesProbe:
     devices = [f"cuda:{i}" if use_gpus else "cpu" for i in range(n_workers)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
-        return FeaturesUniquePairwiseDistancesProbe(
+        return FeaturesSortedDistancesProbe(
                     spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_features_pairwise_distances_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', "
                                                                    f"sideband_layer='{sideband_layer}', capture_blocks={capture_blocks}, row_batch_size={row_batch_size})", 
                               max_n_chunks=max_n_chunks,
@@ -109,7 +109,7 @@ def gigapath_features_unique_pairwise_distances_probe(
                     devices=devices,
         )
     else:
-        raise ValueError(f"Unknown feature bags unique pairwise distances probe: {name}")
+        raise ValueError(f"Unknown feature sorted distances probe: {name}")
     
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags_2nn_dim_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband_layer='', row_batch_size=4000, n_workers=3).build()"
