@@ -411,7 +411,7 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         self.log.debug(f"_chunk.shape: {_chunk.shape}")
         _tensor = torch.squeeze(_chunk[row_subsample_indices, :])
         self.log.debug(f"_tensor.shape: {_tensor.shape}")
-        _tensor_ = _tensor[:, col_subsample_indices]
+        _tensor_ = torch.squeeze(_tensor[:, col_subsample_indices])
         self.log.debug(f"_tensor_.shape: {_tensor_.shape}")
         #
         tensor = torch.zeros_like(_tensor_)
