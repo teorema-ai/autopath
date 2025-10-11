@@ -409,7 +409,9 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
         original_order_indices = self.read('original_order_indices')
         _chunk = self.config.featuredist_chunk.read()
         _tensor = _chunk[row_subsample_indices, :][:, col_subsample_indices]
-        tensor = _tensor[:, original_order_indices]
+        tensor = torch.zeros_like(_tensor)
+        for i in range(_tensor.shape[0]):
+            tensor[i, :] = _tensor[i, original_order_indices]
         return tensor
         
 
