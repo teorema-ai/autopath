@@ -436,20 +436,20 @@ class FeaturesSortedDistancesProbe(Datablock):
         self.log.debug(f"Found among them {len(missing_sorteddist_chunks)} missing FeaturesSortedDistancesChunks")
         self.log.debug(f"Building {len(missing_sorteddist_chunks)} FeaturesSortedDistancesChunks")
         built_sorteddist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_sorteddist_chunks)
-        write_npz(self.path('chunks_indices', ensure_dirpath=True), chunks_indices=chunk_indices)
+        write_npz(self.path('chunk_indices', ensure_dirpath=True), chunk_indices=chunk_indices)
         self.log.verbose(f"Built all missing FeaturesSortedDistancesChunks: {len(built_sorteddist_chunks)}")
         return self
     
     def __read__(self, topic):
-        if topic == 'chunks_indices':
-            result = read_npz(self.path('chunks_indices'), 'chunks_indices')[0]
+        if topic == 'chunk_indices':
+            result = read_npz(self.path('chunk_indices'), 'chunk_indices')[0]
         return result
     
     @functools.cached_property
     def chunks(self):
         distchunks = self.config.featurebags_pairwise_distances_probe.chunks
-        chunk_indices = self.chunks_indices
-        select_featuredist_chunks = [distchunks[i] for i in chunk_indices]
+        chunk_indices = self.chunk_indices
+        distchunks = [distchunks[i] for i in chunk_indices]
         select_sorteddist_chunks = [FeaturesSortedDistancesChunk(
                                 spec=dict(distchunk=distchunk, 
                                           row_subsample_fraction=self.config.row_subsample_fraction, 
@@ -461,10 +461,10 @@ class FeaturesSortedDistancesProbe(Datablock):
         return select_sorteddist_chunks
     
     @functools.cached_property
-    def chunks_indices(self):
+    def chunk_indices(self):
         if self.valid():
-            self.log.debug(f"Reading chunks_indices from {self.path('chunks_indices')}")
-            return self.read('chunks_indices')
+            self.log.debug(f"Reading chunks_indices from {self.path('chunk_indices')}")
+            return self.read('chunk_indices')
         else:
             n_chunks = self.config.featurebags_pairwise_distances_probe.n_chunks
             rng = np.random.default_rng(self.config.seed)
