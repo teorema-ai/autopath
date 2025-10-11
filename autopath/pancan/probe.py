@@ -402,10 +402,12 @@ class FeaturesUniquePairwiseDistancesChunk(Datablock):
     
     @functools.cached_property
     def tensor(self):
-        subsample_indices = self.read('subsample_indices')
+        row_subsample_indices = self.read('row_subsample_indices')
+        col_subsample_indices = self.read('col_subsample_indices')
         original_order_indices = self.read('original_order_indices')
         _chunk = self.config.featuredist_chunk.read()
-        tensor = _chunk[subsample_indices][original_order_indices]
+        _tensor = _chunk[row_subsample_indices][col_subsample_indices]
+        tensor = _tensor[original_order_indices]
         return tensor
         
 
