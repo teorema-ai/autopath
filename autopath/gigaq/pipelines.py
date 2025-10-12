@@ -100,11 +100,11 @@ def gigapath_features_sorted_distances_probe(name, n_workers: int = 1, use_gpus:
         raise ValueError(f"Unknown feature sorted distances probe: {name}")
     
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_2nn_dim_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005', n_workers=3).build()"
+# dbx "autopath.gigaq.pipelines.gigapath_features_2nn_dim_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005', n_workers=3).build()"
 def gigapath_features_2nn_dim_probe(name, n_workers: int = 1) -> Features2NNDimProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005":
         return Features2NNDimProbe(
-                    spec=dict(featurebags_pairwise_distances_probe=f"@autopath.gigaq.pipelines.gigapath_features_pairwise_distances_probe('{name}')",),
+                    spec=dict(features_sorted_distances_probe=f"@autopath.gigaq.pipelines.gigapath_features_pairwise_distances_probe('{name}')",),
                     n_workers=n_workers,
         )
     else:
