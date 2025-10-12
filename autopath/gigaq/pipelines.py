@@ -104,7 +104,7 @@ def gigapath_features_sorted_distances_probe(name, n_workers: int = 1, use_gpus:
 def gigapath_features_2nn_dim_probe(name, n_workers: int = 1) -> Features2NNDimProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005":
         return Features2NNDimProbe(
-                    spec=dict(features_sorted_distances_probe=f"@autopath.gigaq.pipelines.gigapath_features_pairwise_distances_probe('{name}')",),
+                    spec=dict(features_sorted_distances_probe=f"@autopath.gigaq.pipelines.gigapath_features_sorted_distances_probe('{name}')",),
                     n_workers=n_workers,
         )
     else:
