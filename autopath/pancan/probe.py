@@ -463,7 +463,7 @@ class FeaturesSortedDistances(Datablock):
             self.log.debug(f"Reading chunks_indices from {self.path('chunk_indices')}")
             return self.read('chunk_indices')
         else:
-            n_chunks = self.config.featurebags_pairwise_distances_probe.n_chunks
+            n_chunks = self.config.featurebags_pairwise_distances.n_chunks
             rng = np.random.default_rng(self.config.seed)
             permutation = rng.permutation(n_chunks)
             max_n_chunks = self.config.max_n_chunks if self.config.max_n_chunks is not None else n_chunks
@@ -511,13 +511,13 @@ class Features2NNDim(Datablock):
     }
     @dataclass
     class CONFIG:
-        features_sorted_distances_probe: FeaturesSortedDistances
+        features_sorted_distances: FeaturesSortedDistances
 
     def __init__(self, *args, n_workers: int = 1, **kwargs):
         super().__init__(*args, n_workers=n_workers, **kwargs)
 
     def __build__(self):
-        sorted_distchunks = self.config.features_sorted_distances_probe.chunks
+        sorted_distchunks = self.config.features_sorted_distances.chunks
         twonndist_chunks = [Features2NNDistancesChunk(spec=dict(featuredist_chunk=sorted_distchunk)) 
                             for sorted_distchunk in sorted_distchunks
         ]
