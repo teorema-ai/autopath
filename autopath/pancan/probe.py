@@ -34,7 +34,7 @@ from dbx import (
 from .features import FeatureBags
 
 
-class FeatureProbe:
+class FeaturesProbe:
     @staticmethod
     def ndarray(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame]):
         if isinstance(X, list):
@@ -51,7 +51,7 @@ class FeatureProbe:
 
     @staticmethod
     def discretize_features(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], d:int = 4) -> np.ndarray:
-        features = FeatureProbe.ndarray(X)
+        features = FeaturesProbe.ndarray(X)
         return pd.DataFrame(features).apply(lambda c: pd.qcut(c, d, labels=False, duplicates='drop')).fillna(0.0).values
 
     @staticmethod
@@ -60,9 +60,9 @@ class FeatureProbe:
                          train_fraction:float=0.8
     ):
         #TODO: split_slides_labels_train_test() -> split_features_labels_train_test()
-        X = FeatureProbe.ndarray(X)
+        X = FeaturesProbe.ndarray(X)
         if y is not None:
-            y = FeatureProbe.ndarray(y)
+            y = FeaturesProbe.ndarray(y)
         N = y.shape[0]
         permutation = permutation = np.random.permutation(range(N))
         n = int(math.floor(N*train_fraction))
@@ -80,8 +80,8 @@ class FeatureProbe:
                           fraction=0.8
     ):
         features, labels = Xy
-        features = FeatureProbe.ndarray(features)
-        labels = FeatureProbe.ndarray(labels)
+        features = FeaturesProbe.ndarray(features)
+        labels = FeaturesProbe.ndarray(labels)
         N = len(labels)
         ntrain = int(N*fraction)
         randomidx = np.random.permutation(list(range(N)))
@@ -110,10 +110,10 @@ class FeatureProbe:
                            log: Logger = Logger(),
     ):
         log.verbose(f"Evaluating features {label1}: started at {datetime.datetime.now()}")
-        report1 = FeatureProbe.evaluate_features(Xy1, fraction=fraction)
+        report1 = FeaturesProbe.evaluate_features(Xy1, fraction=fraction)
         log.verbose(f"Evaluating features {label1}: finished at {datetime.datetime.now()}")
         log.verbose(f"Evaluating features {label2}: started at {datetime.datetime.now()}")
-        report2 = FeatureProbe.evaluate_features(Xy2, fraction=fraction)
+        report2 = FeaturesProbe.evaluate_features(Xy2, fraction=fraction)
         log.verbose(f"Evaluating features {label2}: finished at {datetime.datetime.now()}")
 
         rstr = f"---------- {label1} ------------\n{report1}\n---------- {label2} ------------\n{report2}"
@@ -150,7 +150,7 @@ class FeatureProbe:
         return umap_features
 
 
-class FeatureBagsProbe(Datablock, FeatureProbe):
+class FeatureBagsProbe(Datablock, FeaturesProbe):
     TOPICFILES = {
         'labels': 'labels.npz',
         'cdf': 'cdf.pt',
@@ -256,7 +256,7 @@ class FeaturesPairwiseDistancesChunk(Datablock):
         return self.read()
         
 
-class FeaturesPairwiseDistancesProbe(Datablock):
+class FeaturesPairwiseDistances(Datablock):
     TOPICFILES = {"features_size": "features_size.pt"}
     @dataclass
     class CONFIG:
@@ -409,13 +409,13 @@ class FeaturesSortedDistancesChunk(Datablock):
         return tensor
         
 
-class FeaturesSortedDistancesProbe(Datablock):
+class FeaturesSortedDistances(Datablock):
     VERSION = 3
     TOPICFILES = {"chunk_indices": "chunk_indices.npz"}
 
     @dataclass
     class CONFIG:
-        featurebags_pairwise_distances_probe: FeaturesPairwiseDistancesProbe
+        featurebags_pairwise_distances: FeaturesPairwiseDistances
         max_n_chunks: int = None
         row_subsample_fraction: float = 1.0
         col_subsample_fraction: float = 1.0
@@ -444,7 +444,7 @@ class FeaturesSortedDistancesProbe(Datablock):
     
     @functools.cached_property
     def chunks(self):
-        distchunks = self.config.featurebags_pairwise_distances_probe.chunks
+        distchunks = self.config.featurebags_pairwise_distances.chunks
         chunk_indices = self.chunk_indices
         distchunks = [distchunks[i] for i in chunk_indices]
         select_sorteddist_chunks = [FeaturesSortedDistancesChunk(
@@ -503,7 +503,7 @@ class Features2NNDistancesChunk(Datablock):
         return self.read()
     
 
-class Features2NNDimProbe(Datablock):
+class Features2NNDim(Datablock):
     TOPICFILES = {
         "twonn_distances": "twonn_distances.pt", 
         "dimension": "dimension.pt",
@@ -511,7 +511,7 @@ class Features2NNDimProbe(Datablock):
     }
     @dataclass
     class CONFIG:
-        features_sorted_distances_probe: FeaturesSortedDistancesProbe
+        features_sorted_distances_probe: FeaturesSortedDistances
 
     def __init__(self, *args, n_workers: int = 1, **kwargs):
         super().__init__(*args, n_workers=n_workers, **kwargs)
