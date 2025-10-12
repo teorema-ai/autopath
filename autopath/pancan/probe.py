@@ -341,8 +341,8 @@ class FeaturesSortedDistancesChunk(Datablock):
         _diagcols = range(self.config.distchunk.config.row_batch_offset, 
                           self.config.distchunk.config.row_batch_offset + min(self.config.distchunk.config.row_batch_size, _chunk.shape[0])
         )
-        self.log.debug(f"Setting diagonal to {torch.inf}")
-        _chunk[_diagrows, _diagcols] = torch.inf
+        self.log.debug(f"Setting diagonal to 0.0")
+        _chunk[_diagrows, _diagcols] = 0.0
         #
         rng = np.random.default_rng(self.config.seed)
         if self.config.row_subsample_fraction < 1.0:
@@ -399,11 +399,8 @@ class FeaturesSortedDistancesChunk(Datablock):
         col_subsample_indices = self.read('col_subsample_indices')
         original_order_indices = self.read('original_order_indices')
         _chunk = self.config.distchunk.read()
-        self.log.debug(f"_chunk.shape: {_chunk.shape}")
         _tensor = torch.squeeze(_chunk[row_subsample_indices, :])
-        self.log.debug(f"_tensor.shape: {_tensor.shape}")
         _tensor_ = torch.squeeze(_tensor[:, col_subsample_indices])
-        self.log.debug(f"_tensor_.shape: {_tensor_.shape}")
         #
         tensor = torch.zeros_like(_tensor_)
         for i in range(_tensor.shape[0]):
@@ -473,34 +470,27 @@ class FeaturesSortedDistancesProbe(Datablock):
             return permutation[:max_n_chunks]
 
 
-class Features2NNDistanceChunk(Datablock):
+class Features2NNDistancesChunk(Datablock):
     TOPICFILE = "twonn_distances.pt"
     @dataclass
     class CONFIG:
-        featuredist_chunk: FeaturesPairwiseDistancesChunk
-        selfdist_eps: float = 1e-6
+        sorted_distchunk: FeaturesSortedDistancesChunk
 
     def __build__(self):
-        featuredist_chunk_tensor = self.config.featuredist_chunk.read()
-        self.log.debug(f"Replacing distances below {self.config.selfdist_eps} with {torch.inf}")
-        featuredist_chunk_tensor[featuredist_chunk_tensor < self.config.selfdist_eps] = torch.inf
-        self.log.debug(f"Locating smallest pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape}")
-        firstdist = torch.kthvalue(featuredist_chunk_tensor, 1, dim=1)
+        distchunk = self.config.sorted_distchunk
+        self.log.debug(f"Locating smallest nonzero pairwise distances in FeatureSortedDistancesChunk {self.config.sorted_distchunk.hashpath()} of shape {sorted_distchunk_tensor.shape}")
+        firstdist = sorted_distchunk_tensor[:, 0]
         if self.debug:
             firstdist_min, firstdist_max = firstdist.values.min(), firstdist.values.max()
             self.log.debug(f"firstdist_min: {firstdist_min}, firstdist_max: {firstdist_max}")
         self.log.debug(f"Locating second smallest pairwise distances in FeaturePairwiseDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {featuredist_chunk_tensor.shape}")
-        seconddist = torch.kthvalue(featuredist_chunk_tensor, 2, dim=1)
+        seconddist = sorted_distchunk_tensor[:, 1]
         if self.debug:
             seconddist_min, seconddist_max = seconddist.values.min(), seconddist.values.max()
             self.log.debug(f"seconddist_min: {seconddist_min}, seconddist_max: {seconddist_max}")
-        assert all(firstdist.values > 0.0), f"firstdist must be > 0.0: {firstdist.values}"
-        assert all(seconddist.values > 0.0), f"seconddist must be > 0.0: {seconddist.values}"
-        assert all(firstdist.values < torch.inf), f"firstdist must be < torch.inf: {firstdist.values}"
-        assert all(seconddist.values < torch.inf), f"seconddist must be < torch.inf: {seconddist.values}"
-        del featuredist_chunk_tensor
+        del sorted_distchunk_tensor
         twonn_distances = torch.stack([firstdist.values, seconddist.values], dim=-1)
-        self.log.debug(f"Built Features2NNDistanceChunk {self.hashpath()} at offset {self.config.featuredist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
+        self.log.debug(f"Built Features2NNDistanceChunk {self.hashpath()} at offset {self.config.dist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
         write_tensor(twonn_distances, self.path(ensure_dirpath=True))
         return self
     
@@ -521,26 +511,24 @@ class Features2NNDimProbe(Datablock):
     }
     @dataclass
     class CONFIG:
-        featurebags_pairwise_distances_probe: FeaturesPairwiseDistancesProbe
-        selfdist_eps: float = 1e-6
+        features_sorted_distances_probe: FeaturesSortedDistancesProbe
 
     def __init__(self, *args, n_workers: int = 1, **kwargs):
         super().__init__(*args, n_workers=n_workers, **kwargs)
 
     def __build__(self):
-        featuredist_chunks = self.config.featurebags_pairwise_distances_probe.chunks
-        twonndist_chunks = [Features2NNDistanceChunk(spec=dict(featuredist_chunk=chunk, selfdist_eps=self.config.selfdist_eps)) 
-                            for chunk in featuredist_chunks
+        sorted_distchunks = self.config.features_sorted_distances_probe.chunks
+        twonndist_chunks = [Features2NNDistancesChunk(spec=dict(featuredist_chunk=sorted_distchunk)) 
+                            for sorted_distchunk in sorted_distchunks
         ]
-        self.log.debug(f"Found {len(twonndist_chunks)} FeaturesPairwiseDistancesChunks")
+        self.log.debug(f"Formed {len(twonndist_chunks)} Features2NNDistancesChunks")
         missing_twonndist_chunks = [chunk for chunk in twonndist_chunks if not chunk.valid()]
-        self.log.debug(f"Found {len(missing_twonndist_chunks)} missing FeaturesPairwiseDistancesChunks")
-        self.log.debug(f"Building {len(missing_twonndist_chunks)} Features2NNDistanceChunks")
+        self.log.debug(f"Found {len(missing_twonndist_chunks)} missing Features2NNDistancesChunks")
+        self.log.debug(f"Building {len(missing_twonndist_chunks)} Features2NNDistancesChunks")
         built_twonndist_chunks = TorchMultiprocessingDatashardBatchBuilder(n_workers=self.n_workers, log=self.log).build_shards(missing_twonndist_chunks)
-        self.log.verbose(f"Built all missing Features2NNDistance chunks: {len(built_twonndist_chunks)}")
+        self.log.verbose(f"Built all missing Features2NNDistancesChunks: {len(built_twonndist_chunks)}")
         twonndists = torch.cat([chunk.tensor for chunk in twonndist_chunks], dim=0)
         mus = twonndists[:, 1]/twonndists[:, 0]
-        assert all(mus >= 1.0), f"mus must be >= 1.0: {mus}"
         sortedmus, _ = torch.sort(mus, descending=False)
         del mus
         logsortedmus = torch.log(sortedmus)
