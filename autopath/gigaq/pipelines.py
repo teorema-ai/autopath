@@ -30,7 +30,7 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda', sideband: bool = 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bag('GIGAPATH_BASELINE_CPTAC_SAMPLE').build()"
 def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=1024,) -> FeatureBag:
     if name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
-        return FeatureBag(spec=dict(tilebag="$autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE')",))
+        return FeatureBag(spec=dict(tilebag="@autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE')",))
     else:
         raise ValueError(f"Unknown feature bag: {name}")
 
@@ -46,13 +46,13 @@ def gigapath_feature_bags(name, *, sideband: bool = False, capture_blocks: Optio
 
     if name == "GIGAPATH_BASELINE_SIDEBAND_CPTAC_9802_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR', sideband=sideband, capture_blocks=capture_blocks)
-        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
+        tilebags="@autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
     elif name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR', sideband=sideband, capture_blocks=capture_blocks)
-        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
+        tilebags="@autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR', sideband=sideband, capture_blocks=capture_blocks)
-        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
+        tilebags="@autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
     else:
         raise ValueError(f"Unknown feature bags: {name}")
     devices = [f"cuda:{i}" for i in range(num_gpus)]
@@ -63,7 +63,7 @@ def gigapath_feature_bags(name, *, sideband: bool = False, capture_blocks: Optio
 def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBagsProbe(
-                    spec=dict(featurebags="$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
+                    spec=dict(featurebags="@autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
                               n_bins=n_bins,
         ))
     else:
@@ -74,7 +74,7 @@ def gigapath_features_pairwise_distances(name, sideband_layer: Optional[str] = N
     devices = [f"cuda:{i}" for i in range(n_gpus)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000":
         return FeaturesPairwiseDistances(
-                    spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband=False, capture_blocks=None)",
+                    spec=dict(featurebags=f"@autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband=False, capture_blocks=None)",
                               sideband_layer='',
                               row_batch_size=4000,
                     ),
@@ -89,7 +89,7 @@ def gigapath_features_sorted_distances(name, n_workers: int = 1, use_gpus: bool 
     devices = [f"cuda:{i}" if use_gpus else "cpu" for i in range(n_workers)]
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005":
         return FeaturesSortedDistances(
-                    spec=dict(features_pairwise_distances=f"$autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000')",
+                    spec=dict(features_pairwise_distances=f"@autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000')",
                               max_n_chunks=25,
                               row_subsample_fraction=0.05,
                               col_subsample_fraction=0.005,
@@ -104,7 +104,7 @@ def gigapath_features_sorted_distances(name, n_workers: int = 1, use_gpus: bool 
 def gigapath_features_2nn_dim(name, n_workers: int = 1) -> Features2NNDim:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005":
         return Features2NNDim(
-                    spec=dict(features_sorted_distances=f"$autopath.gigaq.pipelines.gigapath_features_sorted_distances('{name}')",),
+                    spec=dict(features_sorted_distances=f"@autopath.gigaq.pipelines.gigapath_features_sorted_distances('{name}')",),
                     n_workers=n_workers,
         )
     else:
