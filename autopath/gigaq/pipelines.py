@@ -30,7 +30,7 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda', sideband: bool = 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bag('GIGAPATH_BASELINE_CPTAC_SAMPLE').build()"
 def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=1024,) -> FeatureBag:
     if name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
-        return FeatureBag(spec=dict(tilebag="@autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE')",))
+        return FeatureBag(spec=dict(tilebag="$autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE')",))
     else:
         raise ValueError(f"Unknown feature bag: {name}")
 
