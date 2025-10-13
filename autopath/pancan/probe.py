@@ -415,7 +415,7 @@ class FeaturesSortedDistances(Datablock):
 
     @dataclass
     class CONFIG:
-        featurebags_pairwise_distances: FeaturesPairwiseDistances
+        features_pairwise_distances: FeaturesPairwiseDistances
         max_n_chunks: int = None
         row_subsample_fraction: float = 1.0
         col_subsample_fraction: float = 1.0
