@@ -271,6 +271,9 @@ class PancanTileFold(Datablock, PancanTileShards):
 
 	def __post_init__(self):
 		return self
+	
+	def valid(self):
+		return self.config.tilesplit.valid()
 
 	def datablocks(self):
 		return self.config.tilesplit.shards(self.config.fold)
