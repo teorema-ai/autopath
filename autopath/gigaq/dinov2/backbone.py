@@ -358,13 +358,12 @@ class BackboneEvaluator:
 
 
 class SidebandBackboneEvaluator(BackboneEvaluator):
-
     def __init__(self, 
         backbone=None,
         *,
         transform=None,
-        device: str = 'cuda',
         capture_blocks: Optional[List[int]] = None,
+        device: str = 'cuda',
     ):
         super().__init__(backbone, transform=transform, device=device)
         self.capture_blocks = capture_blocks
