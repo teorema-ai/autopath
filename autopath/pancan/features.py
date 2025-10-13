@@ -175,6 +175,7 @@ class FeatureBags(Datablock):
 				bag_lens.append(len(featurebag))
 			else:
 				remaining_bags.append(featurebag)
+		self.log.verbose(f"Building {len(remaining_bags)} remaining feature bags on devices: {self.devices}")
 		if len(remaining_bags) > 0:
 			result_queue = queue.Queue()
 			done_queue = queue.Queue()
