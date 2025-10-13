@@ -444,7 +444,7 @@ class FeaturesSortedDistances(Datablock):
     
     @functools.cached_property
     def chunks(self):
-        distchunks = self.config.featurebags_pairwise_distances.chunks
+        distchunks = self.config.features_pairwise_distances.chunks
         chunk_indices = self.chunk_indices
         distchunks = [distchunks[i] for i in chunk_indices]
         select_sorteddist_chunks = [FeaturesSortedDistancesChunk(
@@ -463,7 +463,7 @@ class FeaturesSortedDistances(Datablock):
             self.log.debug(f"Reading chunks_indices from {self.path('chunk_indices')}")
             return self.read('chunk_indices')
         else:
-            n_chunks = self.config.featurebags_pairwise_distances.n_chunks
+            n_chunks = self.config.features_pairwise_distances.n_chunks
             rng = np.random.default_rng(self.config.seed)
             permutation = rng.permutation(n_chunks)
             max_n_chunks = self.config.max_n_chunks if self.config.max_n_chunks is not None else n_chunks
