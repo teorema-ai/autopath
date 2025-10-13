@@ -263,7 +263,7 @@ class PancanTileSplit(Datablock):
 		return shard_lens  	
 			
 
-class PancanTileFold(Databatch, PancanTileShards):
+class PancanTileFold(Datablock, PancanTileShards):
 	@dataclass
 	class CONFIG:
 		tilesplit: PancanTileSplit
