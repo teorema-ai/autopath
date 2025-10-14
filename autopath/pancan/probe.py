@@ -589,7 +589,7 @@ class Features2NNDim(Datablock):
 
     def __build__(self):
         sorted_distchunks = self.config.features_sorted_distances.chunks
-        twonndist_chunks = [Features2NNDistancesChunk(spec=dict(featuredist_chunk=sorted_distchunk)) 
+        twonndist_chunks = [Features2NNDistancesChunk(spec=dict(sorted_distchunk=sorted_distchunk)) 
                             for sorted_distchunk in sorted_distchunks
         ]
         self.log.debug(f"Formed {len(twonndist_chunks)} Features2NNDistancesChunks")
