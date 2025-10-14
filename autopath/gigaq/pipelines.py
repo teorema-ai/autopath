@@ -93,12 +93,11 @@ def gigapath_features_sorted_distances(name) -> FeaturesSortedDistances:
         raise ValueError(f"Unknown feature sorted distances probe: {name}")
     
 
-# dbx "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005', n_workers=3).build()"
-def gigapath_features_2nn_dim(name, n_workers: int = 1) -> Features2NNDim:
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005":
+# dbx "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005',).set(n_workers=3).build()"
+def gigapath_features_2nn_dim(name) -> Features2NNDim:
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
         return Features2NNDim(
-                    spec=dict(features_sorted_distances=f"@autopath.gigaq.pipelines.gigapath_features_sorted_distances('{name}')",),
-                    n_workers=n_workers,
+                    spec=dict(features_sorted_distances=f"$autopath.gigaq.pipelines.gigapath_features_sorted_distances('{name}')",),
         )
     else:
-        raise ValueError(f"Unknown feature bags 2nn dim probe: {name}")
+        raise ValueError(f"Unknown feature bags 2nn dim datablock: {name}")
