@@ -460,7 +460,7 @@ class FeaturesSortedDistancesChunk(Datablock):
 
     @functools.cached_property
     def tensor(self):
-        _chunk = self.config.distchunk.read()
+        _chunk = self.config.distchunk.tensor
         _tensor = torch.squeeze(_chunk[self.rows, :])
         _tensor_ = torch.squeeze(_tensor[:, self.cols])
         #
