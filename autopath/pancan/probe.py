@@ -432,7 +432,7 @@ class FeaturesSortedDistancesChunk(Datablock):
         del sorted_chunk
         del original_order_indices
         gc.collect()
-        self.log.debug(f"Built FeaturesSortedDistancesChunk {self.hashpath()} at offset {self.config.distchunk.config.row_batch_offset} on device {self.device}")
+        self.log.debug(f"Built FeaturesSortedDistancesChunk {self.hashpath()} on device {self.device}")
         return self
     
     def __read__(self, topic):
