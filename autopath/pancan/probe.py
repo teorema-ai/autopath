@@ -396,7 +396,7 @@ class FeaturesSortedDistancesChunk(Datablock):
         seed: int = 42
 
     def __build__(self):
-        _chunk = self.config.distchunk.read().to(self.device)
+        _chunk = self.config.distchunk.distances.to(self.device)
         #
         rng = np.random.default_rng(self.config.seed)
         if self.config.row_subsample_fraction < 1.0:
@@ -424,7 +424,8 @@ class FeaturesSortedDistancesChunk(Datablock):
         del col_subsample_indices
         gc.collect()
         
-        self.log.debug(f"Sorting pairwise distances in subsampled FeaturePairwiseDistancesChunk {self.config.distchunk.hashpath()} of shape {chunk.shape} on device {self.device}")
+        subsampled = "subsampled " if self.config.row_subsample_fraction < 1.0 or self.config.col_subsample_fraction < 1.0 else ''
+        self.log.debug(f"Sorting pairwise distances in {subsampled}FeaturePairwiseDistancesChunk {self.config.distchunk.hashpath()} of shape {chunk.shape} on device {self.device}")
         sorted_chunk, original_order_indices = torch.sort(chunk, dim=-1, descending=False)
         write_tensor(original_order_indices.to('cpu'), self.path('original_order_indices', ensure_dirpath=True))
         del chunk
@@ -480,10 +481,15 @@ class FeaturesSortedDistances(Datablock):
         max_n_chunks: int = None
         row_subsample_fraction: float = 1.0
         col_subsample_fraction: float = 1.0
-        seed: int = 42
+        chunk_seed: int = 42
+        seed: Optional[int] = None
 
-    def __init__(self, *args, devices: list[str] = ['cuda:0'], **kwargs):
-        super().__init__(*args, devices=devices, **kwargs)
+    def __init__(self, *args, n_workers: int = 1, use_gpus: bool = False, **kwargs):
+        super().__init__(*args, n_workers=n_workers, use_gpus=use_gpus, **kwargs)
+
+    def __post_init__(self):
+        self.devices = [f"cuda:{i}" if self.use_gpus else f"cpu" for i in range(self.n_workers)]
+        return self
 
     def __build__(self):
         select_sorteddist_chunks = self.chunks
@@ -512,7 +518,7 @@ class FeaturesSortedDistances(Datablock):
                                 spec=dict(distchunk=distchunk, 
                                           row_subsample_fraction=self.config.row_subsample_fraction, 
                                           col_subsample_fraction=self.config.col_subsample_fraction),
-                                          seed=self.config.seed,
+                                          seed=self.config.chunk_seed,
                                 ) 
                             for distchunk in distchunks
         ]
@@ -525,8 +531,11 @@ class FeaturesSortedDistances(Datablock):
             return self.read('chunk_indices')
         else:
             n_chunks = self.config.features_pairwise_distances.n_chunks
-            rng = np.random.default_rng(self.config.seed)
-            permutation = rng.permutation(n_chunks)
+            if self.config.seed is not None:
+                rng = np.random.default_rng(self.config.seed)
+                permutation = rng.permutation(n_chunks)
+            else:
+                permutation = np.arange(n_chunks)
             max_n_chunks = self.config.max_n_chunks if self.config.max_n_chunks is not None else n_chunks
             return permutation[:max_n_chunks]
 
