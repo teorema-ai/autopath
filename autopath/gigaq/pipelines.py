@@ -39,9 +39,9 @@ def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=1024,) -> Feat
 def gigapath_feature_bags(name) -> FeatureBags:
     def get_extractor(name, sideband: bool = False, capture_blocks: Optional[List[int]] = None):
         if sideband: 
-            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator({name}, sideband=True, capture_blocks={repr(capture_blocks)})"
+            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator({repr(name)}, sideband=True, capture_blocks={repr(capture_blocks)})"
         else:
-            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator({name})"
+            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator({repr(name)})"
 
     if name == "GIGAPATH_BASELINE_SIDEBAND_CPTAC_9802_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
