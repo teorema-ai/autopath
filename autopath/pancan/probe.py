@@ -554,14 +554,14 @@ class Features2NNDistancesChunk(Datablock):
         if self.debug:
             firstdist_min, firstdist_max = firstdist.min(), firstdist.max()
             self.log.debug(f"firstdist_min: {firstdist_min}, firstdist_max: {firstdist_max}")
-        self.log.debug(f"Locating second smallest pairwise distances in FeatureSortedDistancesChunk {self.config.featuredist_chunk.hashpath()} of shape {sorted_distchunk_tensor.shape}")
+        self.log.debug(f"Locating second smallest pairwise distances in FeatureSortedDistancesChunk {sorted_distchunk.hashpath()} of shape {sorted_distchunk_tensor.shape}")
         seconddist = sorted_distchunk_tensor[:, 1]
         if self.debug:
             seconddist_min, seconddist_max = seconddist.min(), seconddist.max()
             self.log.debug(f"seconddist_min: {seconddist_min}, seconddist_max: {seconddist_max}")
         del sorted_distchunk_tensor
         twonn_distances = torch.stack([firstdist, seconddist], dim=-1)
-        self.log.debug(f"Built Features2NNDistancesChunk {self.hashpath()} at offset {self.config.dist_chunk.config.row_batch_offset} with shape {twonn_distances.shape}")
+        self.log.debug(f"Built Features2NNDistancesChunk {self.hashpath()} with shape {twonn_distances.shape}")
         write_tensor(twonn_distances, self.path(ensure_dirpath=True))
         return self
     
