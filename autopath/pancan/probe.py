@@ -250,9 +250,9 @@ class FeaturesPairwiseDistancesChunk(Datablock):
         col_batch_size = int(N*self.config.col_subsample_fraction)
         _cols = cols[col_batch_size*self.config.chunk_idx:min(N, col_batch_size*(self.config.chunk_idx+1))]
         del cols
-        self.log.detailed(f"Building FeaturePairwiseDistancesChunk with rows {_rows} and cols {_cols} on device {features.device}")
+        self.log.detailed(f"Building FeaturePairwiseDistancesChunk at index {self.config.chunk_idx} with rows {_rows} and cols {_cols} on device {features.device}")
         pairwise_distances = torch.cdist(features[_rows], features[_cols]).to('cpu')
-        self.log.debug(f"Built FeatureDistanceChunk at offset {self.config.row_batch_offset} with shape {pairwise_distances.shape} on device {features.device}")
+        self.log.debug(f"Built FeatureDistanceChunk at index {self.config.chunk_idx} with shape {pairwise_distances.shape} on device {features.device}")
         write_npz(self.path('rows', ensure_dirpath=True), rows=_rows)
         write_npz(self.path('cols', ensure_dirpath=True), cols=_cols)
         write_tensor(pairwise_distances, self.path('distances', ensure_dirpath=True))

@@ -69,7 +69,7 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     else:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
-# dbx "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005').set(n_devices=3).build()"
+# dbx "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05').set(n_devices=3).build()"
 def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
         return FeaturesPairwiseDistances(
