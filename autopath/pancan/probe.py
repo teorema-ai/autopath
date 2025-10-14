@@ -371,7 +371,6 @@ class FeaturesPairwiseDistances(Datablock):
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
         write_tensor(torch.tensor([len(chunks)]), self.path('n_chunks', ensure_dirpath=True))
         write_tensor(features.shape, self.path('features_shape', ensure_dirpath=True))
-        write_tensor(torch.tensor([features_size]), self.path('features_size', ensure_dirpath=True))
         return self
     
     def __read__(self, topic):
