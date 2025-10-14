@@ -36,27 +36,25 @@ def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=1024,) -> Feat
 
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_9802_TEST', sideband=True, num_gpus=3).build()"
-def gigapath_feature_bags(name, *, sideband: bool = False, capture_blocks: Optional[List[int]] = None, num_gpus: int = 1, gpu_batch_size=1024) -> FeatureBags:
+def gigapath_feature_bags(name) -> FeatureBags:
     def get_extractor(name, sideband: bool = False, capture_blocks: Optional[List[int]] = None):
         if sideband: 
-            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator('GIGAPATH_BASELINE_BACKBONE_EVALUATOR', sideband=True, capture_blocks={repr(capture_blocks)})"
+            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator(name, sideband=True, capture_blocks={repr(capture_blocks)})"
         else:
-            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')"
+            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator(name)"
 
     if name == "GIGAPATH_BASELINE_SIDEBAND_CPTAC_9802_TEST":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR', sideband=sideband, capture_blocks=capture_blocks)
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
     elif name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR', sideband=sideband, capture_blocks=capture_blocks)
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR', sideband=sideband, capture_blocks=capture_blocks)
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
     else:
         raise ValueError(f"Unknown feature bags: {name}")
-    devices = [f"cuda:{i}" for i in range(num_gpus)]
-    return FeatureBags(devices=devices, gpu_batch_size=gpu_batch_size, spec=dict(extractor=extractor, tilebags=tilebags))
+    return FeatureBags(spec=dict(extractor=extractor, tilebags=tilebags))
 
 
 # dbx "autopath.gigaq.pipelines.gigapath_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
@@ -73,7 +71,7 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
 def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05":
         return FeaturesPairwiseDistances(
-                    spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband=False, capture_blocks=None)",
+                    spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
                               chunk_size=4000,
                               row_subsample_fraction=0.05,
                               col_subsample_fraction=0.05,
