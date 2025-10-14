@@ -331,9 +331,9 @@ class FeaturesPairwiseDistances(Datablock):
                     featurebags=self.spec['featurebags'],
                     chunk_idx=i,
                     seed=self.config.seed,
-                    row_subsample_fraction=self.spec['row_subsample_fraction'],
-                    col_subsample_fraction=self.spec['col_subsample_fraction'],
-                    sideband_layer=self.spec['sideband_layer'],
+                    row_subsample_fraction=self.config.row_subsample_fraction,
+                    col_subsample_fraction=self.config.col_subsample_fraction,
+                    sideband_layer=self.config.sideband_layer,
                     )) 
                 for i in range(n_chunks)
             ]
