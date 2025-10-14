@@ -368,7 +368,7 @@ class FeaturesPairwiseDistances(Datablock):
         self.log.debug(f"Found {len(missing_chunks)} missing chunks")
         self.log.debug(f"Building all missing pairwise feature distance chunks")
         built_chunks = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
-        self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
+        self.log.verbose(f"Built all missing pairwise feature distance chunks: {len(built_chunks)}")
         write_tensor(torch.tensor([len(chunks)]), self.path('n_chunks', ensure_dirpath=True))
         write_tensor(torch.tensor(features.shape), self.path('features_shape', ensure_dirpath=True))
         return self
