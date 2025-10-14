@@ -360,7 +360,6 @@ class FeaturesPairwiseDistances(Datablock):
         self.log.debug("Retrieving features")
         features = self.features()
         chunks = self._chunks(features.shape)
-        features_size = self.features_size
         self.log.debug(f"Forming FeaturesPairwiseDistancesChunks from features of shape {features.shape}, chunk_size {self.config.chunk_size}, "
                        f"row_subsample_fraction {self.config.row_subsample_fraction}, col_subsample_fraction {self.config.col_subsample_fraction}"
         )
