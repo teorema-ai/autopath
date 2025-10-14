@@ -108,7 +108,7 @@ def gigapath_features_2nn_distances(name) -> Features2NNDistances:
 def gigapath_features_2nn_dim(name) -> Features2NNDim:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
         return Features2NNDim(
-                    spec=dict(features_sorted_distances=f"$autopath.gigaq.pipelines.gigapath_features_2nn_distances('{name}')",),
+                    spec=dict(features_2nn_distances=f"$autopath.gigaq.pipelines.gigapath_features_2nn_distances('{name}')",),
         )
     else:
         raise ValueError(f"Unknown feature bags 2nn dim datablock: {name}")
