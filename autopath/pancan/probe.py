@@ -408,7 +408,7 @@ class FeaturesSortedDistancesChunk(Datablock):
             _chunk_ = _chunk
             row_subsample_indices = torch.arange(_chunk.shape[0])
         del _chunk
-        write_npz(self.path('row_subsample_indices', ensure_dirpath=True), row_subsample_indices=row_subsample_indices)
+        write_npz(self.path('rows', ensure_dirpath=True), rows=row_subsample_indices)
         del row_subsample_indices
         #
         if self.config.col_subsample_fraction < 1.0:
@@ -420,7 +420,7 @@ class FeaturesSortedDistancesChunk(Datablock):
             chunk = _chunk_
             col_subsample_indices = torch.arange(_chunk_.shape[1])
         del _chunk_
-        write_npz(self.path('col_subsample_indices', ensure_dirpath=True), col_subsample_indices=col_subsample_indices)
+        write_npz(self.path('cols', ensure_dirpath=True), cols=col_subsample_indices)
         del col_subsample_indices
         gc.collect()
         
