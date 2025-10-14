@@ -550,13 +550,14 @@ class Features2NNDistancesChunk(Datablock):
         sorted_distchunk = self.config.sorted_distchunk
         sorted_distchunk_tensor = sorted_distchunk.tensor
         self.log.debug(f"Locating smallest nonzero pairwise distances in FeatureSortedDistancesChunk {sorted_distchunk.hashpath()} of shape {sorted_distchunk_tensor.shape}")
-        firstidx = torch.nonzero(sorted_distchunk_tensor, as_tuple=True)[1]
-        firstdist = sorted_distchunk_tensor[:, firstidx]
+        firstidx_j = (sorted_distchunk_tensor[:, 0] == 0.0).to(int)
+        firstidx_i = torch.arange(sorted_distchunk_tensor.shape[0])
+        firstdist = sorted_distchunk_tensor[firstidx_i, firstidx_j]
         if self.debug:
             firstdist_min, firstdist_max = firstdist.min(), firstdist.max()
             self.log.debug(f"firstdist_min: {firstdist_min}, firstdist_max: {firstdist_max}")
         self.log.debug(f"Locating second smallest pairwise distances in FeatureSortedDistancesChunk {sorted_distchunk.hashpath()} of shape {sorted_distchunk_tensor.shape}")
-        seconddist = sorted_distchunk_tensor[:, firstidx+1]
+        seconddist = sorted_distchunk_tensor[firstidx_i, firstidx_j+1]
         if self.debug:
             seconddist_min, seconddist_max = seconddist.min(), seconddist.max()
             self.log.debug(f"seconddist_min: {seconddist_min}, seconddist_max: {seconddist_max}")
