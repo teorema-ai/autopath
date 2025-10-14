@@ -661,7 +661,7 @@ class Features2NNDim(Datablock):
     
     @functools.cached_property
     def dimension(self):
-        return self.read('dimension').item()[0]
+        return self.read('dimension').item()
     
     @functools.cached_property
     def model(self):
