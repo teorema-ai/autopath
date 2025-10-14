@@ -76,7 +76,7 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband=False, capture_blocks=None)",
                               chunk_size=4000,
                               row_subsample_fraction=0.05,
-                              col_subsample_fraction=0.005,
+                              col_subsample_fraction=0.05,
                     ), 
         )
     else:
