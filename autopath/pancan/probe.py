@@ -223,49 +223,92 @@ class FeatureBagsProbe(Datablock, FeaturesProbe):
 
 
 class FeaturesPairwiseDistancesChunk(Datablock):
-    TOPICFILE = "pairwise_distances.pt"
+    TOPICFILES = {
+        'rows': 'rows.npz',
+        'cols': 'cols.npz',
+        'distances': "distances.pt"
+    }
 
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
-        featurebags_size: int
-        row_batch_offset: int
-        row_batch_size: int
+        chunk_idx: int
+        seed: int = 42
+        row_subsample_fraction: float = 1.0
+        col_subsample_fraction: float = 1.0
         sideband_layer: Optional[str] = None
 
-    def __post_init__(self):
-        self.rows = list(range(self.config.row_batch_offset, 
-                               min(self.config.row_batch_offset + self.config.row_batch_size,
-                                   self.config.featurebags_size)))
-        return self
-
     def __build__(self, features):
-        self.log.detailed(f"Building FeaturePairwiseDistancesChunk with rows {self.rows} on device {features.device}")
-        pairwise_distances = torch.cdist(features[self.rows], features).to('cpu')
+        rng = np.random.default_rng(self.config.seed)
+        M = features.shape[0]
+        N = features.shape[1]
+        rows = rng.permutation(M)
+        row_batch_size = int(M*self.config.row_subsample_fraction)
+        _rows = rows[row_batch_size*self.config.chunk_idx:min(M, row_batch_size*(self.config.chunk_idx+1))]
+        del rows
+        cols = rng.permutation(N)
+        col_batch_size = int(N*self.config.col_subsample_fraction)
+        _cols = cols[col_batch_size*self.config.chunk_idx:min(N, col_batch_size*(self.config.chunk_idx+1))]
+        del cols
+        self.log.detailed(f"Building FeaturePairwiseDistancesChunk with rows {_rows} and cols {_cols} on device {features.device}")
+        pairwise_distances = torch.cdist(features[_rows], features[:, _cols]).to('cpu')
         self.log.debug(f"Built FeatureDistanceChunk at offset {self.config.row_batch_offset} with shape {pairwise_distances.shape} on device {features.device}")
-        write_tensor(pairwise_distances, self.path(ensure_dirpath=True))
+        write_npz(self.path('rows', ensure_dirpath=True), rows=_rows)
+        write_npz(self.path('cols', ensure_dirpath=True), cols=_cols)
+        write_tensor(pairwise_distances, self.path('distances', ensure_dirpath=True))
+        del _rows
+        del _cols
         del pairwise_distances
         return self
     
-    def __read__(self):
-        result = read_tensor(self.path())
+    def __read__(self, topic):
+        if topic == 'rows':
+            result = read_npz(self.path('rows'), 'rows')
+        elif topic == 'cols':
+            result = read_npz(self.path('cols'), 'cols')
+        elif topic == 'distances':
+            result = read_tensor(self.path('distances'))
+        else:
+            raise ValueError(f"Unknown topic: {topic}") 
         return result
     
     @functools.cached_property
+    def rows(self):
+        return self.read('rows')
+    
+    @functools.cached_property
+    def cols(self):
+        return self.read('cols')
+
+    @functools.cached_property
+    def distances(self):
+        return self.read('distances')
+    
+    @functools.cached_property
     def tensor(self):
-        return self.read()
-        
+        return self.distances
+    
 
 class FeaturesPairwiseDistances(Datablock):
-    TOPICFILES = {"features_size": "features_size.pt"}
+    TOPICFILES = {
+        "features_shape": "features_shape.npy",
+        "n_chunks": "n_chunks.npy",
+    }
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
-        row_batch_size: int
+        chunk_size: int = 1024
+        row_subsample_fraction: float = 1.0
+        col_subsample_fraction: float = 1.0
+        seed: int = 42
         sideband_layer: Optional[str] = None
 
-    def __init__(self, *args, row_batch_size: int = 1, devices: list[str] = ['cuda:0'], **kwargs):
-        super().__init__(*args, row_batch_size=row_batch_size, devices=devices, **kwargs)
+    def __init__(self, *args, devices: list[str] = None, n_devices: int = None, **kwargs):
+        assert not (devices is not None and n_devices is not None), f"Both devices and n_devices cannot be specified"
+        assert not (devices is None and n_devices is None), "Either devices or n_devices must be specified"
+        if devices is None:
+            devices = [f"cuda:{i}" for i in range(n_devices)]
+        super().__init__(*args, devices=devices, **kwargs)
         
     def features(self):
         self.log.debug(f"Reading features from {len(self.config.featurebags.bags)} feature bags")
@@ -274,57 +317,76 @@ class FeaturesPairwiseDistances(Datablock):
             feature_list.extend(featurebag.features)
         features = torch.stack(feature_list)
         self.log.debug(f"Combined features: shape: {features.shape}")
-        #REMOVE: DEADLOCK
-        #assert len(features) == self.config.featurebags.size(), f"len(features) != self.config.featurebags.size(): {len(features)} != {self.config.featurebags.size()}"
         return features
 
     @functools.cached_property
     def chunks(self):
+        return self._chunks(self.features_shape)
+
+    def _chunks(self, shape):
+        M, _ = shape
+        m = int(M*self.config.row_subsample_fraction)
+        n_chunks = math.ceil(m/self.config.chunk_size)
         return [FeaturesPairwiseDistancesChunk(spec=dict(
                     featurebags=self.spec['featurebags'],
-                    featurebags_size=self.features_size, 
-                    row_batch_offset=i, 
-                    row_batch_size=self.spec['row_batch_size'])) for i in range(0, self.features_size, self.spec['row_batch_size'])]
+                    chunk_idx=i,
+                    seed=self.config.seed,
+                    row_subsample_fraction=self.spec['row_subsample_fraction'],
+                    col_subsample_fraction=self.spec['col_subsample_fraction'],
+                    sideband_layer=self.spec['sideband_layer'],
+                    )) 
+                for i in range(n_chunks)
+            ]
     
     @property
     def n_chunks(self):
-        return len(self.chunks)
+        if self.valid():
+            self.log.debug(f"Reading n_chunks from {self.path('n_chunks')}")
+            return read_tensor(self.path('features_shape')).item()
+        else:
+            self.log.debug(f"Calculating n_chunks")
+            return len(self.chunks)
     
     @functools.cached_property
-    def features_size(self):
+    def features_shape(self):
         if self.valid():
-            self.log.debug(f"Reading features_size from {self.path('features_size')}")
-            return read_tensor(self.path('features_size')).item()
+            self.log.debug(f"Reading features_shape from {self.path('features_shape')}")
+            return read_tensor(self.path('features_shape'))
         else:
-            self.log.debug(f"Calculating features_size")
-            return len(self.features())
+            self.log.debug(f"Calculating features_shape")
+            return self.features().shape
 
     def __build__(self):
-        chunks = self.chunks
         self.log.debug("Retrieving features")
         features = self.features()
+        chunks = self._chunks(features.shape)
         features_size = self.features_size
-        self.log.debug(f"Forming FeaturesPairwiseDistancesChunks with size {features_size} and batch size {self.spec['row_batch_size']}")
-        
-        self.log.debug(f"Found {len(chunks)} FeaturesPairwiseDistancesChunks.  Looking for missing chunks")
+        self.log.debug(f"Forming FeaturesPairwiseDistancesChunks from features of shape {features.shape}, chunk_size {self.config.chunk_size}, "
+                       f"row_subsample_fraction {self.config.row_subsample_fraction}, col_subsample_fraction {self.config.col_subsample_fraction}"
+        )
+        self.log.debug(f"Formed {len(chunks)} FeaturesPairwiseDistancesChunks.  Looking for missing chunks")
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_chunks)} missing chunks")
         self.log.debug(f"Building all missing pairwise feature distance chunks")
         built_chunks = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
         self.log.verbose(f"Built all pairwise feature distance chunks: {len(built_chunks)}")
+        write_tensor(torch.tensor([len(chunks)]), self.path('n_chunks', ensure_dirpath=True))
+        write_tensor(features.shape, self.path('features_shape', ensure_dirpath=True))
         write_tensor(torch.tensor([features_size]), self.path('features_size', ensure_dirpath=True))
         return self
     
     def __read__(self, topic):
-        if topic == 'features_size':
-            result = read_tensor(self.path('features_size'))    
+        if topic == 'features_shape':
+            result = read_tensor(self.path('features_shape'))
+        elif topic == 'n_chunks':
+            result = read_tensor(self.path('n_chunks'))   
         return result
     
 
 class FeaturesSortedDistancesChunk(Datablock):
     VERSION = 3
-    TOPICFILES = {"row_subsample_indices": "row_subsample_indices.npz",
-                  "col_subsample_indices": "col_subsample_indices.npz",
+    TOPICFILES = {"rows": "rows.npz",
+                  "cols": "cols.npz",
                   "original_order_indices": "original_order_indices.npy",
     }
     
@@ -337,12 +399,6 @@ class FeaturesSortedDistancesChunk(Datablock):
 
     def __build__(self):
         _chunk = self.config.distchunk.read().to(self.device)
-        _diagrows = range(min(self.config.distchunk.config.row_batch_size, _chunk.shape[0]))
-        _diagcols = range(self.config.distchunk.config.row_batch_offset, 
-                          self.config.distchunk.config.row_batch_offset + min(self.config.distchunk.config.row_batch_size, _chunk.shape[0])
-        )
-        self.log.debug(f"Setting diagonal to 0.0")
-        _chunk[_diagrows, _diagcols] = 0.0
         #
         rng = np.random.default_rng(self.config.seed)
         if self.config.row_subsample_fraction < 1.0:
@@ -381,30 +437,37 @@ class FeaturesSortedDistancesChunk(Datablock):
         return self
     
     def __read__(self, topic):
-        if topic == 'row_subsample_indices':
-            result = read_npz(self.path('row_subsample_indices'), 'row_subsample_indices')
-        elif topic == 'col_subsample_indices':
-            result = read_npz(self.path('col_subsample_indices'), 'col_subsample_indices')
+        if topic == 'rows':
+            result = read_npz(self.path('rows'), 'rows')
+        elif topic == 'cols':
+            result = read_npz(self.path('cols'), 'cols')
         elif topic == 'original_order_indices':
-            result = read_tensor(self.path(topic))
-        elif topic == 'unique_value_indices':
             result = read_tensor(self.path(topic))
         else:
             raise ValueError(f"Unknown topic: {topic}")
         return result
     
     @functools.cached_property
+    def rows(self):
+        return self.read('rows')
+    
+    @functools.cached_property
+    def cols(self):
+        return self.read('cols')
+    
+    @functools.cached_property
+    def original_order_indices(self):
+        return self.read('original_order_indices')
+
+    @functools.cached_property
     def tensor(self):
-        row_subsample_indices = self.read('row_subsample_indices')
-        col_subsample_indices = self.read('col_subsample_indices')
-        original_order_indices = self.read('original_order_indices')
         _chunk = self.config.distchunk.read()
-        _tensor = torch.squeeze(_chunk[row_subsample_indices, :])
-        _tensor_ = torch.squeeze(_tensor[:, col_subsample_indices])
+        _tensor = torch.squeeze(_chunk[self.rows, :])
+        _tensor_ = torch.squeeze(_tensor[:, self.cols])
         #
         tensor = torch.zeros_like(_tensor_)
         for i in range(_tensor.shape[0]):
-            row = _tensor_[i, original_order_indices[i,:]]
+            row = _tensor_[i, self.original_order_indices[i,:]]
             tensor[i, :] = row
         return tensor
         

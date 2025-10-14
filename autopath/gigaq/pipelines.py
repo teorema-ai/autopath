@@ -69,19 +69,18 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     else:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
-# dbx "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000', n_gpus=4).build()"
-def gigapath_features_pairwise_distances(name, sideband_layer: Optional[str] = None, n_gpus: int = 1) -> FeaturesPairwiseDistances:
-    devices = [f"cuda:{i}" for i in range(n_gpus)]
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000":
+# dbx "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005').set(n_devices=3).build()"
+def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
         return FeaturesPairwiseDistances(
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband=False, capture_blocks=None)",
-                              sideband_layer='',
-                              row_batch_size=4000,
-                    ),
-                    devices=devices,  
+                              chunk_size=4000,
+                              row_subsample_fraction=0.05,
+                              col_subsample_fraction=0.005,
+                    ), 
         )
     else:
-        raise ValueError(f"Unknown feature bags pairwise distances probe: {name}")
+        raise ValueError(f"Unknown feature bags pairwise distances datablock: {name}")
 
 
 # dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_25_05_005', n_workers=3,).build()"
