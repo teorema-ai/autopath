@@ -223,6 +223,7 @@ class FeatureBagsProbe(Datablock, FeaturesProbe):
 
 
 class FeaturesPairwiseDistancesChunk(Datablock):
+    VERSION = 1
     TOPICFILES = {
         'rows': 'rows.npz',
         'cols': 'cols.npz',
@@ -241,14 +242,13 @@ class FeaturesPairwiseDistancesChunk(Datablock):
     def __build__(self, features):
         rng = np.random.default_rng(self.config.seed)
         M = features.shape[0]
-        N = features.shape[1]
         rows = rng.permutation(M)
         row_batch_size = int(M*self.config.row_subsample_fraction)
         _rows = rows[row_batch_size*self.config.chunk_idx:min(M, row_batch_size*(self.config.chunk_idx+1))]
         del rows
-        cols = rng.permutation(N)
-        col_batch_size = int(N*self.config.col_subsample_fraction)
-        _cols = cols[col_batch_size*self.config.chunk_idx:min(N, col_batch_size*(self.config.chunk_idx+1))]
+        cols = rng.permutation(M)
+        col_batch_size = int(M*self.config.col_subsample_fraction)
+        _cols = cols[col_batch_size*self.config.chunk_idx:min(M, col_batch_size*(self.config.chunk_idx+1))]
         del cols
         self.log.detailed(f"Building FeaturePairwiseDistancesChunk at index {self.config.chunk_idx} with rows {_rows} and cols {_cols} on device {features.device}")
         pairwise_distances = torch.cdist(features[_rows], features[_cols]).to('cpu')
