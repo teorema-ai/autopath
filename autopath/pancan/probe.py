@@ -550,12 +550,13 @@ class Features2NNDistancesChunk(Datablock):
         sorted_distchunk = self.config.sorted_distchunk
         sorted_distchunk_tensor = sorted_distchunk.tensor
         self.log.debug(f"Locating smallest nonzero pairwise distances in FeatureSortedDistancesChunk {sorted_distchunk.hashpath()} of shape {sorted_distchunk_tensor.shape}")
-        firstdist = sorted_distchunk_tensor[:, 0]
+        firstidx = torch.nonzero(sorted_distchunk_tensor, as_tuple=True)[1]
+        firstdist = sorted_distchunk_tensor[:, firstidx]
         if self.debug:
             firstdist_min, firstdist_max = firstdist.min(), firstdist.max()
             self.log.debug(f"firstdist_min: {firstdist_min}, firstdist_max: {firstdist_max}")
         self.log.debug(f"Locating second smallest pairwise distances in FeatureSortedDistancesChunk {sorted_distchunk.hashpath()} of shape {sorted_distchunk_tensor.shape}")
-        seconddist = sorted_distchunk_tensor[:, 1]
+        seconddist = sorted_distchunk_tensor[:, firstidx+1]
         if self.debug:
             seconddist_min, seconddist_max = seconddist.min(), seconddist.max()
             self.log.debug(f"seconddist_min: {seconddist_min}, seconddist_max: {seconddist_max}")
@@ -574,11 +575,9 @@ class Features2NNDistancesChunk(Datablock):
         return self.read()
     
 
-class Features2NNDim(Datablock):
+class Features2NNDistances(Datablock):
     TOPICFILES = {
         "twonn_distances": "twonn_distances.pt", 
-        "dimension": "dimension.pt",
-        "model": "model.pkl",
     }
     @dataclass
     class CONFIG:
@@ -590,12 +589,21 @@ class Features2NNDim(Datablock):
     def __post_init__(self):
         self.devices = [f"cuda:{i}" if self.use_gpus else f"cpu" for i in range(self.n_workers)]
         return self
-
-    def __build__(self):
+    
+    def chunks(self):
         sorted_distchunks = self.config.features_sorted_distances.chunks
         twonndist_chunks = [Features2NNDistancesChunk(spec=dict(sorted_distchunk=sorted_distchunk)) 
                             for sorted_distchunk in sorted_distchunks
         ]
+        return twonndist_chunks
+    
+    def UNSAFE_clear_chunks(self):
+        for chunk in self.chunks():
+            chunk.UNSAFE_clear()
+        return self
+
+    def __build__(self):
+        twonndist_chunks = self.chunks()
         self.log.debug(f"Formed {len(twonndist_chunks)} Features2NNDistancesChunks")
         missing_twonndist_chunks = [chunk for chunk in twonndist_chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_twonndist_chunks)} missing Features2NNDistancesChunks")
@@ -603,6 +611,31 @@ class Features2NNDim(Datablock):
         built_twonndist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_twonndist_chunks)
         self.log.verbose(f"Built all missing Features2NNDistancesChunks: {len(built_twonndist_chunks)}")
         twonndists = torch.cat([chunk.tensor for chunk in twonndist_chunks], dim=0)
+        write_tensor(twonndists, self.path('twonn_distances', ensure_dirpath=True))
+        return self
+    
+    def __read__(self, topic):
+        if topic == 'twonn_distances':
+            result = read_tensor(self.path('twonn_distances'))
+        return result
+    
+    @functools.cached_property
+    def tensor(self):
+        return self.read('twonn_distances')
+                       
+
+class Features2NNDim(Datablock):
+    TOPICFILES = {
+        "dimension": "dimension.pt",
+        "model": "model.pkl",
+    }
+    @dataclass
+    class CONFIG:
+        features_2nn_distances: Features2NNDistances
+
+
+    def __build__(self):
+        twonndists = self.config.features_2nn_distances.tensor
         mus = twonndists[:, 1]/twonndists[:, 0]
         sortedmus, _ = torch.sort(mus, descending=False)
         del mus
@@ -617,8 +650,6 @@ class Features2NNDim(Datablock):
         write_tensor(torch.tensor([model.coef_[0]]), self.path('dimension', ensure_dirpath=True))
         write_pickle(model, self.path('model', ensure_dirpath=True))
         return self
-                            
-
 
 
 
