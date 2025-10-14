@@ -377,7 +377,7 @@ class FeaturesPairwiseDistances(Datablock):
         if topic == 'features_shape':
             result = read_tensor(self.path('features_shape'))
         elif topic == 'n_chunks':
-            result = read_tensor(self.path('n_chunks'))   
+            result = read_tensor(self.path('n_chunks')).item()   
         return result
     
 
