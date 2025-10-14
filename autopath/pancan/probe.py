@@ -642,8 +642,8 @@ class Features2NNDim(Datablock):
         del mus
         logsortedmus = torch.log(sortedmus)
         cumprob = torch.arange(0, len(logsortedmus))/len(logsortedmus)
-        x = logsortedmus
-        y = -torch.log(1.0 - cumprob)
+        x = logsortedmus.reshape(-1, 1)
+        y = -torch.log(1.0 - cumprob).reshape(-1, 1)
         model = LinearRegression()
         self.log.debug(f"Fitting linear model on {len(x)} mu points")
         model.fit(x, y)
