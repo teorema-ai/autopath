@@ -342,7 +342,7 @@ class FeaturesPairwiseDistances(Datablock):
     def n_chunks(self):
         if self.valid():
             self.log.debug(f"Reading n_chunks from {self.path('n_chunks')}")
-            return read_tensor(self.path('features_shape')).item()
+            return read_tensor(self.path('n_chunks')).item()
         else:
             self.log.debug(f"Calculating n_chunks")
             return len(self.chunks)
