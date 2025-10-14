@@ -71,7 +71,7 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
 
 # dbx "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05').set(n_devices=3).build()"
 def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05":
         return FeaturesPairwiseDistances(
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST', sideband=False, capture_blocks=None)",
                               chunk_size=4000,
