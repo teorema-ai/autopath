@@ -652,5 +652,20 @@ class Features2NNDim(Datablock):
         write_pickle(model, self.path('model', ensure_dirpath=True))
         return self
 
+    def __read__(self, topic):
+        if topic == 'dimension':
+            result = read_tensor(self.path('dimension'))
+        elif topic == 'model':
+            result = read_pickle(self.path('model'))
+        return result
+    
+    @functools.cached_property
+    def dimension(self):
+        return self.read('dimension')
+    
+    @functools.cached_property
+    def model(self):
+        return self.read('model')
+
 
 
