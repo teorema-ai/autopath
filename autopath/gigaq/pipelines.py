@@ -83,7 +83,7 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
 
 # dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005',).set(n_workers=3, use_gpus=True).build()"
 def gigapath_features_sorted_distances(name) -> FeaturesSortedDistances:
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05":
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
         return FeaturesSortedDistances(
                     spec=dict(features_pairwise_distances=f"$autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05')",
                               col_subsample_fraction=0.1,
