@@ -584,8 +584,12 @@ class Features2NNDim(Datablock):
     class CONFIG:
         features_sorted_distances: FeaturesSortedDistances
 
-    def __init__(self, *args, n_workers: int = 1, **kwargs):
-        super().__init__(*args, n_workers=n_workers, **kwargs)
+    def __init__(self, *args, n_workers: int = 1, use_gpus: bool = False, **kwargs):
+        super().__init__(*args, n_workers=n_workers, use_gpus=use_gpus, **kwargs)
+
+    def __post_init__(self):
+        self.devices = [f"cuda:{i}" if self.use_gpus else f"cpu" for i in range(self.n_workers)]
+        return self
 
     def __build__(self):
         sorted_distchunks = self.config.features_sorted_distances.chunks
@@ -596,7 +600,7 @@ class Features2NNDim(Datablock):
         missing_twonndist_chunks = [chunk for chunk in twonndist_chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_twonndist_chunks)} missing Features2NNDistancesChunks")
         self.log.debug(f"Building {len(missing_twonndist_chunks)} Features2NNDistancesChunks")
-        built_twonndist_chunks = TorchMultiprocessingDatashardBatchBuilder(n_workers=self.n_workers, log=self.log).build_shards(missing_twonndist_chunks)
+        built_twonndist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_twonndist_chunks)
         self.log.verbose(f"Built all missing Features2NNDistancesChunks: {len(built_twonndist_chunks)}")
         twonndists = torch.cat([chunk.tensor for chunk in twonndist_chunks], dim=0)
         mus = twonndists[:, 1]/twonndists[:, 0]
