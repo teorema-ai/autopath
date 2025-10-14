@@ -303,12 +303,12 @@ class FeaturesPairwiseDistances(Datablock):
         seed: int = 42
         sideband_layer: Optional[str] = None
 
-    def __init__(self, *args, devices: list[str] = None, n_devices: int = 1, **kwargs):
-        assert not (devices is not None and n_devices is not None), f"Both devices and n_devices cannot be specified"
-        assert not (devices is None and n_devices is None), "Either devices or n_devices must be specified"
-        if devices is None:
-            devices = [f"cuda:{i}" for i in range(n_devices)]
-        super().__init__(*args, devices=devices, **kwargs)
+    def __init__(self, *args, n_devices: int = 1, **kwargs):
+        super().__init__(*args, n_devices=n_devices, **kwargs)
+
+    def __post_init__(self):
+        self.devices = [f"cuda:{i}" for i in range(self.n_devices)]
+        return self
         
     def features(self):
         self.log.debug(f"Reading features from {len(self.config.featurebags.bags)} feature bags")
