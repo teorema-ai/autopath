@@ -303,7 +303,7 @@ class FeaturesPairwiseDistances(Datablock):
         seed: int = 42
         sideband_layer: Optional[str] = None
 
-    def __init__(self, *args, devices: list[str] = None, n_devices: int = None, **kwargs):
+    def __init__(self, *args, devices: list[str] = None, n_devices: int = 1, **kwargs):
         assert not (devices is not None and n_devices is not None), f"Both devices and n_devices cannot be specified"
         assert not (devices is None and n_devices is None), "Either devices or n_devices must be specified"
         if devices is None:
