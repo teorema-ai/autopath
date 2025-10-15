@@ -115,4 +115,4 @@ def gigapath_features_2nn_dim(name) -> Features2NNDim:
                     spec=dict(features_2nn_distances=f"$autopath.gigaq.pipelines.gigapath_features_2nn_distances('{name}')",),
         )
     else:
-        raise ValueError(f"Unknown feature bags 2nn dim datablock: {name}"
+        raise ValueError(f"Unknown feature bags 2nn dim datablock: {name}")
