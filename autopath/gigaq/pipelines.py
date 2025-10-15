@@ -93,6 +93,7 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
 
 # git commit -am "gigaq: FeaturesSortedDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005',).set(n_workers=3, use_gpus=True).build()"
 # git commit -am "gigaq: FeaturesSortedDistances: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05',).set(n_workers=3, use_gpus=True).build()"
+# git commit -am "gigaq: FeaturesSortedDistances: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_005',).set(n_workers=3, use_gpus=True).build()"
 def gigapath_features_sorted_distances(name) -> FeaturesSortedDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
         return FeaturesSortedDistances(
