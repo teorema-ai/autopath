@@ -104,6 +104,14 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
                               col_chunk_size=20000,
                     ), 
         )
+    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_4000_4000":
+        return FeaturesPairwiseDistances(
+                    spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
+                              n_chunks=5,
+                              row_chunk_size=4000,
+                              col_chunk_size=20000,
+                    ), 
+        )
     else:
         raise ValueError(f"Unknown feature bags pairwise distances datablock: {name}")
 
