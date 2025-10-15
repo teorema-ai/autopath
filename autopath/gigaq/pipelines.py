@@ -110,9 +110,6 @@ def gigapath_features_2nn_distances(name) -> Features2NNDistances:
 # git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000',).build().dim"
 # git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000',).build().dim"
 def gigapath_features_2nn_dim(name) -> Features2NNDim:
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000":
-        return Features2NNDim(
+    return Features2NNDim(
                     spec=dict(features_2nn_distances=f"$autopath.gigaq.pipelines.gigapath_features_2nn_distances('{name}')",),
         )
-    else:
-        raise ValueError(f"Unknown feature bags 2nn dim datablock: {name}")
