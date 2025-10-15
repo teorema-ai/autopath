@@ -555,11 +555,16 @@ class Features2NNDim(Datablock):
         del mus
         logsortedmus = torch.log(sortedmus)
         cumprob = torch.arange(0, len(logsortedmus))/len(logsortedmus)
-        x = logsortedmus.reshape(-1, 1)
-        y = -torch.log(1.0 - cumprob).reshape(-1, 1)
+        x = logsortedmus
+        y = -torch.log(1.0 - cumprob)
+        noninf = torch.isfinite(x) & torch.isfinite(y)
+        x = x[noninf]
+        y = y[noninf]
+        X = x.reshape(-1, 1)
+        Y = y.reshape(-1, 1)
         model = LinearRegression()
-        self.log.debug(f"Fitting linear model on {len(x)} mu points")
-        model.fit(x, y)
+        self.log.debug(f"Fitting linear model on {len(X)} mu points")
+        model.fit(X, Y)
         self.log.debug(f"Built linear model of dimension {model.coef_[0]}")
         write_tensor(torch.tensor([model.coef_[0]]), self.path('dimension', ensure_dirpath=True))
         write_pickle(model, self.path('model', ensure_dirpath=True))
