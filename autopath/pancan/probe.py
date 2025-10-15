@@ -349,8 +349,8 @@ class FeaturesPairwiseDistances(Datablock):
         self.log.debug("Retrieving features")
         features = self.features()
         chunks = self._chunks(features.shape)
-        self.log.debug(f"Forming FeaturesPairwiseDistancesChunks from features of shape {features.shape}, chunk_size {self.config.chunk_size}, "
-                       f"row_subsample_fraction {self.config.row_subsample_fraction}, col_subsample_fraction {self.config.col_subsample_fraction}"
+        self.log.debug(f"Forming {self.config.n_chunks} FeaturesPairwiseDistancesChunks from features of shape {features.shape}, "
+                       f"row_chunk_size {self.config.row_chunk_size}, col_chunk_size: {self.config.col_chunk_size}"
         )
         self.log.debug(f"Formed {len(chunks)} FeaturesPairwiseDistancesChunks.  Looking for missing chunks")
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
