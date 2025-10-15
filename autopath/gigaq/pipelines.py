@@ -70,6 +70,7 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
 
 # git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000').set(n_devices=3).build()"
 # git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000').set(n_devices=3).build()"
+# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_50_4000_20000').set(n_devices=3).build()"
 def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000":
         return FeaturesPairwiseDistances(
@@ -83,6 +84,14 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
         return FeaturesPairwiseDistances(
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
                               n_chunks=10,
+                              row_chunk_size=4000,
+                              col_chunk_size=20000,
+                    ), 
+        )
+    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_50_4000_20000":
+        return FeaturesPairwiseDistances(
+                    spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
+                              n_chunks=50,
                               row_chunk_size=4000,
                               col_chunk_size=20000,
                     ), 
@@ -113,3 +122,16 @@ def gigapath_features_2nn_dim(name) -> Features2NNDim:
     return Features2NNDim(
                     spec=dict(features_2nn_distances=f"$autopath.gigaq.pipelines.gigapath_features_2nn_distances('{name}')",),
         )
+
+# git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000',).build().dim"
+# git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_50_4000_20000',).build().dim"
+def gigapath_features_2nn_dim_tree(name) -> Features2NNDim:
+    return Features2NNDim(
+                    spec=dict(features_2nn_distances=Features2NNDistances(
+                            spec=dict(features_sorted_distances=FeaturesSortedDistances(
+                                    spec=dict(features_pairwise_distances=f"$autopath.gigaq.pipelines.gigapath_features_pairwise_distances({repr(name)})",)
+                                )
+                            )
+                        )
+                    ),
+            )
