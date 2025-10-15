@@ -422,7 +422,7 @@ class FeaturesSortedDistances(Datablock):
     class CONFIG:
         features_pairwise_distances: FeaturesPairwiseDistances
 
-    def __init__(self, *args, n_workers: int = 1, use_gpus: bool = False, **kwargs):
+    def __init__(self, *args, n_workers: int = 1, use_gpus: bool = True, **kwargs):
         super().__init__(*args, n_workers=n_workers, use_gpus=use_gpus, **kwargs)
 
     def __post_init__(self):
