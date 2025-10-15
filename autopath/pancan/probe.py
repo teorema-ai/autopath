@@ -320,8 +320,8 @@ class FeaturesPairwiseDistances(Datablock):
         return self._chunks(self.features_shape)
 
     def _chunks(self, shape):
-        assert self.config.n_chunks*self.config.row_chunk_size <= shape[0], f"Too many chunks or chunks too big for row shape {shape[0]}"
-        assert self.config.n_chunks*self.config.col_chunk_size <= shape[1], f"Too many chunks or chunks too big for col shape {shape[1]}"
+        assert self.config.n_chunks*self.config.row_chunk_size <= shape[0], f"Too many chunks or chunks too big for n_features: {shape[0]}"
+        assert self.config.n_chunks*self.config.col_chunk_size <= shape[0], f"Too many chunks or chunks too big for n_features {shape[0]}"
         return [FeaturesPairwiseDistancesChunk(spec=dict(
                     featurebags=self.spec['featurebags'],
                     chunk_idx=i,
