@@ -223,7 +223,7 @@ class FeatureBagsProbe(Datablock, FeaturesProbe):
 
 
 class FeaturesPairwiseDistancesChunk(Datablock):
-    VERSION = 1
+    VERSION = 2
     TOPICFILES = {
         'rows': 'rows.npz',
         'cols': 'cols.npz',
@@ -234,21 +234,18 @@ class FeaturesPairwiseDistancesChunk(Datablock):
     class CONFIG:
         featurebags: FeatureBags
         chunk_idx: int
+        row_chunk_size: int
+        col_chunk_size: int
         seed: int = 42
-        row_subsample_fraction: float = 1.0
-        col_subsample_fraction: float = 1.0
-        sideband_layer: Optional[str] = None
 
     def __build__(self, features):
         rng = np.random.default_rng(self.config.seed)
         M = features.shape[0]
         rows = rng.permutation(M)
-        row_batch_size = int(M*self.config.row_subsample_fraction)
-        _rows = rows[row_batch_size*self.config.chunk_idx:min(M, row_batch_size*(self.config.chunk_idx+1))]
+        _rows = rows[self.config.chunk_idx*self.config.row_chunk_size:min((self.config.chunk_idx+1)*self.config.row_chunk_size, M)]
         del rows
         cols = rng.permutation(M)
-        col_batch_size = int(M*self.config.col_subsample_fraction)
-        _cols = cols[col_batch_size*self.config.chunk_idx:min(M, col_batch_size*(self.config.chunk_idx+1))]
+        _cols = cols[self.config.chunk_idx*self.config.col_chunk_size:min((self.config.chunk_idx+1)*self.config.col_chunk_size, M)]
         del cols
         self.log.detailed(f"Building FeaturePairwiseDistancesChunk at index {self.config.chunk_idx} with rows {_rows} and cols {_cols} on device {features.device}")
         pairwise_distances = torch.cdist(features[_rows], features[_cols]).to('cpu')
@@ -290,18 +287,17 @@ class FeaturesPairwiseDistancesChunk(Datablock):
     
 
 class FeaturesPairwiseDistances(Datablock):
+    VERSION = 2
     TOPICFILES = {
         "features_shape": "features_shape.npy",
-        "n_chunks": "n_chunks.npy",
     }
     @dataclass
     class CONFIG:
         featurebags: FeatureBags
-        chunk_size: int = 1024
-        row_subsample_fraction: float = 1.0
-        col_subsample_fraction: float = 1.0
+        n_chunks: int
+        row_chunk_size: int
+        col_chunk_size: int
         seed: int = 42
-        sideband_layer: Optional[str] = None
 
     def __init__(self, *args, n_devices: int = 1, **kwargs):
         super().__init__(*args, n_devices=n_devices, **kwargs)
@@ -324,28 +320,21 @@ class FeaturesPairwiseDistances(Datablock):
         return self._chunks(self.features_shape)
 
     def _chunks(self, shape):
-        M, _ = shape
-        m = int(M*self.config.row_subsample_fraction)
-        n_chunks = math.ceil(m/self.config.chunk_size)
+        assert self.config.n_chunks*self.config.row_chunk_size <= shape[0], f"Too many chunks or chunks too big for row shape {shape[0]}"
+        assert self.config.n_chunks*self.config.col_chunk_size <= shape[1], f"Too many chunks or chunks too big for col shape {shape[1]}"
         return [FeaturesPairwiseDistancesChunk(spec=dict(
                     featurebags=self.spec['featurebags'],
                     chunk_idx=i,
+                    row_chunk_size=self.config.row_chunk_size,
+                    col_chunk_size=self.config.col_chunk_size,
                     seed=self.config.seed,
-                    row_subsample_fraction=self.config.row_subsample_fraction,
-                    col_subsample_fraction=self.config.col_subsample_fraction,
-                    sideband_layer=self.config.sideband_layer,
                     )) 
-                for i in range(n_chunks)
+                for i in range(self.config.n_chunks)
             ]
     
     @property
     def n_chunks(self):
-        if self.valid():
-            self.log.debug(f"Reading n_chunks from {self.path('n_chunks')}")
-            return read_tensor(self.path('n_chunks')).item()
-        else:
-            self.log.debug(f"Calculating n_chunks")
-            return len(self.chunks)
+        return self.config.n_chunks
     
     @functools.cached_property
     def features_shape(self):
@@ -369,15 +358,12 @@ class FeaturesPairwiseDistances(Datablock):
         self.log.debug(f"Building all missing pairwise feature distance chunks")
         built_chunks = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
         self.log.verbose(f"Built all missing pairwise feature distance chunks: {len(built_chunks)}")
-        write_tensor(torch.tensor([len(chunks)]), self.path('n_chunks', ensure_dirpath=True))
         write_tensor(torch.tensor(features.shape), self.path('features_shape', ensure_dirpath=True))
         return self
     
     def __read__(self, topic):
         if topic == 'features_shape':
             result = read_tensor(self.path('features_shape'))
-        elif topic == 'n_chunks':
-            result = read_tensor(self.path('n_chunks')).item()   
         return result
     
 

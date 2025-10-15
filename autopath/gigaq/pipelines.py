@@ -68,23 +68,14 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     else:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
-# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05').set(n_devices=3).build()"
-# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05').set(n_devices=3).build()"
+# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000').set(n_devices=3).build()"
 def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05":
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000":
         return FeaturesPairwiseDistances(
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
-                              chunk_size=4000,
-                              row_subsample_fraction=0.05,
-                              col_subsample_fraction=0.05,
-                    ), 
-        )
-    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05":
-        return FeaturesPairwiseDistances(
-                    spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
-                              chunk_size=1000,
-                              row_subsample_fraction=0.05,
-                              col_subsample_fraction=0.05,
+                              n_chunks=10,
+                              row_chunk_size=4000,
+                              col_chunk_size=4000,
                     ), 
         )
     else:
