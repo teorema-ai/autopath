@@ -68,8 +68,8 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     else:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
-# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05').set(n_devices=3).build()"
-# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05').set(n_devices=3).build()"
+# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05').set(n_devices=3).build()"
+# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05').set(n_devices=3).build()"
 def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05":
         return FeaturesPairwiseDistances(
@@ -91,8 +91,8 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
         raise ValueError(f"Unknown feature bags pairwise distances datablock: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005',).set(n_workers=3, use_gpus=True).build()"
-# git commit -am "gigaq: FeaturesSortedDistances: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05',).set(n_workers=3, use_gpus=True).build()"
+# git commit -am "gigaq: FeaturesSortedDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005',).set(n_workers=3, use_gpus=True).build()"
+# git commit -am "gigaq: FeaturesSortedDistances: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_features_sorted_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05',).set(n_workers=3, use_gpus=True).build()"
 def gigapath_features_sorted_distances(name) -> FeaturesSortedDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_005":
         return FeaturesSortedDistances(
@@ -100,9 +100,9 @@ def gigapath_features_sorted_distances(name) -> FeaturesSortedDistances:
                               col_subsample_fraction=0.1,
                     ),
         )
-    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05":
+    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05":
         return FeaturesSortedDistances(
-                    spec=dict(features_pairwise_distances=f"$autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_4000_05_05')",
+                    spec=dict(features_pairwise_distances=f"$autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_1000_05_05')",
                               col_subsample_fraction=1.0,
                     ),
         )
