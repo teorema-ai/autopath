@@ -509,6 +509,11 @@ class FeaturesSortedDistances(Datablock):
             result = read_npz(self.path('chunk_indices'), 'chunk_indices')[0]
         return result
     
+    def UNSAFE_clear_chunks(self):
+        for chunk in self.chunks:
+            chunk.UNSAFE_clear()
+        return self
+    
     @functools.cached_property
     def chunks(self):
         distchunks = self.config.features_pairwise_distances.chunks
