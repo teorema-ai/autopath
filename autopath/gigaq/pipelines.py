@@ -28,15 +28,15 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda', sideband: bool = 
         raise ValueError(f"Unknown backbone evaluator: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bag('GIGAPATH_BASELINE_CPTAC_SAMPLE').build()"
-def gigapath_feature_bag(name, *, device = 'cuda', gpu_batch_size=1024,) -> FeatureBag:
+# git commit -am "gigaq: FeatureBags: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag('GIGAPATH_BASELINE_CPTAC_SAMPLE').set(device='cuda', gpu_batch_size=1024).build()"
+def gigapath_feature_bag(name) -> FeatureBag:
     if name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
         return FeatureBag(spec=dict(tilebag="$autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE')",))
     else:
         raise ValueError(f"Unknown feature bag: {name}")
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
+# git commit -am "gigaq: FeatureBags: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
 def gigapath_feature_bags(name) -> FeatureBags:
     def get_extractor(name, sideband: bool = False, capture_blocks: Optional[List[int]] = None):
         if sideband: 
@@ -58,7 +58,7 @@ def gigapath_feature_bags(name) -> FeatureBags:
     return FeatureBags(spec=dict(extractor=extractor, tilebags=tilebags))
 
 
-# dbx "autopath.gigaq.pipelines.gigapath_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
+# git commit -am "gigaq: FeatureBagsProbe: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
 def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return FeatureBagsProbe(
@@ -69,6 +69,7 @@ def gigapath_feature_bags_probe(name, n_bins: int = 2) -> FeatureBagsProbe:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
 # git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000').set(n_devices=3).build()"
+# git commit -am "gigaq: FeaturesPairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000').set(n_devices=3).build()"
 def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000":
         return FeaturesPairwiseDistances(
@@ -76,6 +77,14 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
                               n_chunks=10,
                               row_chunk_size=4000,
                               col_chunk_size=4000,
+                    ), 
+        )
+    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000":
+        return FeaturesPairwiseDistances(
+                    spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
+                              n_chunks=10,
+                              row_chunk_size=4000,
+                              col_chunk_size=20000,
                     ), 
         )
     else:
