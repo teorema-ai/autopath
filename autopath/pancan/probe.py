@@ -576,6 +576,10 @@ class Features2NNDim(Datablock):
     def dimension(self):
         return self.read('dimension').item()
     
+    @property
+    def dim(self):
+        return self.dimension
+    
     @functools.cached_property
     def model(self):
         return self.read('model')
