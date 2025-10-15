@@ -368,51 +368,21 @@ class FeaturesPairwiseDistances(Datablock):
     
 
 class FeaturesSortedDistancesChunk(Datablock):
-    VERSION = 3
-    TOPICFILES = {"rows": "rows.npz",
-                  "cols": "cols.npz",
-                  "original_order_indices": "original_order_indices.npy",
+    VERSION = 4
+    TOPICFILES = {
+        "sorted_distances": "sorted_distances.npy",
+        "original_order_indices": "original_order_indices.npy",
     }
     
     @dataclass
     class CONFIG:
         distchunk: FeaturesPairwiseDistancesChunk
-        row_subsample_fraction: float = 1.0
-        col_subsample_fraction: float = 1.0
-        seed: int = 42
 
     def __build__(self):
-        _chunk = self.config.distchunk.distances.to(self.device)
-        #
-        rng = np.random.default_rng(self.config.seed)
-        if self.config.row_subsample_fraction < 1.0:
-            row_subsample_permutation = rng.permutation(_chunk.shape[0])
-            row_subsample_indices = row_subsample_permutation[:int(_chunk.shape[0]*self.config.row_subsample_fraction)]
-            _chunk_ = _chunk[row_subsample_indices, :]
-            self.log.debug(f"Subsampled tensor rows down to shape {_chunk_.shape} on device {self.device}")
-        else:
-            _chunk_ = _chunk
-            row_subsample_indices = torch.arange(_chunk.shape[0])
-        del _chunk
-        write_npz(self.path('rows', ensure_dirpath=True), rows=row_subsample_indices)
-        del row_subsample_indices
-        #
-        if self.config.col_subsample_fraction < 1.0:
-            col_subsample_permutation = rng.permutation(_chunk_.shape[1])
-            col_subsample_indices = col_subsample_permutation[:int(_chunk_.shape[1]*self.config.col_subsample_fraction)]
-            chunk = _chunk_[:, col_subsample_indices]
-            self.log.debug(f"Subsampled tensor cols down to shape {chunk.shape} on device {self.device}")
-        else:
-            chunk = _chunk_
-            col_subsample_indices = torch.arange(_chunk_.shape[1])
-        del _chunk_
-        write_npz(self.path('cols', ensure_dirpath=True), cols=col_subsample_indices)
-        del col_subsample_indices
-        gc.collect()
-        
-        subsampled = "subsampled " if self.config.row_subsample_fraction < 1.0 or self.config.col_subsample_fraction < 1.0 else ''
-        self.log.debug(f"Sorting pairwise distances in {subsampled}FeaturePairwiseDistancesChunk {self.config.distchunk.hashpath()} of shape {chunk.shape} on device {self.device}")
+        chunk = self.config.distchunk.distances.to(self.device)
+        self.log.debug(f"Sorting pairwise distances in FeaturePairwiseDistancesChunk {self.config.distchunk.hashpath()} of shape {chunk.shape} on device {self.device}")
         sorted_chunk, original_order_indices = torch.sort(chunk, dim=-1, descending=False)
+        write_tensor(sorted_chunk.to('cpu'), self.path('sorted_distances', ensure_dirpath=True))
         write_tensor(original_order_indices.to('cpu'), self.path('original_order_indices', ensure_dirpath=True))
         del chunk
         del sorted_chunk
@@ -422,10 +392,8 @@ class FeaturesSortedDistancesChunk(Datablock):
         return self
     
     def __read__(self, topic):
-        if topic == 'rows':
-            result = read_npz(self.path('rows'), 'rows')
-        elif topic == 'cols':
-            result = read_npz(self.path('cols'), 'cols')
+        if topic == 'sorted_distances':
+            result = read_tensor(self.path(topic))
         elif topic == 'original_order_indices':
             result = read_tensor(self.path(topic))
         else:
@@ -433,42 +401,26 @@ class FeaturesSortedDistancesChunk(Datablock):
         return result
     
     @functools.cached_property
-    def rows(self):
-        return self.read('rows')
-    
-    @functools.cached_property
-    def cols(self):
-        return self.read('cols')
-    
-    @functools.cached_property
     def original_order_indices(self):
         return self.read('original_order_indices')
+    
+    @functools.cached_property
+    def sorted_distances(self):
+        return self.read('sorted_distances')
 
     @functools.cached_property
     def tensor(self):
-        _chunk = self.config.distchunk.tensor
-        _tensor = torch.squeeze(_chunk[self.rows, :])
-        _tensor_ = torch.squeeze(_tensor[:, self.cols])
-        #
-        tensor = torch.zeros_like(_tensor_)
-        for i in range(_tensor.shape[0]):
-            row = _tensor_[i, self.original_order_indices[i,:]]
-            tensor[i, :] = row
+        tensor = self.read('sorted_distances')
         return tensor
         
 
 class FeaturesSortedDistances(Datablock):
-    VERSION = 3
-    TOPICFILES = {"chunk_indices": "chunk_indices.npz"}
+    VERSION = 4
+    TOPICFILE = "breadcrumbs"
 
     @dataclass
     class CONFIG:
         features_pairwise_distances: FeaturesPairwiseDistances
-        max_n_chunks: int = None
-        row_subsample_fraction: float = 1.0
-        col_subsample_fraction: float = 1.0
-        chunk_seed: int = 42
-        seed: Optional[int] = None
 
     def __init__(self, *args, n_workers: int = 1, use_gpus: bool = False, **kwargs):
         super().__init__(*args, n_workers=n_workers, use_gpus=use_gpus, **kwargs)
@@ -478,22 +430,14 @@ class FeaturesSortedDistances(Datablock):
         return self
 
     def __build__(self):
-        select_sorteddist_chunks = self.chunks
-        chunk_indices = self.chunk_indices
-        self.log.debug(f"Selected {len(select_sorteddist_chunks)} FeaturesSortedDistancesChunks")
-        #
-        missing_sorteddist_chunks = [chunk for chunk in select_sorteddist_chunks if not chunk.valid()]
-        self.log.debug(f"Found among them {len(missing_sorteddist_chunks)} missing FeaturesSortedDistancesChunks")
-        self.log.debug(f"Building {len(missing_sorteddist_chunks)} FeaturesSortedDistancesChunks")
-        built_sorteddist_chunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_sorteddist_chunks)
-        write_npz(self.path('chunk_indices', ensure_dirpath=True), chunk_indices=chunk_indices)
-        self.log.verbose(f"Built all missing FeaturesSortedDistancesChunks: {len(built_sorteddist_chunks)}")
+        sorted_distchunks = self.chunks
+        self.log.debug(f"Formed {len(sorted_distchunks)} FeaturesSortedDistancesChunks")
+        missing_sorted_distchunks = [chunk for chunk in sorted_distchunks if not chunk.valid()]
+        self.log.debug(f"Found among them {len(missing_sorted_distchunks)} missing FeaturesSortedDistancesChunks")
+        self.log.debug(f"Building {len(missing_sorted_distchunks)} FeaturesSortedDistancesChunks")
+        built_sorted_distchunks = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_sorted_distchunks)
+        self.log.verbose(f"Built all missing FeaturesSortedDistancesChunks: {len(built_sorted_distchunks)}")
         return self
-    
-    def __read__(self, topic):
-        if topic == 'chunk_indices':
-            result = read_npz(self.path('chunk_indices'), 'chunk_indices')[0]
-        return result
     
     def UNSAFE_clear_chunks(self):
         for chunk in self.chunks:
@@ -503,32 +447,10 @@ class FeaturesSortedDistances(Datablock):
     @functools.cached_property
     def chunks(self):
         distchunks = self.config.features_pairwise_distances.chunks
-        chunk_indices = self.chunk_indices
-        distchunks = [distchunks[i] for i in chunk_indices]
-        select_sorteddist_chunks = [FeaturesSortedDistancesChunk(
-                                spec=dict(distchunk=distchunk, 
-                                          row_subsample_fraction=self.config.row_subsample_fraction, 
-                                          col_subsample_fraction=self.config.col_subsample_fraction),
-                                          seed=self.config.chunk_seed,
-                                ) 
+        sorted_distchunks = [FeaturesSortedDistancesChunk(spec=dict(distchunk=distchunk,),) 
                             for distchunk in distchunks
         ]
-        return select_sorteddist_chunks
-    
-    @functools.cached_property
-    def chunk_indices(self):
-        if self.valid():
-            self.log.debug(f"Reading chunks_indices from {self.path('chunk_indices')}")
-            return self.read('chunk_indices')
-        else:
-            n_chunks = self.config.features_pairwise_distances.n_chunks
-            if self.config.seed is not None:
-                rng = np.random.default_rng(self.config.seed)
-                permutation = rng.permutation(n_chunks)
-            else:
-                permutation = np.arange(n_chunks)
-            max_n_chunks = self.config.max_n_chunks if self.config.max_n_chunks is not None else n_chunks
-            return permutation[:max_n_chunks]
+        return sorted_distchunks
 
 
 class Features2NNDistancesChunk(Datablock):
