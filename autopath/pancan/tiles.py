@@ -256,7 +256,10 @@ class PancanTileSplit(Datablock):
 	def shards(self, split):
 		shard_indices = self.read(f"{split}_shard_indices")
 		shards = [self.config.tileshards.shards[i] for i in shard_indices]
-		return shards   
+		return shards 
+
+	def bags(self, split):
+		return self.shards(split) 
 
 	def shard_lens(self, split):
 		shard_lens = self.read(f"{split}_shard_lens")
@@ -282,6 +285,14 @@ class PancanTileFold(Datablock, PancanTileShards):
 	@functools.cached_property
 	def shard_lens(self):
 		return self.config.tilesplit.shard_lens(self.config.fold)
+	
+	@functools.cached_property
+	def bags(self):
+		return self.shards
+
+	@property
+	def bag_lens(self):
+		return self.shard_lens
 			
 
 class PancanTileSet(Datablock):
