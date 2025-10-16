@@ -20,7 +20,7 @@ import ray
 import slideflow as sf
 
 import dbx
-from dbx import Logger, Datablock, Databatch
+from dbx import Logger, Datablock
 
 from autopath.tools.dataset import ShardDataset
 
@@ -135,7 +135,7 @@ class PancanTileShards:
 		raise NotImplementedError
 
 
-class PancanTileBags(Databatch, PancanTileShards):
+class PancanTileBags(Datablock, PancanTileShards):
 	DATABLOCK = PancanTileBag
 	TOPICFILE = "bag_lens.npz"
 	@dataclass
@@ -165,8 +165,8 @@ class PancanTileBags(Databatch, PancanTileShards):
 		))
 		return self
 
-	@functools.lru_cache(maxsize=1)
-	def datablocks(self):
+	@functools.cached_property
+	def bags(self):
 		return [
 			PancanTileBag(
 				self.root,
@@ -178,10 +178,6 @@ class PancanTileBags(Databatch, PancanTileShards):
 		]
 
 	@property
-	def bags(self):
-		return self.datablocks()
-
-	@property
 	def bag_lens(self):
 		return self.read()
 
@@ -191,9 +187,9 @@ class PancanTileBags(Databatch, PancanTileShards):
 	def __build__(self):
 		self.log.verbose(f"Computing bag lens")
 		if self.verbose:
-			bagsitor = tqdm.tqdm(self.datablocks())
+			bagsitor = tqdm.tqdm(self.bags)
 		else:
-			bagsitor = self.datablocks()
+			bagsitor = self.bags
 		bag_lens = [len(shard) for shard in bagsitor]
 		dbx.write_npz(self.path(), bag_lens=bag_lens)
 		return self
@@ -275,12 +271,9 @@ class PancanTileFold(Datablock, PancanTileShards):
 	def valid(self):
 		return self.config.tilesplit.valid()
 
-	def datablocks(self):
-		return self.config.tilesplit.shards(self.config.fold)
-
 	@functools.cached_property
 	def shards(self):
-		return self.datablocks()
+		return self.config.tilesplit.shards(self.config.fold)
 
 	@functools.cached_property
 	def shard_lens(self):

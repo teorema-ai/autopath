@@ -31,11 +31,7 @@ import rich
 
 import dbx
 from dbx import (
-	Logger,
 	Datablock,
-	Databatch,
-	DatabatchBuilder,
-	datablock_method,
 )
 
 from .tiles import PancanTileBag, PancanTileBags
@@ -155,7 +151,7 @@ class FeatureBags(Datablock):
 	def bags(self):
 		featurebags = [FeatureBag(root=self.root if not self._autoroot else None,
 								      spec=dict(tilebag=dbx.quote(tilebag), extractor=self.spec['extractor'],))
-						for tilebag in self.config.tilebags.datablocks()[self.lo:self.hi]
+						for tilebag in self.config.tilebags.bags[self.lo:self.hi]
 		]
 		return featurebags
 
