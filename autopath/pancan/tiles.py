@@ -166,7 +166,7 @@ class PancanTileBags(Datablock, PancanTileShards):
 		return self
 
 	@functools.cached_property
-	def bags(self):
+	def shards(self):
 		return [
 			PancanTileBag(
 				self.root,
@@ -176,6 +176,10 @@ class PancanTileBags(Datablock, PancanTileShards):
 			)
 			for bagpath in self.bagpaths
 		]
+	
+	@functools.cached_property
+	def bags(self):
+		return self.shards
 
 	@property
 	def bag_lens(self):
