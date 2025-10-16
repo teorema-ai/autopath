@@ -548,7 +548,6 @@ class Features2NNDim(Datablock):
     class CONFIG:
         features_2nn_distances: Features2NNDistances
 
-
     def __build__(self):
         twonndists = self.config.features_2nn_distances.tensor
         mus = twonndists[:, 1]/twonndists[:, 0]
