@@ -223,7 +223,7 @@ class FeatureBagsProbe(Datablock, FeaturesProbe):
 
 
 class FeaturesPairwiseDistancesChunk(Datablock):
-    VERSION = 2
+    VERSION = 3
     TOPICFILES = {
         'rows': 'rows.npz',
         'cols': 'cols.npz',
@@ -245,9 +245,10 @@ class FeaturesPairwiseDistancesChunk(Datablock):
         _rows = rows[self.config.chunk_idx*self.config.row_chunk_size:min((self.config.chunk_idx+1)*self.config.row_chunk_size, M)]
         del rows
         cols = rng.permutation(M)
-        _cols = cols[self.config.chunk_idx*self.config.col_chunk_size:min((self.config.chunk_idx+1)*self.config.col_chunk_size, M)]
+        col_offset = rng.integers(M-self.config.col_chunk_size)
+        _cols = cols[col_offset:min(col_offset+self.config.col_chunk_size, M)]
         del cols
-        self.log.detailed(f"Building FeaturePairwiseDistancesChunk at index {self.config.chunk_idx} with rows {_rows} and cols {_cols} on device {features.device}")
+        self.log.detailed(f"Building FeaturePairwiseDistancesChunk at index {self.config.chunk_idx} with rows {_rows} and {len(_cols)} columns on device {features.device}")
         pairwise_distances = torch.cdist(features[_rows], features[_cols]).to('cpu')
         self.log.debug(f"Built FeatureDistanceChunk at index {self.config.chunk_idx} with shape {pairwise_distances.shape} on device {features.device}")
         write_npz(self.path('rows', ensure_dirpath=True), rows=_rows)
@@ -287,7 +288,7 @@ class FeaturesPairwiseDistancesChunk(Datablock):
     
 
 class FeaturesPairwiseDistances(Datablock):
-    VERSION = 2
+    VERSION = 3
     TOPICFILES = {
         "features_shape": "features_shape.npy",
     }
@@ -321,7 +322,7 @@ class FeaturesPairwiseDistances(Datablock):
 
     def _chunks(self, shape):
         assert self.config.n_chunks*self.config.row_chunk_size <= shape[0], f"Too many chunks or chunks too big for n_features: {shape[0]}"
-        assert self.config.n_chunks*self.config.col_chunk_size <= shape[0], f"Too many chunks or chunks too big for n_features {shape[0]}"
+        assert self.config.col_chunk_size <= shape[0], f"Too row_chunk_size too large for n_features {shape[0]}"
         return [FeaturesPairwiseDistancesChunk(spec=dict(
                     featurebags=self.spec['featurebags'],
                     chunk_idx=i,
