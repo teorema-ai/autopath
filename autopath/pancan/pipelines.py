@@ -84,6 +84,7 @@ def pancan_tile_set(name) -> PancanTileSet:
     else:
         raise ValueError(f"Unknown tile_set: {name}")
 
+#DEPRECATE?
 # dbx "autopath.pancan.pipelines.pancan_tile_batches('CPTAC_9802_TEST_8', num_workers=8).build()"
 # dbx "autopath.pancan.pipelines.pancan_tile_batches('CPTAC_9802_TEST_512', num_workers=8).build()"
 # dbx "autopath.pancan.pipelines.pancan_tile_batches('CPTAC_8020_TRAIN_512').build()"

@@ -166,7 +166,7 @@ class PancanTileBags(Datablock, PancanTileShards):
 		return self
 
 	@functools.cached_property
-	def shards(self):
+	def bags(self):
 		return [
 			PancanTileBag(
 				self.root,
@@ -176,10 +176,6 @@ class PancanTileBags(Datablock, PancanTileShards):
 			)
 			for bagpath in self.bagpaths
 		]
-	
-	@functools.cached_property
-	def bags(self):
-		return self.shards
 
 	@property
 	def bag_lens(self):
@@ -253,18 +249,21 @@ class PancanTileSplit(Datablock):
 		tensor = dbx.read_tensor(self.path(topic))
 		return tensor
 
-	def shards(self, split):
+	def shard(self, split):
 		shard_indices = self.read(f"{split}_shard_indices")
 		shards = [self.config.tileshards.shards[i] for i in shard_indices]
 		return shards 
-
-	def bags(self, split):
-		return self.shards(split) 
-
+	
 	def shard_lens(self, split):
 		shard_lens = self.read(f"{split}_shard_lens")
 		return shard_lens  	
-			
+
+	def bags(self, split):
+		return self.shards(split) 
+	
+	def bag_lens(self, split):
+		return self.shard_lens(split)
+
 
 class PancanTileFold(Datablock, PancanTileShards):
 	@dataclass
@@ -319,6 +318,7 @@ class PancanTileSet(Datablock):
 		return self.dataset
 
 
+#DEPRECATE?
 class PancanTileBatch(Datablock):
 	VERSION=1
 	@dataclass
@@ -370,7 +370,8 @@ class PancanTileBatch(Datablock):
 	def end(self):
 		return self.config.end
 
-	
+
+#DEPRECATE?
 class PancanTileBatches(Datablock):
 	VERSION = 1
 	TOPICFILES = {'batch_lens': 'batch_lens.pt'}
@@ -393,7 +394,7 @@ class PancanTileBatches(Datablock):
 						)
 						for batch_start in range(0, N, self.config.batch_size)
 		]
-		return tiledecks
+		return tilebatches
 
 	def __len__(self):
 		return len(self.batches)
