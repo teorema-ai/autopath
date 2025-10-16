@@ -249,7 +249,7 @@ class PancanTileSplit(Datablock):
 		tensor = dbx.read_tensor(self.path(topic))
 		return tensor
 
-	def shard(self, split):
+	def shards(self, split):
 		shard_indices = self.read(f"{split}_shard_indices")
 		shards = [self.config.tileshards.shards[i] for i in shard_indices]
 		return shards 
