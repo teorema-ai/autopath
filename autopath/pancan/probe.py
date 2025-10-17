@@ -261,9 +261,9 @@ class FeaturesPairwiseDistancesChunk(Datablock):
     
     def __read__(self, topic):
         if topic == 'rows':
-            result = read_npz(self.path('rows'), 'rows')
+            result = read_npz(self.path('rows'), 'rows')[0]
         elif topic == 'cols':
-            result = read_npz(self.path('cols'), 'cols')
+            result = read_npz(self.path('cols'), 'cols')[0]
         elif topic == 'distances':
             result = read_tensor(self.path('distances'))
         else:
@@ -404,6 +404,10 @@ class FeaturesSortedDistancesChunk(Datablock):
     @functools.cached_property
     def original_order_indices(self):
         return self.read('original_order_indices')
+    
+    @property
+    def order(self):
+        return self.original_order_indices
     
     @functools.cached_property
     def sorted_distances(self):

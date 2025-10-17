@@ -163,18 +163,12 @@ def gigapath_features_2nn_dim(name) -> Features2NNDim:
                     spec=dict(features_2nn_distances=f"$autopath.gigaq.pipelines.gigapath_features_2nn_distances('{name}')",),
         )
 
-# git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000',).build().dim"
-# git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_20_4000_20000',).build().dim"
-#   git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_20_4000_20000',).config.features_2nn_distances.config.features_sorted_distances.config.features_pairwise_distances.set(n_devices=3).build()"
-# git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_5_4000_20000',).build().dim"
-#   git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim('GIGAPATH_BASELINE_CPTAC_8020_TEST_5_4000_20000',).config.features_2nn_distances.config.features_sorted_distances.config.features_pairwise_distances.set(n_devices=3).build()"
-def gigapath_features_2nn_dim_tree(name) -> Features2NNDim:
+# git commit -am "gigaq: Features2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features_2nn_dim_build_tree('GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_100000',)"
+def gigapath_features_2nn_dim_build_tree(name, n_workers: int = 1) -> Features2NNDim:
     return Features2NNDim(
                     spec=dict(features_2nn_distances=Features2NNDistances(
                             spec=dict(features_sorted_distances=FeaturesSortedDistances(
-                                    spec=dict(features_pairwise_distances=f"$autopath.gigaq.pipelines.gigapath_features_pairwise_distances({repr(name)})",)
-                                )
-                            )
-                        )
-                    ),
-            )
+                                        spec=dict(features_pairwise_distances=gigapath_features_pairwise_distances(name).set(n_devices=n_workers).build())
+                                      ).set(n_workers=n_workers, use_gpus=True).build())
+                        ).set(n_workers=n_workers, use_gpus=True).build())
+                    ).build()
