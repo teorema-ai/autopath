@@ -125,7 +125,7 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
                               n_chunks=5,
                               row_chunk_size=1000,
-                              col_chunk_size=100000,
+                              col_chunk_size=5000,
                     ), 
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_10000":
@@ -133,7 +133,7 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
                               n_chunks=5,
                               row_chunk_size=1000,
-                              col_chunk_size=100000,
+                              col_chunk_size=10000,
                     ), 
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_20000":
@@ -141,7 +141,7 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
                               n_chunks=5,
                               row_chunk_size=1000,
-                              col_chunk_size=100000,
+                              col_chunk_size=20000,
                     ), 
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_50000":
@@ -149,7 +149,7 @@ def gigapath_features_pairwise_distances(name) -> FeaturesPairwiseDistances:
                     spec=dict(featurebags=f"$autopath.gigaq.pipelines.gigapath_feature_bags('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
                               n_chunks=5,
                               row_chunk_size=1000,
-                              col_chunk_size=100000,
+                              col_chunk_size=50000,
                     ), 
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_100000":
