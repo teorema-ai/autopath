@@ -92,6 +92,14 @@ class FeatureBag(Datablock):
 		super().UNSAFE_clear()
 
 	@functools.cached_property
+	def tensor(self):
+		return self.features
+	
+	@functools.cached_property
+	def labels(self):
+		return torch.tensor(self.cfg.tilebag.labels)
+
+	@functools.cached_property
 	def features(self):
 		return self.read('features')
 	
@@ -140,6 +148,18 @@ class FeatureBags(Datablock):
 						for tilebag in self.config.tilebags.bags[self.lo:self.hi]
 		]
 		return featurebags
+	
+	@property
+	def features(self):
+		return torch.cat([bag.features for bag in self.bags])
+	
+	@property
+	def labels(self):
+		return np.concatenate([bag.labels for bag in self.bags])
+
+	@property
+	def tensor(self):
+		return self.features
 
 	def __len__(self):
 		return len(self.bags)
