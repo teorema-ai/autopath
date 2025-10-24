@@ -12,18 +12,24 @@ from ..pancan.probe import (
     Features2NNDim,
 )
 
-from .dinov2.backbone import BackboneEvaluator, SidebandBackboneEvaluator
+from .dinov2.backbone import BackboneEvaluator, SidebandBackboneEvaluator, GIGAPATH_BACKBONE_DEPTH
 
 
 mp.set_start_method("spawn", force=True)
 
 
-def gigapath_backbone_evaluator(name, *, device: str = 'cuda', sideband: bool = False, capture_blocks: Optional[List[int]] = None):
+def gigapath_backbone_evaluator(name, *, device: str = 'cuda',):
+    def select_capture_blocks(n_blocks: int = 1):
+        if n_blocks <= 0 or n_blocks > GIGAPATH_BACKBONE_DEPTH:
+            return None
+        inc = GIGAPATH_BACKBONE_DEPTH // (n_blocks - 1)
+        return list(range(0, GIGAPATH_BACKBONE_DEPTH, inc))
+    
     if name == "GIGAPATH_BASELINE_BACKBONE_EVALUATOR":
-        if sideband:
-            return SidebandBackboneEvaluator(device=device, capture_blocks=capture_blocks)
-        else:
-            return BackboneEvaluator(device=device)
+        return BackboneEvaluator(device=device)
+    elif name == "GIGAPATH_BASELINE_BACKBONE_5B_EVALUATOR":
+        capture_blocks = select_capture_blocks(n_blocks=5)
+        return SidebandBackboneEvaluator(device=device, capture_blocks=capture_blocks)
     else:
         raise ValueError(f"Unknown backbone evaluator: {name}")
 
@@ -44,15 +50,15 @@ def gigapath_feature_bags(name) -> FeatureBags:
         else:
             return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator({repr(name)})"
 
-    if name == "GIGAPATH_BASELINE_SIDEBAND_CPTAC_9802_TEST":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
-    elif name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
+    if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
+    elif name == "GIGAPATH_BASELINE_5B_CPTAC_8020_TEST":
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_5B_EVALUATOR')
+        tilebags = "$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
     else:
         raise ValueError(f"Unknown feature bags: {name}")
     return FeatureBags(spec=dict(extractor=extractor, tilebags=tilebags))

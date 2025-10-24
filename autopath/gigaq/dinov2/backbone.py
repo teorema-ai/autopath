@@ -57,6 +57,9 @@ import dbx
 from .augmentations import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, dino_tile_transform
 
 
+GIGAPATH_BACKBONE_DEPTH = 40
+
+
 def gigapath_tensor_block_class():
     from dinov2.layers import NestedTensorBlock
     class GigapathTensorBlock(NestedTensorBlock):
@@ -138,7 +141,7 @@ class GigapathVisionTransformer(DinoVisionTransformer):
             patch_size = 16
             in_chans = 3
             embed_dim = 1536
-            depth = 40
+            depth = GIGAPATH_BACKBONE_DEPTH
             num_heads = 24
             drop_path_rate = drop_path_rate
             drop_path_uniform = drop_path_uniform
@@ -363,11 +366,12 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
         *,
         transform=None,
         capture_blocks: Optional[List[int]] = None,
+        capture_layers: Optional[List[str]] = None, # ['patch_embed', 'norm', 'head', 'norm', 'backbone',]
         device: str = 'cuda',
     ):
         super().__init__(backbone, transform=transform, device=device)
         self.capture_blocks = capture_blocks
-        self.capture_layers = ['patch_embed', 'norm', 'head', 'norm', 'backbone',]
+        self.capture_layers = capture_layers if capture_layers is not None else []
         self._sideband = None
 
     @property
