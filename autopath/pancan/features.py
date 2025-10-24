@@ -271,8 +271,9 @@ class FeatureBags(Datablock):
 		if hasattr(extractor, 'sideband'):
 			self.log.debug(f"Concatenating {len(sideband_list)} device batch sidebands on device: {device}")
 			sideband = cat_tensor_dicts(sideband_list)
-			sideband_shapes = {k: v.shape for k, v in sideband.items()}
-			self.log.debug(f"Storing features of shape {features.shape} and sidebands of shapes {sideband_shapes} on device: {device}")
+			if self.debug:
+				sideband_shapes = {k: v.shape for k, v in sideband.items()}
+				self.log.debug(f"Storing features of shape {features.shape} and sidebands of shapes {sideband_shapes} on device: {device}")
 			featurebag.store(features, sideband)
 		else:
 			featurebag.store(features)
