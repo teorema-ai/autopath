@@ -164,11 +164,16 @@ class FeatureBags(Datablock):
 	def sideband(self, layer):
 		sidebands = []
 		self.log.info(f"Collecting sideband {layer} from {len(self.bags)} feature bags")
+		skipped = 0
+		successful = 0
 		for bag in self.bags:
 			try:
 				sidebands.append(bag.sideband[layer])
-			except Exception as e:
+				successful += 1
+			except Exception:
 				self.log.info(f"Skipping corrupted bag {bag}")
+				skipped += 1
+		self.log.info(f"Collected {successful}/{len(self.bags)} sidebands, skipped {skipped}")
 		sideband = torch.cat(sidebands)
 		return sideband
 
