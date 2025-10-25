@@ -160,6 +160,17 @@ class FeatureBags(Datablock):
 	@property
 	def tensor(self):
 		return self.features
+	
+	def sideband(self, layer):
+		sidebands = []
+		self.log.info(f"Collecting sideband {layer} from {len(self.bags)} feature bags")
+		for bag in self.bags:
+			try:
+				sidebands.append(bag.sideband[layer])
+			except Exception as e:
+				self.log.info(f"Skipping corrupted bag {bag}")
+		sideband = torch.cat(sidebands)
+		return sideband
 
 	def __len__(self):
 		return len(self.bags)
