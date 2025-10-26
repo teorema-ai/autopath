@@ -78,11 +78,11 @@ def gigapath_features(name) -> Features:
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileshards="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
-    elif name == "GIGAPATH_BASELINE_5B_CPTAC_8020_TEST":
+    elif name == "GIGAPATH_BASELINE_5BLOCKS_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_5BLOCK_EVALUATOR')
         tileshards = "$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
     else:
-        raise ValueError(f"Unknown feature bags: {name}")
+        raise ValueError(f"Unknown features: {name}")
     return Features(spec=dict(extractor=extractor, tileshards=tileshards))
 
 
