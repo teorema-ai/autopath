@@ -397,7 +397,7 @@ class Features(Datablock):
         tileshards: PancanTileShards
         extractor: Callable
 
-    def __init__(self, *args, n_devices: int = 1, devices: list[str] = None, gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
+    def __init__(self, *args, n_devices: int = None, devices: list[str] = None, gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
         super().__init__(*args, n_devices=n_devices, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
 
     def __post_init__(self):
