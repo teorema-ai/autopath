@@ -435,7 +435,7 @@ class Features(Datablock):
     @functools.cached_property
     def shards(self):
         return [
-            FeaturesShard(spec=dict(tileshard=repr(tileshard), extractor=self.spec['extractor']))
+            FeaturesShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor']))
             for tileshard in self.cfg.tileshards.bags
         ]
     
