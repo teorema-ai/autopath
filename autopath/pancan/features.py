@@ -433,7 +433,7 @@ class Features(Datablock):
         return sideband
 
     @functools.cached_property
-    def shard(self):
+    def shards(self):
         return [
             FeaturesShard(spec=dict(tileshard=repr(tileshard), extractor=self.spec['extractor']))
             for tileshard in self.cfg.tileshards.bags
