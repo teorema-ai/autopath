@@ -74,16 +74,16 @@ def gigapath_features(name) -> Features:
 
     if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
+        tileshards="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
+        tileshards="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
     elif name == "GIGAPATH_BASELINE_5B_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_5BLOCK_EVALUATOR')
-        tilebags = "$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
+        tileshards = "$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
     else:
         raise ValueError(f"Unknown feature bags: {name}")
-    return Features(spec=dict(extractor=extractor, tilebags=tilebags))
+    return Features(spec=dict(extractor=extractor, tileshards=tileshards))
 
 
 # git commit -am "gigaq: FeatureBagsProbe: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
