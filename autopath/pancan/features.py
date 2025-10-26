@@ -397,18 +397,9 @@ class Features(Datablock):
         tileshards: PancanTileShards
         extractor: Callable
 
-    def __init__(self, *args, n_devices: int = None, devices: list[str] = None, gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
-        super().__init__(*args, n_devices=n_devices, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
+    def __init__(self, *args, devices: list[str] = None, gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
+        super().__init__(*args, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
 
-    def __post_init__(self):
-        self.log.debug(f"n_devices={self.n_devices}, devices={self.devices}")
-        if self.devices is None:
-            if self.n_devices is not None:
-                self.devices = [f"cuda:{i}" for i in range(self.n_devices)]
-            else:
-                self.devices = ['cuda']
-        return self
-        
     def features(self):
         self.log.debug(f"Reading features from {len(self.n_shards)} feature shards")
         feature_list = []
