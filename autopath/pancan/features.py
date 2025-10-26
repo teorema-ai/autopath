@@ -367,7 +367,7 @@ class FeaturesShard(Datablock, Databag):
             sideband = cat_tensor_dicts(sideband_list)
             if self.debug:
                 sideband_shapes = {k: v.shape for k, v in sideband.items()}
-                self.log.debug(f"Storing features of shape {features.shape} and sidebands of shapes {sideband_shapes} on device: {device}")
+                self.log.debug(f"Storing features of shape {features.shape} and sidebands of shapes {sideband_shapes} on device: {self.device}")
             for layer, sideband in sideband.items():
                 dbx.write_tensor(sideband, self.path(f'sideband_{layer}', ensure_dirpath=True))
         return self
