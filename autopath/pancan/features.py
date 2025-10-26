@@ -360,16 +360,29 @@ class FeaturesShard(Datablock, Databag):
             feature_list.append(_feature)
         self.log.debug(f"Concatenating {len(feature_list)} device batch features on device: {self.device}")
         features = torch.cat(feature_list)
+        del feature_list
+        gc.collect()
+        torch.cuda.empty_cache()
         self.log.debug(f"Storing features of shape {features.shape} on device: {self.device}")
         dbx.write_tensor(features, self.path('features', ensure_dirpath=True))
+        del features
+        gc.collect()
+        torch.cuda.empty_cache()
         if hasattr(extractor, 'sideband'):
             self.log.debug(f"Concatenating {len(sideband_list)} device batch sidebands on device: {self.device}")
             sideband = cat_tensor_dicts(sideband_list)
+            del sideband_list
+            gc.collect()
+            torch.cuda.empty_cache()
             if self.debug:
                 sideband_shapes = {k: v.shape for k, v in sideband.items()}
                 self.log.debug(f"Storing features of shape {features.shape} and sidebands of shapes {sideband_shapes} on device: {self.device}")
-            for layer, sideband in sideband.items():
-                dbx.write_tensor(sideband, self.path(f'sideband_{layer}', ensure_dirpath=True))
+            for _layer, _sideband in sideband.items():
+                dbx.write_tensor(_sideband, self.path(f'sideband_{_layer}', ensure_dirpath=True))
+            del _sideband
+            del sideband
+            gc.collect()
+            torch.cuda.empty_cache()
         return self
 
     def read(self, topic):
