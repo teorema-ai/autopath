@@ -402,7 +402,7 @@ class Features(Datablock):
 
     def __post_init__(self):
         if self.devices is None:
-            if self.n_devices > 1:
+            if self.n_devices is not None:
                 self.devices = [f"cuda:{i}" for i in range(self.n_devices)]
             else:
                 self.devices = ['cuda']
