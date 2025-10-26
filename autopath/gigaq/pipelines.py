@@ -3,7 +3,7 @@ from typing import Optional, List
 
 import torch.multiprocessing as mp
 
-from ..pancan.features import FeatureBag, FeatureBags
+from ..pancan.features import FeatureBag, FeatureBags, Features
 from ..pancan.probe import (
     FeatureBagsProbe, 
     FeaturesPairwiseDistances,
@@ -27,7 +27,7 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda',):
     
     if name == "GIGAPATH_BASELINE_BACKBONE_EVALUATOR":
         return BackboneEvaluator(device=device)
-    elif name == "GIGAPATH_BASELINE_BACKBONE_5B_EVALUATOR":
+    elif name == "GIGAPATH_BASELINE_BACKBONE_5BLOCK_EVALUATOR":
         capture_blocks = select_capture_blocks(n_blocks=5)
         return SidebandBackboneEvaluator(device=device, capture_blocks=capture_blocks)
     else:
@@ -62,6 +62,28 @@ def gigapath_feature_bags(name) -> FeatureBags:
     else:
         raise ValueError(f"Unknown feature bags: {name}")
     return FeatureBags(spec=dict(extractor=extractor, tilebags=tilebags))
+
+
+# git commit -am "gigaq: Feature: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features('GIGAPATH_BASELINE_CPTAC_8020_TEST').set(devices=["cuda:0", "cuda:1", "cuda:2"], gpu_batch_size=1024).build()"
+def gigapath_features(name) -> Features:
+    def get_extractor(name, sideband: bool = False, capture_blocks: Optional[List[int]] = None):
+        if sideband: 
+            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator({repr(name)}, sideband=True, capture_blocks={repr(capture_blocks)})"
+        else:
+            return f"$autopath.gigaq.pipelines.gigapath_backbone_evaluator({repr(name)})"
+
+    if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST')"
+    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        tilebags="$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
+    elif name == "GIGAPATH_BASELINE_5B_CPTAC_8020_TEST":
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_5BLOCK_EVALUATOR')
+        tilebags = "$autopath.pancan.pipelines.pancan_tile_fold('CPTAC_8020_TEST')"
+    else:
+        raise ValueError(f"Unknown feature bags: {name}")
+    return Features(spec=dict(extractor=extractor, tilebags=tilebags))
 
 
 # git commit -am "gigaq: FeatureBagsProbe: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
