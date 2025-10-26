@@ -401,6 +401,7 @@ class Features(Datablock):
         super().__init__(*args, n_devices=n_devices, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
 
     def __post_init__(self):
+        self.log.debug(f"n_devices={self.n_devices}, devices={self.devices}")
         if self.devices is None:
             if self.n_devices is not None:
                 self.devices = [f"cuda:{i}" for i in range(self.n_devices)]
