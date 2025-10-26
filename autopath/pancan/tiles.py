@@ -20,7 +20,7 @@ import ray
 import slideflow as sf
 
 import dbx
-from dbx import Logger, Datablock
+from dbx import Logger, Datablock, Databag
 
 from autopath.tools.dataset import ShardDataset
 
@@ -50,7 +50,7 @@ class PancanTileShard:
 		raise NotImplementedError
 
 
-class PancanTileBag(Datablock, PancanTileShard):
+class PancanTileBag(Datablock, PancanTileShard, Databag):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		source: str
