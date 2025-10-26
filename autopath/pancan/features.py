@@ -350,7 +350,7 @@ class FeaturesShard(Datablock, Databag):
             del batch
             if self.has_sideband:
                 _sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
-                extractor.sideband = None
+                extractor.clear_sideband()
                 assert set(_sideband.keys()) == set(extractor.sideband_layers), f"_sideband keys must match sideband_layers: {_sideband.keys()} != {extractor.sideband_layers}"
                 _sideband_shapes = {k: v.shape for k, v in _sideband.items()}
                 self.log.debug(f"Captured _sideband with shapes {_sideband_shapes} on device: {self.device}")

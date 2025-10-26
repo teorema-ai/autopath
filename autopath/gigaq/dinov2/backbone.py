@@ -13,6 +13,7 @@ import argparse
 from dataclasses import dataclass, asdict
 import datetime
 from functools import partial
+import gc
 import json
 import logging
 import math
@@ -418,6 +419,16 @@ class SidebandBackboneEvaluator(BackboneEvaluator):
                     getattr(self.backbone, layer).register_forward_hook(capture_layer(layer))
             self.log.debug(f"Done setting up layer captures")
         return self._sideband
+    
+    def clear_sideband(self):
+        if self._sideband is not None:
+            for k in self._sideband.keys():
+                self._sideband[k] = None 
+            gc.collect()
+            torch.cuda.empty_cache()
+        return self
+
+
 
 
 # DEPRECATED: internalize attention capture in a BackboneEvaluator and remove
