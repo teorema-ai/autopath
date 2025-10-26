@@ -376,7 +376,7 @@ class FeaturesShard(Datablock, Databag):
             torch.cuda.empty_cache()
             if self.debug:
                 sideband_shapes = {k: v.shape for k, v in sideband.items()}
-                self.log.debug(f"Storing features of shape {features.shape} and sidebands of shapes {sideband_shapes} on device: {self.device}")
+                self.log.debug(f"Storing sidebands of shapes {sideband_shapes} on device: {self.device}")
             for _layer, _sideband in sideband.items():
                 dbx.write_tensor(_sideband, self.path(f'sideband_{_layer}', ensure_dirpath=True))
             del _sideband
