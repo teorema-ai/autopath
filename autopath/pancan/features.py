@@ -345,9 +345,13 @@ class FeaturesShard(Datablock, Databag):
             n = min((k+1)*self.gpu_batch_size, len(tileshard.tiles))
             batch = tileshard.tiles[m:n].to(self.device)
             self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(tileshard.tiles)} on device: {self.device}")
-            _feature = extractor(batch).to('cpu')
-            self.log.debug(f"Evaluated batch to a _feature of shape {_feature.shape} on device: {self.device}")
+            feature = extractor(batch)
+            feature_list.append(feature.to('cpu'))
+            self.log.debug(f"Evaluated batch to a feature of shape {feature.shape} on device: {self.device}")
             del batch
+            del feature
+            gc.collect()
+            torch.cuda.empty_cache()
             if self.has_sideband:
                 _sideband = tensors_to_device(extractor.sideband, 'cpu', detach=True)
                 extractor.clear_sideband()
@@ -361,7 +365,6 @@ class FeaturesShard(Datablock, Databag):
             gc.collect()
             torch.cuda.empty_cache()
             self.log.verbose(f"done")
-            feature_list.append(_feature)
         self.log.debug(f"Concatenating {len(feature_list)} device batch features on device: {self.device}")
         features = torch.cat(feature_list)
         del feature_list
@@ -381,9 +384,9 @@ class FeaturesShard(Datablock, Databag):
             if self.debug:
                 sideband_shapes = {k: v.shape for k, v in sideband.items()}
                 self.log.debug(f"Storing sidebands of shapes {sideband_shapes} on device: {self.device}")
-            for _layer, _sideband in sideband.items():
-                dbx.write_tensor(_sideband, self.path(f'sideband_{_layer}', ensure_dirpath=True))
-            del _sideband
+            for lyr, sbd in sideband.items():
+                dbx.write_tensor(sbd, self.path(f'sideband_{lyr}', ensure_dirpath=True))
+            del sbd
             del sideband
             gc.collect()
             torch.cuda.empty_cache()
