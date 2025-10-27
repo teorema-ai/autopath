@@ -346,7 +346,6 @@ class BackboneEvaluator:
         bkn = copy.deepcopy(self)
         bkn.device = device
         bkn._backbone = bkn.backbone.to(device)
-        bkn.transform = bkn.transform.to(device) if bkn.transform is not None else None
         return bkn
 
     def eval(self):
