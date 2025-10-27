@@ -335,9 +335,8 @@ class FeaturesShard(Datablock, Databag):
     def has_sideband(self):
         return hasattr(self.cfg.extractor, 'sideband_layers')
 
-    def __build__(self):
+    def __build__(self, extractor):
         tileshard = self.cfg.tileshard
-        extractor = self.cfg.extractor.to(self.device)
         feature_list = []
         sideband_list = []
         for k in range(math.ceil(len(tileshard.tiles)/self.gpu_batch_size)):
@@ -452,7 +451,7 @@ class Features(Datablock):
     @functools.cached_property
     def shards(self):
         return [
-            FeaturesShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor']), gpu_batch_size=self.gpu_batch_size)
+            FeaturesShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
             for tileshard in self.cfg.tileshards.bags
         ]
     
@@ -466,7 +465,7 @@ class Features(Datablock):
         missing_shards = [shard for shard in shards if not shard.valid()]
         self.log.debug(f"Found {len(missing_shards)} missing shards")
         self.log.debug(f"Building all missing features shards")
-        built_shards = dbx.TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards)
+        built_shards = dbx.TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards, self.cfg.extractor)
         self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
         self.leave_breadcrumbs()
         return self

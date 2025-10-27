@@ -10,6 +10,7 @@
 """
 
 import argparse
+import copy
 from dataclasses import dataclass, asdict
 import datetime
 from functools import partial
@@ -342,8 +343,11 @@ class BackboneEvaluator:
 
     def to(self, device):
         self.device = device
-        self._backbone = self.backbone.to(device)
-        return self
+        bkn = copy.deepcopy(self)
+        bkn.device = device
+        bkn._backbone = bkn.backbone.to(device)
+        bkn.transform = bkn.transform.to(device) if bkn.transform is not None else None
+        return bkn
 
     def eval(self):
         self.backbone.eval()
