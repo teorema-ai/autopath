@@ -447,7 +447,10 @@ class Features(Datablock):
                     raise(e)
         sideband = torch.cat(sideband_list)
         return sideband
-
+    
+    def layer(self, layer=None):
+        return self.sideband(layer) if layer is not None else self.features()
+    
     @functools.cached_property
     def shards(self):
         return [
@@ -469,18 +472,3 @@ class Features(Datablock):
         self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
         self.leave_breadcrumbs()
         return self
-
-
-class FeaturesSideband(Datablock):
-    VERSION = 1
-    @dataclass
-    class CONFIG:
-        features: Features
-        layer: str
-
-    def valid(self):
-        return self.cfg.features.valid()
-    
-    def features(self):
-        return self.cfg.features.sideband(self.cfg.layer)
-    

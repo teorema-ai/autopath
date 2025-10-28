@@ -31,7 +31,7 @@ from dbx import (
 )
 
 
-from .features import FeatureBags
+from .features import FeatureBags, Features
 
 
 class FeaturesProbe:
@@ -222,6 +222,157 @@ class FeatureBagsProbe(Datablock, FeaturesProbe):
         return result
 
 
+class FeaturePairwiseDistancesShard(Datablock):
+    VERSION = 1
+    TOPICFILES = {
+        'rows': 'rows.npz',
+        'cols': 'cols.npz',
+        'distances': "distances.pt"
+    }
+
+    @dataclass
+    class CONFIG:
+        features: Features
+        shard_idx: int
+        row_shard_size: int
+        col_shard_size: int
+        seed: int = 42
+
+    def __build__(self, features):
+        rng = np.random.default_rng(self.cfg.seed)
+        M = features.shape[0]
+        rows = rng.permutation(M)
+        _rows = rows[self.config.shard_idx*self.config.row_shard_size:min((self.config.shard_idx+1)*self.config.row_shard_size, M)]
+        del rows
+        cols = rng.permutation(M)
+        col_offset = rng.integers(M-self.config.col_shard_size)
+        _cols = cols[col_offset:min(col_offset+self.config.col_shard_size, M)]
+        del cols
+        self.log.detailed(f"Building FeaturePairwiseDistancesShard at index {self.cfg.shard_idx} with rows {_rows} and {len(_cols)} columns on device {features.device}")
+        pairwise_distances = torch.cdist(features[_rows], features[_cols]).to('cpu')
+        self.log.debug(f"Built FeaturePairwiseDistancesShard at index {self.config.shard_idx} with shape {pairwise_distances.shape} on device {features.device}")
+        write_npz(self.path('rows', ensure_dirpath=True), rows=_rows)
+        write_npz(self.path('cols', ensure_dirpath=True), cols=_cols)
+        write_tensor(pairwise_distances, self.path('distances', ensure_dirpath=True))
+        del _rows
+        del _cols
+        del pairwise_distances
+        return self
+    
+    def __read__(self, topic):
+        if topic == 'rows':
+            result = read_npz(self.path('rows'), 'rows')[0]
+        elif topic == 'cols':
+            result = read_npz(self.path('cols'), 'cols')[0]
+        elif topic == 'distances':
+            result = read_tensor(self.path('distances'))
+        else:
+            raise ValueError(f"Unknown topic: {topic}") 
+        return result
+    
+    @functools.cached_property
+    def rows(self):
+        return self.read('rows')
+    
+    @functools.cached_property
+    def cols(self):
+        return self.read('cols')
+
+    @functools.cached_property
+    def distances(self):
+        return self.read('distances')
+    
+    @functools.cached_property
+    def tensor(self):
+        return self.distances
+    
+
+class FeaturePairwiseDistances(Datablock):
+    VERSION = 1
+    TOPICFILES = {
+        "features_shape": "features_shape.npy",
+    }
+    @dataclass
+    class CONFIG:
+        features: Features
+        n_shards: int
+        row_shard_size: int
+        col_shard_size: int
+        layer: str = None
+        seed: int = 42
+
+    def __init__(self, *args, n_devices: int = 1, **kwargs):
+        super().__init__(*args, n_devices=n_devices, **kwargs)
+
+    def __post_init__(self):
+        self.devices = [f"cuda:{i}" for i in range(self.n_devices)]
+        return self
+    
+    def build_tree(self):
+        self.cfg.features.set(devices=self.devices).build()
+        return self.build()
+        
+    def features(self):
+        self.log.debug(f"Reading features from layer {self.cfg.layer} of {len(self.cfg.features.shards)} feature shards")
+        feature_list = []
+        for featureshard in self.cfg.features.shards:
+            feature_list.extend(featureshard.layer(self.cfg.layer))
+        features = torch.stack(feature_list)
+        self.log.debug(f"Combined features: shape: {features.shape}")
+        return features
+
+    @functools.cached_property
+    def shards(self):
+        return self._shards(self.features_shape)
+
+    def _shards(self, shape):
+        assert self.config.n_shards*self.config.row_shard_size <= shape[0], f"Too many shards or shards too big for n_features: {shape[0]}"
+        assert self.config.col_shard_size <= shape[0], f"Too row_shard_size too large for n_features {shape[0]}"
+        return [FeaturePairwiseDistancesShard(spec=dict(
+                    features=self.spec['features'],
+                    shard_idx=i,
+                    row_shard_size=self.config.row_shard_size,
+                    col_shard_size=self.config.col_shard_size,
+                    seed=self.config.seed,
+                    )) 
+                for i in range(self.config.n_shards)
+            ]
+    
+    @property
+    def n_shards(self):
+        return self.config.n_shards
+    
+    @functools.cached_property
+    def features_shape(self):
+        if self.valid():
+            self.log.debug(f"Reading features_shape from {self.path('features_shape')}")
+            return read_tensor(self.path('features_shape'))
+        else:
+            self.log.debug(f"Calculating features_shape")
+            return self.features().shape
+
+    def __build__(self):
+        self.log.debug("Retrieving features")
+        features = self.features()
+        shards = self._shards(features.shape)
+        self.log.debug(f"Forming {self.config.n_shards} FeaturePairwiseDistancesShards from features of shape {features.shape}, "
+                       f"row_shard_size {self.config.row_shard_size}, col_shard_size: {self.config.col_shard_size}"
+        )
+        self.log.debug(f"Formed {len(shards)} FeaturePairwiseDistancesShards.  Looking for missing shards")
+        missing_shards = [shard for shard in shards if not shard.valid()]
+        self.log.debug(f"Found {len(missing_shards)} missing shards")
+        self.log.debug(f"Building all missing pairwise feature distance shards")
+        built_shards = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards, features)
+        self.log.verbose(f"Built all missing pairwise feature distance shards: {len(built_shards)}")
+        write_tensor(torch.tensor(features.shape), self.path('features_shape', ensure_dirpath=True))
+        return self
+    
+    def __read__(self, topic):
+        if topic == 'features_shape':
+            result = read_tensor(self.path('features_shape'))
+        return result
+    
+
 class FeaturesPairwiseDistancesChunk(Datablock):
     VERSION = 3
     TOPICFILES = {
@@ -285,16 +436,16 @@ class FeaturesPairwiseDistancesChunk(Datablock):
     @functools.cached_property
     def tensor(self):
         return self.distances
-    
+
 
 class FeaturesPairwiseDistances(Datablock):
-    VERSION = 3
+    VERSION = 1
     TOPICFILES = {
         "features_shape": "features_shape.npy",
     }
     @dataclass
     class CONFIG:
-        featurebags: FeatureBags
+        features: FeatureBags
         n_chunks: int
         row_chunk_size: int
         col_chunk_size: int

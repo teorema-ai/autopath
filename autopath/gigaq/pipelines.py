@@ -6,13 +6,20 @@ import torch.multiprocessing as mp
 from ..pancan.features import FeatureBag, FeatureBags, Features
 from ..pancan.probe import (
     FeatureBagsProbe, 
+    #
     FeaturesPairwiseDistances,
     FeaturesSortedDistances,
     Features2NNDistances,
     Features2NNDim,
+    #
+    FeaturePairwiseDistances,
 )
 
-from .dinov2.backbone import BackboneEvaluator, SidebandBackboneEvaluator, GIGAPATH_BACKBONE_DEPTH
+from .dinov2.backbone import (
+    BackboneEvaluator, 
+    SidebandBackboneEvaluator, 
+    GIGAPATH_BACKBONE_DEPTH,
+)
 
 
 mp.set_start_method("spawn", force=True)
@@ -256,3 +263,19 @@ def gigapath_features_2nn_dim_build_tree(name, n_workers: int = 1) -> Features2N
                                       ).set(n_workers=n_workers, use_gpus=True).build())
                         ).set(n_workers=n_workers, use_gpus=True).build())
                     ).build()
+
+
+# git commit -am "gigaq: FeaturePairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_pairwise_distances('GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_4000_800000').set(n_devices=3).build()"
+def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
+    if name == "GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_4000_800000":
+        return FeaturePairwiseDistances(
+                    spec=dict(features=f"$autopath.gigaq.pipelines.gigapath_features('GIGAPATH_BASELINE_5BLOCKS_CPTAC_8020_TEST')",
+                              layer="sideband_block.0",
+                              n_shards=10,
+                              row_shard_size=4000,
+                              col_shard_size=4000,
+                    ), 
+        )
+    else:
+        raise ValueError(f"Unknown feature bags pairwise distances datablock: {name}")
+
