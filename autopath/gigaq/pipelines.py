@@ -267,13 +267,13 @@ def gigapath_features_2nn_dim_build_tree(name, n_workers: int = 1) -> Features2N
 
 # git commit -am "gigaq: FeaturePairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_pairwise_distances('GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_1000_800000').set(n_devices=3).build()"
 def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
-    if name == "GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_4000_800000":
+    if name == "GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_1000_800000":
         return FeaturePairwiseDistances(
                     spec=dict(features=f"$autopath.gigaq.pipelines.gigapath_features('GIGAPATH_BASELINE_5BLOCKS_CPTAC_8020_TEST')",
                               layer="sideband_block.0",
                               n_shards=10,
-                              row_shard_size=4000,
-                              col_shard_size=4000,
+                              row_shard_size=1000,
+                              col_shard_size=800000,
                     ), 
         )
     else:
