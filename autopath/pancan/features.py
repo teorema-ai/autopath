@@ -401,6 +401,9 @@ class FeaturesShard(Datablock, Databag):
     @functools.cached_property
     def sideband(self, layer):
         return self.read(f'sideband_{layer}')
+    
+    def layer(self, layer):
+        return self.sideband(layer) if layer is not None else self.features
         
     @functools.cached_property
     def labels(self):
