@@ -398,7 +398,6 @@ class FeaturesShard(Datablock, Databag):
     def features(self):
         return self.read('features')
     
-    @functools.cached_property
     def sideband(self, layer):
         return self.read(f'sideband_{layer}')
     
