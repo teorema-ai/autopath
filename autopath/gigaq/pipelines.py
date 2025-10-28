@@ -265,7 +265,7 @@ def gigapath_features_2nn_dim_build_tree(name, n_workers: int = 1) -> Features2N
                     ).build()
 
 
-# git commit -am "gigaq: FeaturePairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_pairwise_distances('GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_4000_800000').set(n_devices=3).build()"
+# git commit -am "gigaq: FeaturePairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_pairwise_distances('GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_1000_800000').set(n_devices=3).build()"
 def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
     if name == "GIGAPATH_BASELINE_BLOCK0_CPTAC_8020_TEST_10_4000_800000":
         return FeaturePairwiseDistances(
@@ -277,5 +277,5 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
                     ), 
         )
     else:
-        raise ValueError(f"Unknown feature bags pairwise distances datablock: {name}")
+        raise ValueError(f"Unknown FeaturePairwiseDistances datablock: {name}")
 
