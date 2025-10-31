@@ -31,8 +31,8 @@ def pancan_tile_bags(name) -> PancanTileBags:
     else:
         raise ValueError(f"Unknown tile_batch: {name}")
 
-# dbx "autopath.pancan.pipelines.pancan_tile_split('CPTAC_8020').build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_split('CPTAC_9802').build()"
+# git commit -am 'gigaq: PancanTileSplit: BUILD'; dbx 'autopath.pancan.pipelines.pancan_tile_split("CPTAC_8020").build_tree()'
+# git commit -am 'gigaq: PancanTileSplit: BUILD'; dbx 'autopath.pancan.pipelines.pancan_tile_split("CPTAC_9802").build_tree()'
 def pancan_tile_split(name, train_fraction: Optional[float] = None) -> PancanTileSplit:
     if name == "CPTAC":
         assert train_fraction is not None, "train_fraction must be specified"
