@@ -71,7 +71,7 @@ def gigapath_feature_bags(name) -> FeatureBags:
     return FeatureBags(spec=dict(extractor=extractor, tilebags=tilebags))
 
 
-# git commit -am "gigaq: Feature: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features('GIGAPATH_BASELINE_CPTAC_8020_TEST').set(devices=["cuda:0", "cuda:1", "cuda:2"], gpu_batch_size=1024).build()"
+# git commit -am "gigaq: Feature: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_features('GIGAPATH_BASELINE_5BLOCKS_CPTAC_9802_TEST').set(n_devices=3, gpu_batch_size=1024).build_tree()"
 def gigapath_features(name) -> Features:
     def get_extractor(name, sideband: bool = False, capture_blocks: Optional[List[int]] = None):
         if sideband: 
