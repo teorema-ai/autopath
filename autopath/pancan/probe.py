@@ -326,14 +326,14 @@ class FeaturePairwiseDistances(Datablock):
         return self._shards(self.features_shape)
 
     def _shards(self, shape):
-        assert self.config.n_shards*self.config.row_shard_size <= shape[0], f"Too many shards or shards too big for n_features: {shape[0]}"
-        assert self.config.col_shard_size <= shape[0], f"Too row_shard_size too large for n_features {shape[0]}"
+        assert self.cfg.n_shards*self.cfg.row_shard_size <= shape[0], f"Too many shards or shards too big for n_features: {shape[0]}"
+        assert self.cfg.col_shard_size <= shape[0], f"col_shard_size {self.cfg.col_shard_size=} too large for n_features {shape[0]}"
         return [FeaturePairwiseDistancesShard(spec=dict(
                     features=self.spec['features'],
                     shard_idx=i,
-                    row_shard_size=self.config.row_shard_size,
-                    col_shard_size=self.config.col_shard_size,
-                    seed=self.config.seed,
+                    row_shard_size=self.cfg.row_shard_size,
+                    col_shard_size=self.cfg.col_shard_size,
+                    seed=self.cfg.seed,
                     )) 
                 for i in range(self.config.n_shards)
             ]
