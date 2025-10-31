@@ -274,7 +274,6 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_1000_800000":
         return FeaturePairwiseDistances(
                     spec=dict(features=f"$autopath.gigaq.pipelines.gigapath_features('GIGAPATH_BASELINE_CPTAC_8020_TEST')",
-                              layer="block.0",
                               n_shards=10,
                               row_shard_size=1000,
                               col_shard_size=800000,
