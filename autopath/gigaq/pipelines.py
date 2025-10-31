@@ -280,6 +280,15 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
                               col_shard_size=800000,
                     ), 
         )
+    elif name == "GIGAPATH_BASELINE_5BLOCK0_CPTAC_9802_TEST_10_1000_800000":
+        return FeaturePairwiseDistances(
+                    spec=dict(features=f"$autopath.gigaq.pipelines.gigapath_features('GIGAPATH_BASELINE_5BLOCKS_CPTAC_9802_TEST')",
+                              layer="block.0",
+                              n_shards=10,
+                              row_shard_size=1000,
+                              col_shard_size=800000,
+                    ), 
+        )
     else:
         raise ValueError(f"Unknown FeaturePairwiseDistances datablock: {name}")
 
