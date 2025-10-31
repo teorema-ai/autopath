@@ -286,7 +286,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
                               layer="block.0",
                               n_shards=10,
                               row_shard_size=1000,
-                              col_shard_size=800000,
+                              col_shard_size=74000,
                     ), 
         )
     else:
