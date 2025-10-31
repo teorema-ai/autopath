@@ -469,7 +469,7 @@ class Features(Datablock):
         self.log.debug(f"Formed {len(shards)} FeaturesShards.  Looking for missing shards")
         missing_shards = [shard for shard in shards if not shard.valid()]
         self.log.debug(f"Found {len(missing_shards)} missing shards")
-        self.log.debug(f"Building all missing features shards using {len(self.devices)} devices and batch size {self.gpu_batch_size}")
+        self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
         built_shards = dbx.TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards, self.cfg.extractor)
         self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
         self.leave_breadcrumbs()
