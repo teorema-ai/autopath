@@ -301,11 +301,12 @@ class FeaturePairwiseDistances(Datablock):
         layer: str = None
         seed: int = 42
 
-    def __init__(self, *args, n_devices: int = 1, **kwargs):
-        super().__init__(*args, n_devices=n_devices, **kwargs)
+    def __init__(self, *args, n_devices: int = 1, gpu_batch_size: int = 1024, **kwargs):
+        super().__init__(*args, n_devices=n_devices, gpu_batch_size=gpu_batch_size, **kwargs)
 
     def __post_init__(self):
         self.devices = [f"cuda:{i}" for i in range(self.n_devices)]
+        self.cfg.features = self.cfg.features.set(devices=self.devices, gpu_batch_size=self.gpu_batch_size)
         return self
     
     def build_tree(self):
