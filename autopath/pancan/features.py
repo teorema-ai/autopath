@@ -457,7 +457,7 @@ class Features(Datablock):
     def shards(self):
         return [
             FeaturesShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
-            for tileshard in self.cfg.tileshards.bags
+            for tileshard in self.cfg.tileshards.shards
         ]
     
     @property
