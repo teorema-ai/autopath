@@ -38,13 +38,13 @@ def pancan_tile_clip(name) -> PancanTileClip:
 def pancan_tile_split(name, train_fraction: Optional[float] = None) -> PancanTileSplit:
     if name == "CPTAC":
         assert train_fraction is not None, "train_fraction must be specified"
-        return PancanTileSplit(spec=dict(tileclip=dbx.quote(pancan_tile_clip, 'CPTAC'), train_fraction=train_fraction))   
+        return PancanTileSplit(spec=dict(clip=dbx.quote(pancan_tile_clip, 'CPTAC'), train_fraction=train_fraction))   
     elif name == "CPTAC_8020":
         assert train_fraction is None or train_fraction == 0.8, "train_fraction must be 0.8"   
-        return PancanTileSplit(spec=dict(tileclip=dbx.quote(pancan_tile_clip, 'CPTAC'), train_fraction=0.8))
+        return PancanTileSplit(spec=dict(clip=dbx.quote(pancan_tile_clip, 'CPTAC'), train_fraction=0.8))
     elif name == "CPTAC_9802": 
         assert train_fraction is None or train_fraction == 0.98, "train_fraction must be 0.98"  
-        return PancanTileSplit(spec=dict(tileclip=dbx.quote(pancan_tile_clip, 'CPTAC'), train_fraction=0.98)
+        return PancanTileSplit(spec=dict(clip=dbx.quote(pancan_tile_clip, 'CPTAC'), train_fraction=0.98)
         )
     else:
         raise ValueError(f"Unknown tile_split: {name}")
@@ -55,13 +55,13 @@ def pancan_tile_split(name, train_fraction: Optional[float] = None) -> PancanTil
 # dbx "autopath.pancan.pipelines.pancan_tile_fold('CPTAC_9802_TEST').build()"
 def pancan_tile_fold(name) -> PancanTileFold:
     if name == "CPTAC_8020_TEST":   
-        return PancanTileFold(spec=dict(tilesplit=dbx.quote(pancan_tile_split, 'CPTAC_8020'), fold='test'))
+        return PancanTileFold(spec=dict(split=dbx.quote(pancan_tile_split, 'CPTAC_8020'), fold='test'))
     elif name == "CPTAC_8020_TRAIN":   
-        return PancanTileFold(spec=dict(tilesplit=dbx.quote(pancan_tile_split, 'CPTAC_8020'), fold='train'))
+        return PancanTileFold(spec=dict(split=dbx.quote(pancan_tile_split, 'CPTAC_8020'), fold='train'))
     elif name == "CPTAC_9802_TEST":   
-        return PancanTileFold(spec=dict(tilesplit=dbx.quote(pancan_tile_split, 'CPTAC_9802'), fold='test'))
+        return PancanTileFold(spec=dict(split=dbx.quote(pancan_tile_split, 'CPTAC_9802'), fold='test'))
     elif name == "CPTAC_9802_TRAIN":   
-        return PancanTileFold(spec=dict(tilesplit=dbx.quote(pancan_tile_split, 'CPTAC_9802'), fold='train'))
+        return PancanTileFold(spec=dict(split=dbx.quote(pancan_tile_split, 'CPTAC_9802'), fold='train'))
     else:
         raise ValueError(f"Unknown tile_fold: {name}")
 
