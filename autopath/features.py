@@ -21,7 +21,8 @@ from dbx import (
     Databag,
 )
 
-from .tiles import PancanTileShard, PancanTileShards, PancanTileBag, PancanTileBags
+from autopath.databits import DataShard, DataClip, DataClipDataset
+from .tiles import TileShard, TileClip
 
 
 def tensors_to_device(tensors, device, *, detach: bool = False):
@@ -39,12 +40,13 @@ def cat_tensor_dicts(tensor_dicts):
     _tensors = {k: torch.cat(v) for k, v in tensors.items()}
     return _tensors
 
-
-class FeatureBag(Datablock):
+"""
+#TODO: #REMOVE
+class FeatureBag(Datablock, Bag):
     VERSION = 3
     @dataclass
     class CONFIG(Datablock.CONFIG):
-        tilebag: PancanTileBag
+        tilebag: TileBag
         extractor: Callable
 
     @property
@@ -95,10 +97,6 @@ class FeatureBag(Datablock):
     @functools.cached_property
     def tensor(self):
         return self.features
-    
-    @functools.cached_property
-    def labels(self):
-        return torch.tensor(self.cfg.tilebag.labels)
 
     @functools.cached_property
     def features(self):
@@ -110,11 +108,11 @@ class FeatureBag(Datablock):
         
     @functools.cached_property
     def labels(self):
-        return self.config.tilebag.labels
+        return self.cfg.tilebag.labels
 
     @property
-    def label(self):
-        return self.config.tilebag.label
+    def name(self):
+        return self.cfg.tilebag.name
 
 
 class FeatureBags(Datablock):
@@ -123,7 +121,7 @@ class FeatureBags(Datablock):
     @dataclass
     class CONFIG(Datablock.CONFIG):
         extractor: Callable
-        tilebags: PancanTileBags
+        tilebags: TileBags
         lo: int = 0
         hi: Optional[int] = None
 
@@ -306,13 +304,13 @@ class FeatureBags(Datablock):
     @functools.cached_property
     def bag_lens(self):
         return self.read('bag_lens')
+"""
 
-
-class FeaturesShard(Datablock, Databag):
+class FeatureShard(DataShard):
     VERSION = 1
     @dataclass
     class CONFIG(Datablock.CONFIG):
-        tileshard: PancanTileShard
+        tileshard: TileShard
         extractor: Callable
 
     def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
@@ -323,7 +321,7 @@ class FeaturesShard(Datablock, Databag):
             'features': 'features.npy',
         }
         if self.has_sideband:
-            for layer in self.config.extractor.sideband_layers:
+            for layer in self.cfg.extractor.sideband_layers:
                 self.TOPICFILES[f'sideband_{layer}' ] = \
                     f'sideband_{layer}.npy'
         return self
@@ -405,23 +403,37 @@ class FeaturesShard(Datablock, Databag):
         return self.sideband(layer) if layer is not None else self.features
         
     @functools.cached_property
+    def tensor(self):
+        return self.features
+    
+    @functools.cached_property
     def labels(self):
-        return self.config.tileshard.labels
+        return zip(self.cfg.tileshard.labels, self.cfg.tileshard.tiles)
 
 
-class Features(Datablock):
+class FeatureClip(DataClip):
     VERSION = 1
-    TOPICFILE = "breadcrumbs"
 
     @dataclass
     class CONFIG:
-        tileshards: PancanTileShards
+        tileclip: TileClip
         extractor: Callable
 
     def __init__(self, *args, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
         super().__init__(*args, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
         self.log.debug(f"devices={self.devices}, gpu_batch_size={self.gpu_batch_size}, skip_unreadable={self.skip_unreadable}")
 
+    def __build__(self):
+        shards = self.shards
+        self.log.debug(f"Formed {len(shards)} FeatureShards.  Looking for missing shards")
+        missing_shards = [shard for shard in shards if not shard.valid()]
+        self.log.debug(f"Found {len(missing_shards)} missing shards")
+        self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
+        built_shards = dbx.TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards, self.cfg.extractor)
+        self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
+        self.leave_breadcrumbs()
+        return self
+    
     def features(self):
         self.log.debug(f"Reading features from {len(self.n_shards)} feature shards")
         feature_list = []
@@ -436,6 +448,28 @@ class Features(Datablock):
         features = torch.stack(feature_list)
         self.log.debug(f"Combined features: shape: {features.shape}")
         return features
+    
+    def tiles(self):
+        self.log.debug(f"Reading tiles from {len(self.n_shards)} feature shards")
+        tile_list = []
+        for featureshard in self.shards:
+            try:
+                _tileshard_tiles = featureshard.cfg.tileshard.tiles
+                tileshard_tiles = (
+                    self.cfg.extractor.transform(_tileshard_tiles) 
+                    if self.cfg.extractor.transform is not None 
+                    else _tileshard_tiles
+                )
+                del _tileshard_tiles
+                tile_list.append(tileshard_tiles)
+            except Exception as e:
+                if self.skip_unreadable:
+                    continue
+                else:
+                    raise(e)
+        tiles = torch.stack(tile_list)
+        self.log.debug(f"Combined tiles: shape: {tiles.shape}")
+        return tiles
     
     def sideband(self, layer):
         sideband_list = []
@@ -456,21 +490,39 @@ class Features(Datablock):
     @functools.cached_property
     def shards(self):
         return [
-            FeaturesShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
+            FeatureShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
             for tileshard in self.cfg.tileshards.shards
         ]
     
     @property
     def n_shards(self):
         return len(self.shards)
+    
+    def labels(self):
+        self.log.debug(f"Reading labels from {len(self.n_shards)} feature shards")
+        label_list = []
+        for featureshard in self.shards:
+            try:
+                label_list.append(featureshard.labels)  
+            except Exception as e:
+                if self.skip_unreadable:
+                    continue
+                else:
+                    raise(e)
+        labels = np.concatenate(label_list)
+        self.log.debug(f"Combined labels: shape: {labels.shape}")
+        return labels
+     
 
-    def __build__(self):
-        shards = self.shards
-        self.log.debug(f"Formed {len(shards)} FeaturesShards.  Looking for missing shards")
-        missing_shards = [shard for shard in shards if not shard.valid()]
-        self.log.debug(f"Found {len(missing_shards)} missing shards")
-        self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
-        built_shards = dbx.TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards, self.cfg.extractor)
-        self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
-        self.leave_breadcrumbs()
-        return self
+def featureset(featureclip: FeatureClip, 
+               *,
+               debug: bool = False,
+               verbose: bool = False,
+               log = None,
+):
+    featureclip = dbx.eval_term(featureclip)
+    return DataClipDataset(spec=dict(clip=featureclip.shards,),
+                           debug=debug, 
+                           verbose=verbose,
+                           log=log,
+    )

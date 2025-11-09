@@ -13,16 +13,15 @@ import numpy as np
 
 import torch
 import torchvision
-from torch.utils.data import Dataset
 
-import ray
 
 import slideflow as sf
 
 import dbx
-from dbx import Logger, Datablock, Databag
+from dbx import Logger, Datablock
 
-from autopath.tools.dataset import ShardDataset
+from autopath.databits import DataBag, DataClipDataset
+from autopath.tiles import TileShard, TileBag, TileClip, TileSplit
 
 
 logger = Logger()
@@ -37,20 +36,11 @@ class TFRecordDataset(sf.io.TFRecordDataset):
 			return len(self.index)
 
 
-class PancanTileShard:
-	def __len__(self):
-		return len(self.tiles)
-
-	@functools.cached_property
-	def tiles(self):
-		raise NotImplementedError
-
-	@functools.cached_property
-	def labels(self):
-		raise NotImplementedError
+class PancanTileShard(TileShard):
+	...
 
 
-class PancanTileBag(Datablock, PancanTileShard, Databag):
+class PancanTileBag(PancanTileShard, TileBag):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		source: str
@@ -59,7 +49,8 @@ class PancanTileBag(Datablock, PancanTileShard, Databag):
 		root, tail = self.config.source.split('/tfrecords/')
 		self.label = root.split('/')[-1] #cancer
 		self.resolution, records = tail.split('/')
-		self.name, _  = os.path.splitext(records)
+		name, _  = os.path.splitext(records)
+		DataBag.__init__(self, name)
 		tilesfile = os.path.basename(self.config.source)
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
 		self.TOPICFILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}
@@ -122,21 +113,7 @@ class PancanTileBag(Datablock, PancanTileShard, Databag):
 		return self.read('labels')
 
 
-class PancanTileShards:
-	def __len__(self):
-		return len(self.shards)
-
-	@functools.cached_property
-	def shards(self):
-		raise NotImplementedError
-
-	@functools.cached_property
-	def shards_lens(self):
-		raise NotImplementedError
-
-
-class PancanTileBags(Datablock, PancanTileShards):
-	DATABLOCK = PancanTileBag
+class PancanTileClip(TileClip):
 	TOPICFILE = "bag_lens.npz"
 	@dataclass
 	class CONFIG:
@@ -207,56 +184,12 @@ class PancanTileBags(Datablock, PancanTileShards):
 		return self.bag_lens
 
 
-class PancanTileSplit(Datablock):
-	TOPICFILES = {"train_shard_indices": "train_shard_indices.pt", 
-			 "train_shard_lens":    "train_shard_lens.pt",
-			 "test_shard_indices":  "test_shard_indices.pt",
-			 "test_shard_lens":     "test_shard_lens.pt",
-	}
+class PancanTileSplit(TileSplit):
 	@dataclass
 	class CONFIG:
-		tileshards: PancanTileShards
+		tileclip: PancanTileClip
 		train_fraction: float = 0.8
 		seed: int = 42
-
-	def __build__(self):
-		self.log.info(f"Building tile splits out of {len(self.config.tileshards.shards)} shards using train fraction {self.config.train_fraction}")
-		N = len(self.config.tileshards.shards)
-		K = int(math.ceil(N*self.config.train_fraction))
-		np.random.seed(self.config.seed) #TODO: localize in a generator
-		perm = np.random.permutation(N)
-		train_shard_indices = torch.tensor(perm[:K])
-		test_shard_indices = torch.tensor(perm[K:])
-		self.log.verbose(f"Computing train shard lens")
-		if self.verbose:
-			train_shard_itor = tqdm.tqdm(train_shard_indices)
-		else:
-			train_shard_itor = train_shard_indices
-		train_shard_lens = torch.tensor([len(self.config.tileshards.shards[i].dataset) for i in train_shard_itor])
-		self.log.verbose(f"Computing test shard lens")
-		if self.verbose:
-			test_shard_itor = tqdm.tqdm(test_shard_indices)
-		else:
-			test_shard_itor = test_shard_indices
-		test_shard_lens = torch.tensor([len(self.config.tileshards.shards[i].dataset) for i in test_shard_itor])
-		dbx.write_tensor(train_shard_indices, self.path('train_shard_indices', ensure_dirpath=True),)
-		dbx.write_tensor(train_shard_lens, self.path('train_shard_lens', ensure_dirpath=True),)
-		dbx.write_tensor(test_shard_indices, self.path('test_shard_indices', ensure_dirpath=True),)
-		dbx.write_tensor(test_shard_lens, self.path('test_shard_lens', ensure_dirpath=True),)
-		return self
-	
-	def __read__(self, topic):
-		tensor = dbx.read_tensor(self.path(topic))
-		return tensor
-
-	def shards(self, split):
-		shard_indices = self.read(f"{split}_shard_indices")
-		shards = [self.config.tileshards.shards[i] for i in shard_indices]
-		return shards 
-	
-	def shard_lens(self, split):
-		shard_lens = self.read(f"{split}_shard_lens")
-		return shard_lens  	
 
 	def bags(self, split):
 		return self.shards(split) 
@@ -265,59 +198,30 @@ class PancanTileSplit(Datablock):
 		return self.shard_lens(split)
 
 
-class PancanTileFold(Datablock, PancanTileShards):
+class PancanTileFold():
 	@dataclass
 	class CONFIG:
 		tilesplit: PancanTileSplit
 		fold: str
 
-	def __post_init__(self):
-		return self
-	
-	def valid(self):
-		return self.config.tilesplit.valid()
 
-	@functools.cached_property
-	def shards(self):
-		return self.config.tilesplit.shards(self.config.fold)
-
-	@functools.cached_property
-	def shard_lens(self):
-		return self.config.tilesplit.shard_lens(self.config.fold)
-	
-	@functools.cached_property
-	def bags(self):
-		return self.shards
-
-	@property
-	def bag_lens(self):
-		return self.shard_lens
-			
-
-class PancanTileSet(Datablock):
-	@dataclass
-	class CONFIG(Datablock.CONFIG):
-		tileshards: PancanTileShards
-		transform: Optional[torchvision.transforms.Compose] = None
-
-	@property
-	def dataset(self):
-		dataset = ShardDataset(
-						  shards=self.config.tileshards.shards, 
-						  transform=self.config.transform, 
-						  debug=self.debug, 
-						  verbose=self.verbose,
-						  log=self.log,
+def pancan_tileset(tileclip: PancanTileClip,
+				   transform: Optional[torchvision.transforms.Compose] = None,
+				   *,
+				   debug: bool = False,
+               	   verbose: bool = False,
+                   log = None,
+):
+		tileclip = dbx.eval_term(tileclip)
+		transform = dbx.eval_term(transform)
+		return DataClipDataset(spec=dict(clip=tileclip, transform=transform,),
+								  debug=debug, 
+								  verbose=verbose,
+								  log=log,
 		)
-		return dataset
-
-	def valid(self):
-		return True
-
-	def __read__(self):
-		return self.dataset
 
 
+"""
 #DEPRECATE?
 class PancanTileBatch(Datablock):
 	VERSION=1
@@ -447,4 +351,4 @@ class PancanTileBatches(Datablock):
 		tensors = torch.stack(tensors_)
 		labels = np.array(labels_)
 		return tensors, labels
-	
+"""	

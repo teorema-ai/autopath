@@ -358,7 +358,7 @@ class BackboneEvaluator:
     def __call__(self, x):
         self.__pre_call__()
         with torch.no_grad():
-            y = self.transform(x.to(self.device))
+            y = self.transform(x.to(self.device)) if self.transform is not None else x.to(self.device)
             z = self.backbone(y).cpu().detach()
             del y
             return z

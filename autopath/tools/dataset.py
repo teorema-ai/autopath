@@ -8,6 +8,7 @@ import torch
 from dbx import Logger
 
 
+#TODO: DEPRECATE? FACTOR THRU ShardDataset?
 class BagDataset(torch.utils.data.Dataset):
     def __init__(self, bags, bag_lens=None, transform=None, *, verbose: bool = False, debug: bool = False, log = None):
         self.bags = bags
