@@ -190,10 +190,7 @@ class PancanTileSplit(TileSplit):
 
 
 class PancanTileFold(TileFold):
-	@dataclass
-	class CONFIG:
-		tilesplit: PancanTileSplit
-		fold: str
+	...
 
 
 def pancan_tileset(tileclip: PancanTileClip,
