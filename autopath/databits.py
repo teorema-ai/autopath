@@ -47,7 +47,7 @@ class DataShard(Datablock):
     
 
 class DataBag(DataShard):
-    def __init__(self, *, name):
+    def __init__(self, name):
         self.name = name
     
     @functools.cached_property
