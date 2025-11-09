@@ -71,13 +71,13 @@ def pancan_tile_fold(name) -> PancanTileFold:
 # dbx "autopath.pancan.pipelines.pancan_tile_set('CPTAC_9802_TEST').build()"
 def pancan_tile_set(name) -> DataClipDataset:
     if name == "CPTAC_8020_TEST":
-        return pancan_tileset(tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TEST'),)
+        return pancan_tileset(clip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TEST'),)
     elif name == "CPTAC_8020_TRAIN":
-        return pancan_tileset(tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TRAIN'),)
+        return pancan_tileset(clip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TRAIN'),)
     elif name == "CPTAC_9802_TEST":
-        return pancan_tileset(tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_9802_TEST'),)
+        return pancan_tileset(clip=dbx.quote(pancan_tile_fold, 'CPTAC_9802_TEST'),)
     elif name == "CPTAC_9802_TRAIN":
-        return pancan_tileset(tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_9802_TRAIN'),)
+        return pancan_tileset(clip=dbx.quote(pancan_tile_fold, 'CPTAC_9802_TRAIN'),)
     else:
         raise ValueError(f"Unknown tile_set: {name}")
 
