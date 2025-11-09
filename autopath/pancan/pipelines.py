@@ -8,8 +8,7 @@ from typing import Optional
 import dbx
 
 from autopath.databits import DataClipDataset
-from autopath.tiles import PancanTileBag, PancanTileClip, PancanTileSplit, PancanTileFold
-from autopath.pancan.tiles import pancan_tileset
+from autopath.pancan.tiles import PancanTileBag, PancanTileClip, PancanTileSplit, PancanTileFold, pancan_tileset
 
 PANCAN_CPTAC = os.environ.get("PANCAN_CPTAC", "/mnt/labshare/SLIDES/CPTAC_downloads")
 PANCAN_CPTAC_SAMPLE = os.path.join(PANCAN_CPTAC, "HNSCC/tfrecords/256px_256um/C3L-02621-23.tfrecords")
