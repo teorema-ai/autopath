@@ -43,6 +43,9 @@ class PancanTileBag(PancanTileShard, TileBag):
 	class CONFIG(Datablock.CONFIG):
 		source: str
 
+	def __init__(self, *args, **kwargs):
+		TileBag.__init__(*args, **kwargs)
+
 	def __post_init__(self):
 		root, tail = self.config.source.split('/tfrecords/')
 		self.label = root.split('/')[-1] #cancer
