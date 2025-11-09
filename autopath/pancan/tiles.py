@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 import functools
 import itertools
-import math
-from math import floor
 import os
 from typing import Optional
 
@@ -21,7 +19,7 @@ import dbx
 from dbx import Logger, Datablock
 
 from autopath.databits import DataBag, DataClipDataset
-from autopath.tiles import TileShard, TileBag, TileClip, TileSplit
+from autopath.tiles import TileShard, TileBag, TileClip, TileSplit, TileFold
 
 
 logger = Logger()
@@ -198,7 +196,7 @@ class PancanTileSplit(TileSplit):
 		return self.shard_lens(split)
 
 
-class PancanTileFold():
+class PancanTileFold(TileFold):
 	@dataclass
 	class CONFIG:
 		tilesplit: PancanTileSplit
