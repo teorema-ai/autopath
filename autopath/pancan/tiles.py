@@ -186,17 +186,7 @@ class PancanTileClip(TileClip):
 
 
 class PancanTileSplit(TileSplit):
-	@dataclass
-	class CONFIG:
-		tileclip: PancanTileClip
-		train_fraction: float = 0.8
-		seed: int = 42
-
-	def bags(self, split):
-		return self.shards(split) 
-	
-	def bag_lens(self, split):
-		return self.shard_lens(split)
+	...
 
 
 class PancanTileFold(TileFold):

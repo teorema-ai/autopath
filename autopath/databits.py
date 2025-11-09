@@ -96,9 +96,6 @@ class DataSplit(Datablock):
         seed: int = 42
 
     def __build__(self):
-        #DEBUG
-        breakpoint()
-        
         self.log.info(f"Building splits out of {len(self.cfg.clip.shards)} shards using train fraction {self.cfg.train_fraction}")
         N = len(self.cfg.clip.shards)
         K = int(math.ceil(N*self.cfg.train_fraction))
