@@ -221,7 +221,7 @@ def pancan_tileset(tileclip: PancanTileClip,
 		)
 
 
-"""
+'''
 #DEPRECATE?
 class PancanTileBatch(Datablock):
 	VERSION=1
@@ -351,4 +351,4 @@ class PancanTileBatches(Datablock):
 		tensors = torch.stack(tensors_)
 		labels = np.array(labels_)
 		return tensors, labels
-"""	
+'''	
