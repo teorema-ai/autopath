@@ -25,8 +25,8 @@ class TileShard(DataShard):
     
 
 class TileBag(TileShard, DataBag):
-    
-    ...
+    def __init__(self):
+        DataBag.__init__(self)
 
 class TileClip(DataClip):
     ...
