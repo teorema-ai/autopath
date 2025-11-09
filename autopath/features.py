@@ -491,7 +491,7 @@ class FeatureClip(DataClip):
     def shards(self):
         return [
             FeatureShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
-            for tileshard in self.cfg.tileshards.shards
+            for tileshard in self.cfg.tileclip.shards
         ]
     
     @property
