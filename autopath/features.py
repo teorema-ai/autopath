@@ -400,7 +400,7 @@ class FeatureShard(DataShard):
     
     @functools.cached_property
     def labels(self):
-        return zip(self.cfg.tileshard.labels, self.cfg.tileshard.tiles)
+        return list(zip(self.cfg.tileshard.labels, self.cfg.tileshard.tiles))
 
 
 class FeatureClip(DataClip):
