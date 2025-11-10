@@ -1,6 +1,7 @@
 import os
 from typing import Optional, List
 
+import torch
 import torch.multiprocessing as mp
 
 import dbx
@@ -13,6 +14,7 @@ from autopath.pancan.pipelines import (
 from autopath.features import (
     FeatureShard, 
     FeatureClip,
+    featureset,
 )
 
 from autopath.pancan.probes import (
@@ -78,6 +80,11 @@ def gigapath_feature_clip(name) -> FeatureClip:
     else:
         raise ValueError(f"Unknown feature bags: {name}")
     return FeatureClip(spec=dict(extractor=extractor, tileclip=tileclip))
+
+
+# git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
+def gigapath_featureset(name) -> torch.utils.data.Dataset:
+    return featureset(gigapath_feature_clip(name))
 
 
 # git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_logisticfeature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
