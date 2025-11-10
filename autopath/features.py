@@ -507,9 +507,5 @@ class FeatureClip(DataClip):
      
 
 def featureset(featureclip: FeatureClip,):
-    #DEBUG
-    print(f"DEBUG: -------------------> type(featureclip): {type(featureclip)}")
     featureclip = dbx.eval_term(featureclip)
-    #DEBUG
-    print(f"DEBUG: -------------------> type(featureclip): {type(featureclip)}")
-    return DataClipDataset(spec=dict(clip=featureclip.shards,))
+    return DataClipDataset(spec=dict(clip=featureclip))
