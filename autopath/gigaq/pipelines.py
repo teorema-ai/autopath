@@ -86,7 +86,7 @@ def gigapath_feature_clip(name) -> FeatureClip:
 def gigapath_featureset(name) -> torch.utils.data.Dataset:
     featureclip = gigapath_feature_clip(name)
     quoted_featureclip = dbx.quote(featureclip)
-    dbx.Logger().debug(f"===================> {featureclip=}, {quoted_featureclip=}")
+    dbx.Logger().debug(f"===================> {featureclip=}\n{quoted_featureclip=}")
     return featureset(quoted_featureclip)
 
 
