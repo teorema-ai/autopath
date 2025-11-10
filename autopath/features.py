@@ -3,12 +3,7 @@ from dataclasses import dataclass
 import functools
 import gc
 import math
-import queue
-import threading
-from typing import Optional, Callable, Sequence
-
-
-import tqdm
+from typing import Callable
 
 import numpy as np
 
@@ -16,10 +11,7 @@ import numpy as np
 import torch
 
 import dbx
-from dbx import (
-    Datablock,
-    Databag,
-)
+from dbx import Datablock
 
 from autopath.databits import DataShard, DataClip, DataClipDataset
 from .tiles import TileShard, TileClip
@@ -429,7 +421,7 @@ class FeatureClip(DataClip):
         missing_shards = [shard for shard in shards if not shard.valid()]
         self.log.debug(f"Found {len(missing_shards)} missing shards")
         self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
-        built_shards = dbx.TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards, self.cfg.extractor)
+        built_shards = dbx.TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_blocks(missing_shards, self.cfg.extractor)
         self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
         self.leave_breadcrumbs()
         return self

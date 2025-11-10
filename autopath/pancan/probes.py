@@ -18,7 +18,6 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 
 from dbx import (
 	Logger,
-    Datashard,
 	Datablock,
     write_tensor, 
     read_tensor,
@@ -26,8 +25,8 @@ from dbx import (
     read_npz,
     write_pickle,
     read_pickle,
-    TorchMultithreadingDatashardBatchBuilder,
-    TorchMultiprocessingDatashardBatchBuilder,
+    TorchMultithreadingDatablocksBuilder,
+    TorchMultiprocessingDatablocksBuilder,
 )
 
 from autopath.tiles import TileBag
@@ -362,7 +361,7 @@ class FeaturePairwiseDistances(Datablock):
         missing_shards = [shard for shard in shards if not shard.valid()]
         self.log.debug(f"Found {len(missing_shards)} missing shards")
         self.log.debug(f"Building all missing pairwise feature distance shards")
-        built_shards = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_shards, features)
+        built_shards = TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_shards, features)
         self.log.verbose(f"Built all missing pairwise feature distance shards: {len(built_shards)}")
         write_tensor(torch.tensor(features.shape), self.path('features_shape', ensure_dirpath=True))
         return self
@@ -445,7 +444,7 @@ class FeatureSortedDistances(Datablock):
         missing_sorted_distshards = [shard for shard in sorted_distshards if not shard.valid()]
         self.log.debug(f"Found among them {len(missing_sorted_distshards)} missing FeatureSortedDistancesShards")
         self.log.debug(f"Building {len(missing_sorted_distshards)} FeatureSortedDistancesShards")
-        built_sorted_distshards = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_sorted_distshards)
+        built_sorted_distshards = TorchMultiprocessingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_sorted_distshards)
         self.log.verbose(f"Built all missing FeatureSortedDistancesShards: {len(built_sorted_distshards)}")
         return self
     
@@ -532,7 +531,7 @@ class Feature2NNDistances(Datablock):
         missing_twonndist_shards = [shard for shard in twonndist_shards if not shard.valid()]
         self.log.debug(f"Found {len(missing_twonndist_shards)} missing Feature2NNDistancesShards")
         self.log.debug(f"Building {len(missing_twonndist_shards)} Feature2NNDistancesShards")
-        built_twonndist_shards = TorchMultiprocessingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_twonndist_shards)
+        built_twonndist_shards = TorchMultiprocessingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_twonndist_shards)
         self.log.verbose(f"Built all missing Feature2NNDistancesShards: {len(built_twonndist_shards)}")
         twonndists = torch.cat([shard.tensor for shard in twonndist_shards], dim=0)
         write_tensor(twonndists, self.path('twonn_distances', ensure_dirpath=True))
@@ -736,7 +735,7 @@ class FeaturesPairwiseDistances(Datablock):
         missing_chunks = [chunk for chunk in chunks if not chunk.valid()]
         self.log.debug(f"Found {len(missing_chunks)} missing chunks")
         self.log.debug(f"Building all missing pairwise feature distance chunks")
-        built_chunks = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_shards(missing_chunks, features)
+        built_chunks = TorchMultithreadingDatashardBatchBuilder(devices=self.devices, log=self.log).build_blocks(missing_chunks, features)
         self.log.verbose(f"Built all missing pairwise feature distance chunks: {len(built_chunks)}")
         write_tensor(torch.tensor(features.shape), self.path('features_shape', ensure_dirpath=True))
         return self
