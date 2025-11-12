@@ -82,6 +82,11 @@ class Clip(Datablock):
     def shards_lens(self):
         return self.read()
     
+    def UNSAFE_clear_shards(self):
+        for shard in self.shards:
+            shard.UNSAFE_clear()
+        return self
+    
 
 class Split(Datablock):
     TOPICFILES = {"train_shard_indices": "train_shard_indices.pt", 
