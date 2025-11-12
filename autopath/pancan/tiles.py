@@ -147,7 +147,6 @@ class PancanTileClip(TileClip):
 	def bags(self):
 		return [
 			PancanTileBag(
-				self.root,
 				spec=dict(source=bagpath,),
 				verbose=self.verbose,
 				debug=self.debug,
