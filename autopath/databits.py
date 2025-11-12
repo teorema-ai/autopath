@@ -84,7 +84,11 @@ class Clip(Datablock):
     
     def UNSAFE_clear_shards(self):
         for shard in self.shards:
-            shard.UNSAFE_clear()
+            try:
+                if shard.valid():
+                    shard.UNSAFE_clear()
+            except:
+                pass
         return self
     
 
