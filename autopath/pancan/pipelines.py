@@ -7,7 +7,7 @@ from typing import Optional
 
 import dbx
 
-from autopath.databits import DataClipDataset
+from autopath.databits import ClipDataset
 from autopath.pancan.tiles import PancanTileBag, PancanTileClip, PancanTileSplit, PancanTileFold, pancan_tileset
 
 PANCAN_CPTAC = os.environ.get("PANCAN_CPTAC", "/mnt/labshare/SLIDES/CPTAC_downloads")
@@ -69,7 +69,7 @@ def pancan_tile_fold(name) -> PancanTileFold:
 # dbx "autopath.pancan.pipelines.pancan_tile_set('CPTAC_8020_TEST').build()"
 # dbx "autopath.pancan.pipelines.pancan_tile_set('CPTAC_9802_TRAIN').build()"
 # dbx "autopath.pancan.pipelines.pancan_tile_set('CPTAC_9802_TEST').build()"
-def pancan_tile_set(name) -> DataClipDataset:
+def pancan_tile_set(name) -> ClipDataset:
     if name == "CPTAC_8020_TEST":
         return pancan_tileset(clip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TEST'),)
     elif name == "CPTAC_8020_TRAIN":
