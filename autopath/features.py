@@ -353,7 +353,6 @@ class FeatureShard(Shard):
                 torch.cuda.empty_cache()
             gc.collect()
             torch.cuda.empty_cache()
-            self.log.verbose(f"done")
         self.log.debug(f"Concatenating {len(feature_list)} device batch features on device: {self.device}")
         features = torch.cat(feature_list)
         del feature_list
