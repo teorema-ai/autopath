@@ -14,7 +14,7 @@ import dbx
 from dbx import Datablock
 
 
-class DataShard(Datablock):
+class Shard(Datablock):
     TOPICFILES = {'index': '', 'tensor': '', 'labels': None}
     @dataclass
     class CONFIG(Datablock.CONFIG):
@@ -46,7 +46,7 @@ class DataShard(Datablock):
         raise NotImplementedError
     
 
-class DataBag(DataShard):
+class Bag(Shard):
     def __init__(self, name):
         self.name = name
     
@@ -55,7 +55,7 @@ class DataBag(DataShard):
         return [self.name]*len(self)
 
     
-class DataClip(Datablock):
+class Clip(Datablock):
     TOPICFILE = "shard_lens.npz"
     def __len__(self):
         return len(self.shards)
@@ -83,7 +83,7 @@ class DataClip(Datablock):
         return self.read()
     
 
-class DataSplit(Datablock):
+class Split(Datablock):
     TOPICFILES = {"train_shard_indices": "train_shard_indices.pt", 
                   "train_shard_lens":    "train_shard_lens.pt",
                   "test_shard_indices":  "test_shard_indices.pt",
@@ -91,7 +91,7 @@ class DataSplit(Datablock):
     }
     @dataclass
     class CONFIG:
-        clip: DataClip
+        clip: Clip
         train_fraction: float = 0.8
         seed: int = 42
 
@@ -135,10 +135,10 @@ class DataSplit(Datablock):
         return shard_lens  	
 
 
-class DataFold(DataClip):
+class Fold(Clip):
     @dataclass
     class CONFIG:
-        split: DataSplit
+        split: Split
         fold: str
 
     def __post_init__(self):
@@ -156,10 +156,10 @@ class DataFold(DataClip):
         return self.cfg.split.shard_lens(self.cfg.fold)
     
             
-class DataClipDataset(Datablock, torch.utils.data.Dataset):
+class ClipDataset(Datablock, torch.utils.data.Dataset):
     @dataclass
     class CONFIG:
-        clip: DataClip
+        clip: Clip
         shard_lens: list[int] = None
         transform: Optional[torchvision.transforms.Compose] = None
 

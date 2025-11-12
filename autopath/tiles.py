@@ -8,13 +8,13 @@ import torchvision
 import dbx
 from dbx import Logger
 
-from autopath.databits import DataShard, DataBag, DataClip, DataSplit, DataFold, DataClipDataset
+from autopath.databits import Shard, Bag, Clip, Split, Fold, ClipDataset
 
 
 logger = Logger()
 
 
-class TileShard(DataShard):
+class TileShard(Shard):
     @functools.cached_property
     def tiles(self):
         return self.tensor
@@ -24,21 +24,21 @@ class TileShard(DataShard):
         raise NotImplementedError()
     
 
-class TileBag(TileShard, DataBag):
+class TileBag(TileShard, Bag):
     def __init__(self, *args, **kwargs):
         TileShard.__init__(self, *args, **kwargs)
 
-class TileClip(DataClip):
+class TileClip(Clip):
     ...
 
-class TileSplit(DataSplit):
+class TileSplit(Split):
     ...
 
-class TileFold(DataFold):
+class TileFold(Fold):
     ...
 
 
-def tileset(tileclip: DataClip, 
+def tileset(tileclip: Clip, 
             transform: Optional[torchvision.transforms.Compose] = None,
             *,
             debug: bool = False,
@@ -47,7 +47,7 @@ def tileset(tileclip: DataClip,
 ):
     tileclip = dbx.eval_term(tileclip)
     transform = dbx.eval_term(transform)
-    return DataClipDataset(
+    return ClipDataset(
                           clip=tileclip, 
                           transform=transform, 
                           debug=debug, 

@@ -13,7 +13,7 @@ import torch
 import dbx
 from dbx import Datablock
 
-from autopath.databits import DataShard, DataClip, DataClipDataset
+from autopath.databits import Shard, Clip, ClipDataset
 from .tiles import TileShard, TileClip
 
 
@@ -298,7 +298,7 @@ class FeatureBags(Datablock):
         return self.read('bag_lens')
 """
 
-class FeatureShard(DataShard):
+class FeatureShard(Shard):
     VERSION = 1
     @dataclass
     class CONFIG(Datablock.CONFIG):
@@ -403,7 +403,7 @@ class FeatureShard(DataShard):
         return list(zip(self.cfg.tileshard.labels, self.cfg.tileshard.tiles))
 
 
-class FeatureClip(DataClip):
+class FeatureClip(Clip):
     VERSION = 1
 
     @dataclass
@@ -507,4 +507,4 @@ class FeatureClip(DataClip):
      
 
 def featureset(featureclip: FeatureClip,):
-    return DataClipDataset(spec=dict(clip=featureclip))
+    return ClipDataset(spec=dict(clip=featureclip))

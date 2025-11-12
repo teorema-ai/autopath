@@ -18,7 +18,7 @@ import slideflow as sf
 import dbx
 from dbx import Logger, Datablock
 
-from autopath.databits import DataBag, DataClipDataset
+from autopath.databits import Bag, ClipDataset
 from autopath.tiles import TileShard, TileBag, TileClip, TileSplit, TileFold
 
 
@@ -51,7 +51,7 @@ class PancanTileBag(PancanTileShard, TileBag):
 		self.label = root.split('/')[-1] #cancer
 		self.resolution, records = tail.split('/')
 		name, _  = os.path.splitext(records)
-		DataBag.__init__(self, name)
+		Bag.__init__(self, name)
 		tilesfile = os.path.basename(self.config.source)
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
 		self.TOPICFILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}
@@ -202,7 +202,7 @@ def pancan_tileset(tileclip: PancanTileClip,
 ):
 		tileclip = dbx.eval_term(tileclip)
 		transform = dbx.eval_term(transform)
-		return DataClipDataset(spec=dict(clip=tileclip, transform=transform,),
+		return ClipDataset(spec=dict(clip=tileclip, transform=transform,),
 								  debug=debug, 
 								  verbose=verbose,
 								  log=log,
