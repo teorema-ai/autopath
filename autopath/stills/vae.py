@@ -7,7 +7,6 @@ import dbx
 from dbx import Datablock
 
 from autopath.models import vae
-from autopath.features import FeatureSet
 
 
 class VariationalReDecoderStill(Datablock):

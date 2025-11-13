@@ -160,3 +160,7 @@ class Loss(nn.Module):
     def forward(self, mean, variance, target):
         loss = torch.sum((mean - target)**2/variance)
         return loss
+    
+
+class VariationalReDecoder:
+    ...
