@@ -14,7 +14,7 @@ class VariationalReDecoderStill(Datablock):
     
     @dataclass 
     class CONFIG:
-        vae: vae.VariationalDecoder
+        vae: vae.VariationalReDecoder
         features: torch.utils.data.Dataset
         loss: nn.Module
 
