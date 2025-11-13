@@ -258,4 +258,4 @@ class FeatureClip(Clip):
      
 
 def featureset(featureclip: FeatureClip, transform=None):
-    return ClipDataset(spec=dict(clip=featureclip, shard_lens=featureclip.shard_lens, transform=transform))
+    return ClipDataset(spec=dict(clip=featureclip, transform=transform))
