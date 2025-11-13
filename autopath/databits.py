@@ -174,7 +174,7 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
     def __post_init__(self):
         self.n_shards = len(self.cfg.clip.shards)
         self.log.debug(f"Building dataset out of {self.n_shards} shards")
-        self.shard_lens = self.cfg.featureclip.shard_lens
+        self.shard_lens = self.cfg.clip.shard_lens
         self.log.debug(f"Computing shard_bounds")
         self.shard_bounds = np.cumsum(self.shard_lens)
         self.log.debug(f"{self.n_shards=}, {self.shard_bounds=}")
