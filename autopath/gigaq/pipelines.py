@@ -249,3 +249,7 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
     return Feature2NNDim(
                     spec=dict(features_2nn_distances=dbx.quote(gigapath_feature_2nn_distances, name),),
         )
+
+def gigapath_featureset_dataloader(name, *args, **kwargs):
+    featureset = gigapath_featureset(name)
+    return torch.utils.data.DataLoader(featureset, *args, **kwargs)

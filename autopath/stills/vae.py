@@ -22,8 +22,3 @@ class VariationalReDecoderStill(Datablock):
         super().__init__(*args, n_devices=n_devices, **kwargs)
 
     ...
-
-def dataloader(dataset, *args, **kwargs):
-    dataset = dbx.eval_term(dataset)
-    return torch.utils.data.DataLoader(dataset, *args, **kwargs)
-    
