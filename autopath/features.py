@@ -5,6 +5,8 @@ import gc
 import math
 from typing import Callable
 
+import tqdm
+
 import numpy as np
 
 
@@ -138,7 +140,7 @@ class FeatureShard(Shard):
 
 class FeatureClip(Clip):
     VERSION = 1
-
+    TOPICFILES = {"shard_lens": "shard_lens.npy"}
     @dataclass
     class CONFIG:
         tileclip: TileClip
@@ -156,8 +158,20 @@ class FeatureClip(Clip):
         self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
         built_shards = dbx.TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_shards, self.cfg.extractor)
         self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
-        self.leave_breadcrumbs()
+        self.log.verbose(f"Building shard_lens: BEGIN")
+        if self.verbose:
+            shards = tqdm.tqdm(shards)
+        shard_lens = torch.tensor([len(shard) for shard in shards])
+        self.log.verbose(f"Building shard_lens: BEGIN")
+        dbx.write_tensor(shard_lens, self.path("shard_lens", ensure_dirpath=True))
         return self
+    
+    def __read__(self, topic):
+        if topic == "shard_lens":
+            result = dbx.read_tensor(self.path("shard_lens"))
+        else:
+            raise ValueError(f"Unknown {topic=}")
+        return result
     
     def features(self):
         self.log.debug(f"Reading features from {len(self.n_shards)} feature shards")
@@ -223,6 +237,10 @@ class FeatureClip(Clip):
     def n_shards(self):
         return len(self.shards)
     
+    @property
+    def shard_lens(self):
+        return self.read("shard_lens")
+    
     def labels(self):
         self.log.debug(f"Reading labels from {len(self.n_shards)} feature shards")
         label_list = []
@@ -239,5 +257,5 @@ class FeatureClip(Clip):
         return labels
      
 
-def featureset(featureclip: FeatureClip,):
-    return ClipDataset(spec=dict(clip=featureclip))
+def featureset(featureclip: FeatureClip, transform=None):
+    return ClipDataset(spec=dict(clip=featureclip, shard_lens=featureclip.shard_lens, transform=transform))

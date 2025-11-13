@@ -211,7 +211,7 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
         self.log.detailed(f"{index=}, {shard_idx=}, {shard_lo=}, {shard_len=}, {shard_hi=}, {idx=}")
         tensor = self.shard(shard_idx).tensor
         sample = tensor[idx]
-        if self.transform is not None:
+        if self.cfg.transform is not None:
             sample = self.transform(sample)
         labels = self.shard(shard_idx).labels
         label = labels[idx]
