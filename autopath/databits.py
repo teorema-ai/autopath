@@ -170,6 +170,7 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
     class CONFIG:
         clip: Clip
         transform: Optional[torchvision.transforms.Compose] = None
+        target_transform: Optional[torchvision.transforms.Compose] = None
 
     def __post_init__(self):
         self.n_shards = len(self.cfg.clip.shards)
@@ -206,4 +207,6 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
             sample = self.transform(sample)
         labels = self.shard(shard_idx).labels
         label = labels[idx]
+        if self.cfg.target_transform is not None:
+            label = self.target_transform(label)
         return sample, label
