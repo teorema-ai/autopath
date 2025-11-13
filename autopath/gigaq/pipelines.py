@@ -74,11 +74,14 @@ def gigapath_feature_clip(name) -> FeatureClip:
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TEST')
+    elif name == "GIGAPATH_BASELINE_CPTAC_8020_TRAIN":
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TRAIN')
     elif name == "GIGAPATH_BASELINE_5B_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_5B_EVALUATOR')
         tileclip = dbx.quote(pancan_tile_fold, 'CPTAC_8020_TEST')
     else:
-        raise ValueError(f"Unknown feature bags: {name}")
+        raise ValueError(f"Unknown gigapath_feature_clip: {name}")
     return FeatureClip(spec=dict(extractor=extractor, tileclip=tileclip))
 
 
