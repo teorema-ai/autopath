@@ -71,6 +71,9 @@ def gigapath_feature_clip(name) -> FeatureClip:
     if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_9802_TEST')
+    if name == "GIGAPATH_BASELINE_CPTAC_9802_TRAIN":
+        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_9802_TRAIN')
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_fold, 'CPTAC_8020_TEST')

@@ -52,10 +52,13 @@ class FeatureShard(Shard):
             for layer in self.cfg.extractor.sideband_layers:
                 self.TOPICFILES[f'sideband_{layer}' ] = \
                     f'sideband_{layer}.npy'
+        self._len = None
         return self
 
     def __len__(self):
-        return len(self.labels)
+        if self._len is None:
+            self._len = len(self.labels)
+        return self._len
     
     @property
     def has_sideband(self):
@@ -65,11 +68,12 @@ class FeatureShard(Shard):
         tileshard = self.cfg.tileshard
         feature_list = []
         sideband_list = []
+        n_tiles = len(tileshard.tiles)
         for k in range(math.ceil(len(tileshard.tiles)/self.gpu_batch_size)):
             m = k*self.gpu_batch_size
-            n = min((k+1)*self.gpu_batch_size, len(tileshard.tiles))
+            n = min((k+1)*self.gpu_batch_size, n_tiles)
             batch = tileshard.tiles[m:n].to(self.device)
-            self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {len(tileshard.tiles)} on device: {self.device}")
+            self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {n_tiles} on device: {self.device}")
             feature = extractor(batch)
             feature_list.append(feature.to('cpu'))
             self.log.debug(f"Evaluated batch to a feature of shape {feature.shape} on device: {self.device}")
@@ -91,6 +95,7 @@ class FeatureShard(Shard):
             torch.cuda.empty_cache()
         self.log.debug(f"Concatenating {len(feature_list)} device batch features on device: {self.device}")
         features = torch.cat(feature_list)
+        assert len(features) == n_tiles, f"Number of features does not match the number of tiles: {len(features)} != {n_tiles}"
         del feature_list
         gc.collect()
         torch.cuda.empty_cache()
@@ -114,6 +119,7 @@ class FeatureShard(Shard):
             del sideband
             gc.collect()
             torch.cuda.empty_cache()
+        self._len = n_tiles
         return self
 
     def read(self, topic):
