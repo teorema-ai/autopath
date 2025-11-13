@@ -83,6 +83,7 @@ def gigapath_feature_clip(name) -> FeatureClip:
 
 
 # git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
+# git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
 def gigapath_featureset(name) -> torch.utils.data.Dataset:
     featureclip = gigapath_feature_clip(name)
     quoted_featureclip = dbx.quote(featureclip)
