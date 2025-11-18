@@ -301,7 +301,7 @@ class VariationalReDecoder(nn.Module):
         return loss
     
 
-class VariationalDecoderEvaluator:
+class VariationalReDecoderEvaluator:
     def __init__(self, vred, dataset):
         self.vred = vred
         self.dataset = dataset
