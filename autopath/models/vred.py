@@ -306,5 +306,8 @@ class VariationalReDecoderEvaluator:
         self.vred = vred
         self.dataset = dataset
 
-    def sample(self, n_samples):
-        samples_list = []
+    def sample(self, n_samples: int = 1, batch_size: int = 1):
+        output_samples_list = [
+            self.vred.sample(self.dataset[i] for i in range(n_samples))
+        ]
+        return output_samples_list
