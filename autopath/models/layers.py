@@ -37,8 +37,10 @@ class Conv2dSame(nn.Module):
         )
 
         # Setup internal representations
-        kernel_size_ = _pair(kernel_size)
-        dilation_ = _pair(dilation)
+        #kernel_size_ = _pair(kernel_size)
+        kernel_size_ = (kernel_size, kernel_size)
+        #dilation_ = _pair(dilation)
+        dilation_ = (dilation, dilation)
         self._reversed_padding_repeated_twice = [0, 0] * len(kernel_size_)
 
         # Follow the logic from ``nn._ConvNd``
@@ -85,6 +87,8 @@ class ConvRelu(nn.Module):
         use_batch_norm: bool = True,
         batch_norm_epsilon: float = 1e-5,
         batch_norm_training_override: bool = False,
+        batch_norm_momentum: float = 0.9,
+        batch_norm_affine: bool = True,
     ):
         super().__init__()
         self.conv2d = Conv2dSame(
@@ -102,8 +106,8 @@ class ConvRelu(nn.Module):
             self.batch_normalization = BatchNorm2d(
                 out_channels,
                 eps=batch_norm_epsilon,
-                momentum=0.9,
-                affine=True,
+                momentum=batch_norm_momentum,
+                affine=batch_norm_affine,
                 track_running_stats=not batch_norm_training_override,
             )
 
@@ -175,7 +179,7 @@ class UpLayer(nn.Module):
         use_bilinear_upsampling: bool = False,
         use_squeeze_and_excite: bool = False,
         use_skip_connection: bool = True,
-        true_add_skip: bool = False,
+        add_skip: bool = False,
     ):
         super().__init__()
         self.in_channels = in_channels
@@ -215,7 +219,7 @@ class UpLayer(nn.Module):
             )
 
         self.use_skip_connection = use_skip_connection
-        self.true_add_skip = true_add_skip
+        self.true_add_skip = add_skip
         assert (
             skip_channels is None or self.use_skip_connection
         ), "Cannot set skip_channels if not using skip connections."

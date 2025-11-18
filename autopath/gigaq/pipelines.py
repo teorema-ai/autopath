@@ -26,10 +26,18 @@ from autopath.pancan.probes import (
     Feature2NNDim,
 )
 
-from .dinov2.backbone import (
+from autopath.dinov2.backbone import (
     BackboneEvaluator, 
     SidebandBackboneEvaluator, 
     GIGAPATH_BACKBONE_DEPTH,
+)
+
+
+from autopath.models.vred import (
+    Classifier, 
+    ClassMultiscaleLatentGaussians2D,
+    VariationalReDecoder,
+    VariationalReDecoderEvaluator,
 )
 
 
@@ -256,6 +264,34 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
                     spec=dict(features_2nn_distances=dbx.quote(gigapath_feature_2nn_distances, name),),
         )
 
+
 def gigapath_featureset_dataloader(name, *args, **kwargs):
     featureset = gigapath_featureset(name)
     return torch.utils.data.DataLoader(featureset, *args, **kwargs)
+
+
+def gigapath_vred_evaluator(name):
+    input_dim = 1536
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
+        n_hidden_layers = 2
+        n_classes = 100
+        classifier = Classifier(
+            input_dim=input_dim,
+            n_hidden_layers=n_hidden_layers,
+            n_classes=n_classes,
+        )
+        latent_gaussians = ClassMultiscaleLatentGaussians2D(
+            n_classes=n_classes,
+            input_dim=input_dim,
+            n_hidden_layers=n_hidden_layers,
+        )
+        vred = VariationalReDecoder(
+            classifier=classifier,
+            latent_gaussians=latent_gaussians,
+        )
+        #
+        featureset = gigapath_featureset(name)
+        vred_evaluator = VariationalReDecoderEvaluator(vred, featureset)
+    else:
+        raise ValueError(f"Unknown gigapath_vred_evaluator: {name}")
+    return vred_evaluator
