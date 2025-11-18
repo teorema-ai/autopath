@@ -26,7 +26,7 @@ from autopath.pancan.probes import (
     Feature2NNDim,
 )
 
-from autopath.dinov2.backbone import (
+from autopath.gigaq.dinov2.backbone import (
     BackboneEvaluator, 
     SidebandBackboneEvaluator, 
     GIGAPATH_BACKBONE_DEPTH,
