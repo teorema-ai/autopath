@@ -322,7 +322,7 @@ class VariationalReDecoderEvaluator:
         self.log.debug(f"Sampling {n_samples} samples from dataset of type {type(self.dataset)} and batch_size {batch_size}")
         output_samples_list = []
         for i in range(n_samples):
-            input_sample = self.dataset[i]
+            input_sample = self.dataset[i][0]
             output_sample = self.vred.sample(input_sample)
             output_samples_list.append(output_sample)
         return output_samples_list
