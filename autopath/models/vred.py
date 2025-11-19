@@ -70,7 +70,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
 
         self.latents = []
         self.means = []
-        self.variances = []
+        self.prevariances = []
 
         self.scales = [coarse_scale*(upscale_factor**i) for i in range(n_scales)]
         self.scale_dims = [(scale**2)*n_channels for scale in self.scales]
@@ -86,7 +86,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
                 hidden_modules.append(hidden_activation)
             self.latents.append(nn.Sequential(*hidden_modules))
             self.means.append(nn.Linear(hidden_dim, scale_dim))
-            self.variances.append(F.softplus(nn.Linear(hidden_dim, scale_dim)) + variance_eps)
+            self.prevariances.append(nn.Linear(hidden_dim, scale_dim))
 
     def forward(self, x, c):
         #k: const with shape (x.shape[0], 1)
@@ -95,7 +95,8 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         for i in range(len(self.latents)):
             w = self.lantents[i](u)
             m = self.means[i](w)
-            v = self.variances[i](w)
+            pv = self.prevariances[i](w)
+            v = F.softplus(pv) + self.variance_eps
             scale = self.scales[i]
             m = m.view(m.shape[0], self.n_channels, scale, scale)
             v = v.view(v.shape[0], self.n_channels, scale, scale)
