@@ -50,9 +50,9 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
                  n_hidden_activation_cls: Callable = nn.ReLU, 
-                 coarse_scale: 2, 
+                 coarse_scale: 8, 
                  upscale_factor: int = 2,
-                 n_scales: int = 4,
+                 n_scales: int = 5,
                  n_channels: int = 3,
                  variance_eps: float = 0.01,
     ):
