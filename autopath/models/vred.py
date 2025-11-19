@@ -207,6 +207,7 @@ class VariationalReDecoder(nn.Module):
                  use_batch_norm: bool = True,
                  variance_scale: float = 0.03,
                  class_batch_size: int = None,
+                 log: dbx.Logger = dbx.Logger(),
     ):
         super().__init__()
         self.classifier = dbx.eval_term(classifier)
@@ -221,12 +222,14 @@ class VariationalReDecoder(nn.Module):
             variance_scale=variance_scale,
         )
         self.class_batch_size = class_batch_size
+        self.log = log
 
     @property
     def n_classes(self):
         return self.classifier.n_classes
     
     def sample(self, x):
+        self.log.debug(f"Computing class probabilities for x of type: {type(x)}")
         class_probabilities = self.classifier(x)
         dist = torch.distributions.Categorical(probs=class_probabilities)
         k = torch.full((x.shape[0], 1), dist.sample()).to(x.device)
@@ -320,10 +323,6 @@ class VariationalReDecoderEvaluator:
         output_samples_list = []
         for i in range(n_samples):
             input_sample = self.dataset[i]
-
-            #DEBUG
-            breakpoint()
-            
             output_sample = self.vred.sample(input_sample)
             output_samples_list.append(output_sample)
         return output_samples_list
