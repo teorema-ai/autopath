@@ -50,11 +50,12 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
                  n_hidden_activation_cls: Callable = nn.ReLU, 
-                 coarse_scale: 8, 
+                 coarse_scale: int = 8, 
                  upscale_factor: int = 2,
                  n_scales: int = 5,
                  n_channels: int = 3,
                  variance_eps: float = 0.01,
+                 log: dbx.Logger = dbx.Logger(),
     ):
         super().__init__()
         self.n_classes = n_classes
@@ -65,6 +66,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.n_scales = n_scales
         self.n_channels = n_channels
         self.variance_eps = variance_eps
+        self.log = log
 
         self.latents = []
         self.means = []
@@ -72,6 +74,8 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
 
         self.scales = [coarse_scale*(upscale_factor**i) for i in range(n_scales)]
         self.scale_dims = [(scale**2)*n_channels for scale in self.scales]
+        self.log.debug(f"scales: {self.scales}")
+        self.log.debug(f"scale_dims: {self.scale_dims}")
         for scale_dim in self.scale_dims:
             hidden_modules = []
             for i in range(n_hidden_layers):
