@@ -17,13 +17,15 @@ class Classifier(nn.Module):
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
                  n_hidden_activation_cls: Callable = nn.ReLU, 
-                 n_classes=100
+                 n_classes=100,
+                 log: dbx.Logger = dbx.Logger(),
     ):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.n_classes = n_classes
         self.n_hidden_layers = n_hidden_layers
+        self.log = log
 
         self.hidden_layers = nn.ModuleList()
         self.hidden_activations = nn.ModuleList()
@@ -34,11 +36,13 @@ class Classifier(nn.Module):
         self.last_layer = nn.Linear(hidden_dim, n_classes)
 
     def forward(self, x):
+        self.log.debug(f"Generating classes for x of type: {type(x)}")
         for i in range(self.n_hidden_layers):
             x = self.hidden_layers[i](x)
             x = self.hidden_activations[i](x)
         x = self.last_layer(x)
         x = F.softmax(x, dim=1)
+        self.log.debug(f"Generated classes of shape: {x.shape=}")
         return x
     
 
@@ -99,6 +103,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             m = m.view(m.shape[0], self.n_channels, scale, scale)
             v = v.view(v.shape[0], self.n_channels, scale, scale)
             means_and_variances.append((m, v))
+            self.log.debug(f"Generated latents for scale {self.scales[i]}, {m.shape=}, {v.shape=}")
         return tuple(means_and_variances)
     
 
@@ -305,11 +310,13 @@ class VariationalReDecoder(nn.Module):
     
 
 class VariationalReDecoderEvaluator:
-    def __init__(self, vred, dataset):
+    def __init__(self, vred, dataset, *, log: dbx.Logger = dbx.Logger()):
         self.vred = vred
         self.dataset = dataset
+        self.log = log
 
     def sample(self, n_samples: int = 1, batch_size: int = 1):
+        self.log.detailed(f"Sampling {n_samples} samples from dataset of type {type(self.dataset)} and batch_size {batch_size}")
         output_samples_list = [
             self.vred.sample(self.dataset[i] for i in range(n_samples))
         ]
