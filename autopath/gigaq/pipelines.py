@@ -285,6 +285,8 @@ def gigapath_vred_evaluator(name):
             n_classes=n_classes,
             input_dim=input_dim,
             n_hidden_layers=n_hidden_layers,
+            fine_scale=256,
+            n_scales=5,
         )
         vred = VariationalReDecoder(
             classifier=classifier,

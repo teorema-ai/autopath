@@ -50,8 +50,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
                  n_hidden_activation_cls: Callable = nn.ReLU, 
-                 coarse_scale: int = 8, 
-                 upscale_factor: int = 2,
+                 fine_scale: int = 256, 
                  n_scales: int = 5,
                  n_channels: int = 3,
                  variance_eps: float = 0.01,
@@ -61,8 +60,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.n_classes = n_classes
         self.hidden_dim = hidden_dim
         self.n_hidden_layers = n_hidden_layers
-        self.coarse_scale = coarse_scale
-        self.upscale_factor = upscale_factor
+        self.fine_scale = fine_scale
         self.n_scales = n_scales
         self.n_channels = n_channels
         self.variance_eps = variance_eps
@@ -72,8 +70,8 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.means = []
         self.prevariances = []
 
-        self.scales = [coarse_scale*(upscale_factor**i) for i in range(n_scales)]
-        self.scale_dims = [(scale**2)*n_channels for scale in self.scales]
+        self.scales = [fine_scale//(4**i) for i in range(self.n_scales)]
+        self.scale_dims = [scale**2 for scale in self.scales]
         self.log.debug(f"scales: {self.scales}")
         self.log.debug(f"scale_dims: {self.scale_dims}")
         for scale_dim in self.scale_dims:
