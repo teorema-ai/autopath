@@ -41,6 +41,7 @@ class Classifier(nn.Module):
             x = self.hidden_layers[i](x)
             x = self.hidden_activations[i](x)
         x = self.last_layer(x)
+        self.log.debug(f"Generated logits of shape: {x.shape=}")
         x = F.softmax(x, dim=1)
         self.log.debug(f"Generated classes of shape: {x.shape=}")
         return x
