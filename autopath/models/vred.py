@@ -318,16 +318,17 @@ class VariationalReDecoder(nn.Module):
     
 
 class VariationalReDecoderEvaluator:
-    def __init__(self, vred, dataset, *, log: dbx.Logger = dbx.Logger()):
+    def __init__(self, vred, dataloader, *, log: dbx.Logger = dbx.Logger()):
         self.vred = vred
-        self.dataset = dataset
+        self.dataloader = dataloader
         self.log = log
 
     def sample(self, n_samples: int = 1, batch_size: int = 1):
         self.log.debug(f"Sampling {n_samples} samples from dataset of type {type(self.dataset)} and batch_size {batch_size}")
         output_samples_list = []
+        sampleiter = iter(self.dataloader)
         for i in range(n_samples):
-            input_sample = self.dataset[i][0]
+            input_sample = next(sampleiter)
             output_sample = self.vred.sample(input_sample)
             output_samples_list.append(output_sample)
         return output_samples_list

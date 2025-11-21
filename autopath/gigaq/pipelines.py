@@ -277,7 +277,7 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
 
 
 # git commit -am "gigaq: Feature2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020',).sample()"
-def gigapath_vred_evaluator(name):
+def gigapath_vred_evaluator(name, dataloader_kwargs):
     input_dim = 1536
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         n_hidden_layers = 2
@@ -299,8 +299,8 @@ def gigapath_vred_evaluator(name):
             latent_gaussians=latent_gaussians,
         )
         #
-        featureset = gigapath_featureset(name)
-        vred_evaluator = VariationalReDecoderEvaluator(vred, featureset)
+        featureloader = gigapath_featureset_dataloader(name, **dataloader_kwargs)
+        vred_evaluator = VariationalReDecoderEvaluator(vred, featureloader)
     else:
         raise ValueError(f"Unknown gigapath_vred_evaluator: {name}")
     return vred_evaluator
