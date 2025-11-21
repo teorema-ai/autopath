@@ -97,7 +97,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         u = torch.cat([x, k], dim=-1) # a batch of [vector, scalar_class_idx]
         means_and_variances = []
         for i in range(len(self.latents)):
-            w = self.lantents[i](u)
+            w = self.latents[i](u)
             m = self.means[i](w)
             pv = self.prevariances[i](w)
             v = F.softplus(pv) + self.variance_eps
