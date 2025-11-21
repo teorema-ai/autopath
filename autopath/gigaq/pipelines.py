@@ -270,6 +270,12 @@ def gigapath_featureset_dataloader(name, *args, **kwargs):
     return torch.utils.data.DataLoader(featureset, *args, **kwargs)
 
 
+def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
+    featureset = gigapath_featureset(name)
+    dataloader = torch.utils.data.DataLoader(featureset, *args, **kwargs)
+    return next(iter(dataloader))
+
+
 # git commit -am "gigaq: Feature2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020',).sample()"
 def gigapath_vred_evaluator(name):
     input_dim = 1536
