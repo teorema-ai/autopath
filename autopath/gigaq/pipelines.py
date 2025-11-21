@@ -276,12 +276,13 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
     return next(iter(dataloader))
 
 
-# git commit -am "gigaq: Feature2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020',).sample()"
+# git commit -am "gigaq: Feature2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_5CHAN',).sample()"
 def gigapath_vred_evaluator(name, **dataloader_kwargs):
     input_dim = 1536
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN":
         n_hidden_layers = 2
         n_classes = 100
+        n_latent_channels = 5
         classifier = Classifier(
             input_dim=input_dim,
             n_hidden_layers=n_hidden_layers,
@@ -289,6 +290,7 @@ def gigapath_vred_evaluator(name, **dataloader_kwargs):
         )
         latent_gaussians = ClassMultiscaleLatentGaussians2D(
             n_classes=n_classes,
+            n_channels=n_latent_channels,
             input_dim=input_dim,
             n_hidden_layers=n_hidden_layers,
             fine_scale=256,
