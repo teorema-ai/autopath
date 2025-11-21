@@ -92,8 +92,9 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             self.prevariances.append(nn.Linear(hidden_dim, scale_dim))
 
     def forward(self, x, c):
-        #k: const with shape (x.shape[0], 1)
-        u = torch.cat([x, c], dim=-1) # a batch of [vector, scalar_class_idx]
+        #c shape (x.shape[0]()
+        k = c[..., None]
+        u = torch.cat([x, k], dim=-1) # a batch of [vector, scalar_class_idx]
         means_and_variances = []
         for i in range(len(self.latents)):
             w = self.lantents[i](u)
@@ -235,7 +236,6 @@ class VariationalReDecoder(nn.Module):
         dist = torch.distributions.Categorical(probs=class_probabilities)
         ksample = dist.sample()
         self.log.debug(f"Sampled classes {ksample}")
-        #k = ksample.repeat(x.shape[0], 1)
         gaussian_means_and_variances = self.latent_gaussians(x, ksample)
         multiscale_means = []
         for mean, variance in gaussian_means_and_variances:
