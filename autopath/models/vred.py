@@ -44,8 +44,8 @@ class Classifier(nn.Module):
         self.log.debug(f"Generated logits of shape: {x.shape=}")
 
         #DEBUG
-        breakpoint()
-        
+        #breakpoint()
+
         x = F.softmax(x, dim=1)
         self.log.debug(f"Generated classes of shape: {x.shape=}")
         return x
