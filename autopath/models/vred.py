@@ -225,7 +225,7 @@ class VariationalReDecoder(nn.Module):
             variance_scale=variance_scale,
         )
         self.class_batch_size = class_batch_size
-        self.log = log or dbx.Logger(self.__class__)
+        self.log = log or dbx.Logger(self.__class__.__name__)
 
     @property
     def n_classes(self):
