@@ -47,7 +47,7 @@ class Classifier(nn.Module):
         return x
     
 
-class ClassMultiscaleLatentGaussians2D(nn.Module):
+class ClassMultiscaleLatentGaussiansRGB(nn.Module):
     def __init__(self, 
                  *, 
                  n_classes: int = 100, 
@@ -57,7 +57,6 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
                  n_hidden_activation_cls: Callable = nn.ReLU, 
                  fine_scale: int = 256, 
                  n_scales: int = 5,
-                 n_channels: int = 3,
                  variance_eps: float = 0.01,
                  log: dbx.Logger = dbx.Logger(),
     ):
@@ -67,7 +66,6 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.n_hidden_layers = n_hidden_layers
         self.fine_scale = fine_scale
         self.n_scales = n_scales
-        self.n_channels = n_channels
         self.variance_eps = variance_eps
         self.log = log
 
@@ -76,7 +74,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.prevariances = []
 
         self.scales = [fine_scale//(4**i) for i in range(self.n_scales)]
-        self.scale_dims = [scale**2 for scale in self.scales]
+        self.scale_dims = [3*scale**2 for scale in self.scales]
         self.log.debug(f"scales: {self.scales}")
         self.log.debug(f"scale_dims: {self.scale_dims}")
         for scale_dim in self.scale_dims:
