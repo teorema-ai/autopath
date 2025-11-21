@@ -301,7 +301,7 @@ def gigapath_vred_evaluator(name, **dataloader_kwargs):
             latent_gaussians=latent_gaussians,
         )
         #
-        featureloader = gigapath_featureset_dataloader(name, **dataloader_kwargs)
+        featureloader = gigapath_featureset_dataloader("GIGAPATH_BASELINE_CPTAC_8020_TEST", **dataloader_kwargs)
         vred_evaluator = VariationalReDecoderEvaluator(vred, featureloader)
     else:
         raise ValueError(f"Unknown gigapath_vred_evaluator: {name}")
