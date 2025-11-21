@@ -202,7 +202,7 @@ class VariationalReDecoder(nn.Module):
     def __init__(self, 
                  *, 
                  classifier: Classifier, 
-                 latent_gaussians: ClassMultiscaleLatentGaussians2D,
+                 latent_gaussians: ClassMultiscaleLatentGaussiansRGB,
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
                  variance_scale: float = 0.03,
