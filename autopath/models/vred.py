@@ -34,6 +34,7 @@ class Classifier(nn.Module):
             self.hidden_layers.append(nn.Linear(N, hidden_dim))
             self.hidden_activations.append(n_hidden_activation_cls())
         self.last_layer = nn.Linear(hidden_dim, n_classes)
+        self.log = log or dbx.Logger(self.__class__.__name__)
 
     def forward(self, x):
         self.log.debug(f"Generating classes for x of type: {type(x)}")
@@ -70,7 +71,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.fine_scale = fine_scale
         self.n_scales = n_scales
         self.variance_eps = variance_eps
-        self.log = dbx.Logger(self.__class__.__name__)
+        self.log = log or dbx.Logger(self.__class__.__name__)
 
         self.latents = []
         self.means = []
@@ -167,7 +168,7 @@ class ConvDecoder2D(nn.Module):
             in_channels = out_channels
         self.multiscale_resolutions = multiscale_resolutions or []
         self.variance_scale = variance_scale
-        self.log = dbx.Logger(self.__class__.__name__)
+        self.log = log or dbx.Logger(self.__class__.__name__)
 
     def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
         height = min(f.shape[-2] for f in features)
@@ -319,10 +320,10 @@ class VariationalReDecoder(nn.Module):
     
 
 class VariationalReDecoderEvaluator:
-    def __init__(self, vred, dataloader, *, log: dbx.Logger = dbx.Logger()):
+    def __init__(self, vred, dataloader, *, log: dbx.Logger = None):
         self.vred = vred
         self.dataloader = dataloader
-        self.log = log
+        self.log = log or dbx.Logger(self.__class__.__name__)
 
     def sample(self, n_samples: int = 1, batch_size: int = 1):
         self.log.debug(f"Sampling {n_samples} samples of batch_size {batch_size}")
