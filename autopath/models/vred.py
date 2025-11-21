@@ -18,14 +18,14 @@ class Classifier(nn.Module):
                  n_hidden_layers: int = 1, 
                  n_hidden_activation_cls: Callable = nn.ReLU, 
                  n_classes=100,
-                 log: dbx.Logger = dbx.Logger(),
+                 log: dbx.Logger = None,
     ):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.n_classes = n_classes
         self.n_hidden_layers = n_hidden_layers
-        self.log = log
+        self.log = dbx.Logger(self.__class__.__name__)
 
         self.hidden_layers = nn.ModuleList()
         self.hidden_activations = nn.ModuleList()
@@ -59,7 +59,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
                  fine_scale: int = 256, 
                  n_scales: int = 5,
                  variance_eps: float = 0.01,
-                 log: dbx.Logger = dbx.Logger(),
+                 log: dbx.Logger = None,
     ):
         super().__init__()
         self.n_classes = n_classes
@@ -70,7 +70,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.fine_scale = fine_scale
         self.n_scales = n_scales
         self.variance_eps = variance_eps
-        self.log = log
+        self.log = dbx.Logger(self.__class__.__name__)
 
         self.latents = []
         self.means = []
@@ -144,6 +144,7 @@ class ConvDecoder2D(nn.Module):
         multiscale_resolutions: Optional[List[Tuple[int, int]]] = None,
         variance_scale: float = 0.03,
         add_skip_features: bool = False,
+        log: dbx.Logger = None,
     ):
         super().__init__()
 
@@ -166,6 +167,7 @@ class ConvDecoder2D(nn.Module):
             in_channels = out_channels
         self.multiscale_resolutions = multiscale_resolutions or []
         self.variance_scale = variance_scale
+        self.log = dbx.Logger(self.__class__.__name__)
 
     def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
         height = min(f.shape[-2] for f in features)
