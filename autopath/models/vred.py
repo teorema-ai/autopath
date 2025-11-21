@@ -230,7 +230,7 @@ class VariationalReDecoder(nn.Module):
         return self.classifier.n_classes
     
     def sample(self, x):
-        self.log.debug(f"Computing class probabilities for x of type: {type(x)}")
+        self.log.debug(f"Computing class probabilities for x of shape: {x.shape}")
         class_probabilities = self.classifier(x)
         dist = torch.distributions.Categorical(probs=class_probabilities)
         ksample = dist.sample()
