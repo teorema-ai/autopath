@@ -42,10 +42,6 @@ class Classifier(nn.Module):
             x = self.hidden_activations[i](x)
         x = self.last_layer(x)
         self.log.debug(f"Generated logits of shape: {x.shape=}")
-
-        #DEBUG
-        #breakpoint()
-
         x = F.softmax(x, dim=1)
         self.log.debug(f"Generated classes of shape: {x.shape=}")
         return x
@@ -237,7 +233,9 @@ class VariationalReDecoder(nn.Module):
         self.log.debug(f"Computing class probabilities for x of type: {type(x)}")
         class_probabilities = self.classifier(x)
         dist = torch.distributions.Categorical(probs=class_probabilities)
-        k = torch.full((x.shape[0], 1), dist.sample()).to(x.device)
+        ksample = dist.sample()
+        self.log.debug(f"Sampled classes: {ksample}")
+        k = torch.full((x.shape[0], 1), ksample).to(x.device)
         gaussian_means_and_variances = self.latent_gaussians(x, k)
         multiscale_means = []
         for mean, variance in gaussian_means_and_variances:
