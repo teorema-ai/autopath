@@ -47,10 +47,11 @@ class Classifier(nn.Module):
         return x
     
 
-class ClassMultiscaleLatentGaussiansRGB(nn.Module):
+class ClassMultiscaleLatentGaussians2D(nn.Module):
     def __init__(self, 
                  *, 
                  n_classes: int = 100, 
+                 n_channels: int = 128,
                  input_dim: int = 1536, 
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
@@ -62,6 +63,8 @@ class ClassMultiscaleLatentGaussiansRGB(nn.Module):
     ):
         super().__init__()
         self.n_classes = n_classes
+        self.n_channels = n_channels
+        self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.n_hidden_layers = n_hidden_layers
         self.fine_scale = fine_scale
@@ -74,7 +77,7 @@ class ClassMultiscaleLatentGaussiansRGB(nn.Module):
         self.prevariances = []
 
         self.scales = [fine_scale//(4**i) for i in range(self.n_scales)]
-        self.scale_dims = [3*scale**2 for scale in self.scales]
+        self.scale_dims = [self.n_channels*scale**2 for scale in self.scales]
         self.log.debug(f"scales: {self.scales}")
         self.log.debug(f"scale_dims: {self.scale_dims}")
         for scale_dim in self.scale_dims:
@@ -202,7 +205,7 @@ class VariationalReDecoder(nn.Module):
     def __init__(self, 
                  *, 
                  classifier: Classifier, 
-                 latent_gaussians: ClassMultiscaleLatentGaussiansRGB,
+                 latent_gaussians: ClassMultiscaleLatentGaussians2D,
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
                  variance_scale: float = 0.03,
@@ -214,9 +217,9 @@ class VariationalReDecoder(nn.Module):
         self.latent_gaussians = dbx.eval_term(latent_gaussians)
         assert self.classifier.n_classes == self.latent_gaussians.n_classes, f"Classifier has {self.classifier.n_classes} classes but latent_gaussians has {self.latent_gaussians.n_classes} classes"
         self.decoder = ConvDecoder2D(
-            num_input_features=latent_gaussians.n_channels,
-            skip_features_per_layer=[latent_gaussians.n_channels]*self.latent_gaussians.n_scales,
-            output_features_per_layer=[latent_gaussians.n_channels]*self.latent_gaussians.n_scales,
+            num_input_features=self.latent_gaussians.n_channels,
+            skip_features_per_layer=[self.latent_gaussians.n_channels]*self.latent_gaussians.n_scales,
+            output_features_per_layer=[self.latent_gaussians.n_channels]*self.latent_gaussians.n_scales,
             kernel_size=kernel_size,
             use_batch_norm=use_batch_norm,
             variance_scale=variance_scale,

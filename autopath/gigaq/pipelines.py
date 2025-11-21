@@ -35,7 +35,7 @@ from autopath.gigaq.dinov2.backbone import (
 
 from autopath.models.vred import (
     Classifier, 
-    ClassMultiscaleLatentGaussiansRGB,
+    ClassMultiscaleLatentGaussians2D,
     VariationalReDecoder,
     VariationalReDecoderEvaluator,
 )
@@ -287,7 +287,7 @@ def gigapath_vred_evaluator(name, **dataloader_kwargs):
             n_hidden_layers=n_hidden_layers,
             n_classes=n_classes,
         )
-        latent_gaussians = ClassMultiscaleLatentGaussiansRGB(
+        latent_gaussians = ClassMultiscaleLatentGaussians2D(
             n_classes=n_classes,
             input_dim=input_dim,
             n_hidden_layers=n_hidden_layers,
