@@ -277,7 +277,7 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
 
 
 # git commit -am "gigaq: Feature2NNDim: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020',).sample()"
-def gigapath_vred_evaluator(name, dataloader_kwargs):
+def gigapath_vred_evaluator(name, **dataloader_kwargs):
     input_dim = 1536
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         n_hidden_layers = 2
