@@ -234,8 +234,8 @@ class VariationalReDecoder(nn.Module):
         class_probabilities = self.classifier(x)
         dist = torch.distributions.Categorical(probs=class_probabilities)
         ksample = dist.sample()
-        self.log.debug(f"Sampled classes: {ksample}")
-        k = torch.full((x.shape[0], 1), ksample).to(x.device)
+        self.log.debug(f"Sampled classes {ksample}")
+        k = k.repeate(x.shape[0], 1)
         gaussian_means_and_variances = self.latent_gaussians(x, k)
         multiscale_means = []
         for mean, variance in gaussian_means_and_variances:
