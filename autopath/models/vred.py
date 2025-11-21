@@ -210,7 +210,7 @@ class VariationalReDecoder(nn.Module):
                  use_batch_norm: bool = True,
                  variance_scale: float = 0.03,
                  class_batch_size: int = None,
-                 log: dbx.Logger = dbx.Logger(),
+                 log: dbx.Logger = None,
     ):
         super().__init__()
         self.classifier = dbx.eval_term(classifier)
@@ -225,7 +225,7 @@ class VariationalReDecoder(nn.Module):
             variance_scale=variance_scale,
         )
         self.class_batch_size = class_batch_size
-        self.log = log
+        self.log = log or dbx.Logger(self.__class__)
 
     @property
     def n_classes(self):
