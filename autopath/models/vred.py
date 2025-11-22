@@ -78,7 +78,9 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.prevariances = []
 
         self.scales = [fine_scale//(2**i) for i in range(self.n_scales)]
-        self.scale_dims = [self.n_channels*scale**2 for scale in self.scales]
+        self.scale_dims = [3*fine_scale**2] + [
+            self.n_channels*scale**2 for scale in self.scales[1:]
+        ]
         self.log.debug(f"scales: {self.scales}")
         self.log.debug(f"scale_dims: {self.scale_dims}")
         for scale_dim in self.scale_dims:
