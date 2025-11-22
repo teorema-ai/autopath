@@ -317,7 +317,7 @@ class VariationalReDecoder(nn.Module):
                [3., 4., 2.]]]
         """
         Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
-        _loss_ = F.sqrt((Mhat - Y)**2/Vhat) # (k b) c h w
+        _loss_ = torch.sqrt((Mhat - Y)**2/Vhat) # (k b) c h w
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
         del Y
         del _loss_
