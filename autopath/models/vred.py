@@ -285,7 +285,7 @@ class VariationalReDecoder(nn.Module):
         b = x.shape[0]
         k = classes.shape[1]
         C = classes.repeat(b, 1).T.reshape(b*k, 1)
-        X = x.repeat(self.n_classes, [1]*len(x.shape[1:]))
+        X = x.repeat(self.n_classes, *([1]*len(x.shape[1:])))
         gaussian_means_and_variances = self.latent_gaussians(X, C)
         del X
         del C
@@ -315,7 +315,7 @@ class VariationalReDecoder(nn.Module):
                [1., 2., 2.],
                [3., 4., 2.]]]
         """
-        Y = y.repeat(self.n_classes, [1]*len(y.shape[1:]))
+        Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(X.dtype)
         _loss_ = F.sqrt((Mhat - Y)**2/Vhat) # (k b) c h w
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
         del Y
