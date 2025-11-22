@@ -98,6 +98,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
     def forward(self, x, c):
         #c shape (x.shape[0]()
         k = c[..., None]
+        self.log.detailed(f"forward: {x.shape=}, {k.shape=}")
         u = torch.cat([x, k], dim=-1) # a batch of [vector, scalar_class_idx]
         means_and_variances = []
         for i in range(len(self.latents)):
