@@ -106,8 +106,9 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             pv = self.prevariances[i](w)
             v = F.softplus(pv) + self.variance_eps
             scale = self.scales[i]
-            m = m.reshape(m.shape[0], self.n_channels, scale, scale)
-            v = v.reshape(v.shape[0], self.n_channels, scale, scale)
+            n_channels = 3 if i == 0 else self.n_channels
+            m = m.reshape(m.shape[0], n_channels, scale, scale)
+            v = v.reshape(v.shape[0], n_channels, scale, scale)
             means_and_variances.append((m, v))
             self.log.debug(f"Generated latents for scale {self.scales[i]}, {m.shape=}, {v.shape=}")
         return tuple(means_and_variances)
