@@ -336,12 +336,28 @@ class VariationalReDecoderEvaluator:
         self.dataloader = dataloader
         self.log = log or dbx.Logger(self.__class__.__name__)
 
-    def sample(self, n_samples: int = 1, batch_size: int = 1):
-        self.log.debug(f"Sampling {n_samples} samples of batch_size {batch_size}")
+    def sample(self, n_batches: int = 1, batch_size: int = 1):
+        self.log.debug(f"Sampling {n_batches} batches of batch_size {batch_size}")
         output_batches_list = []
-        sampleiter = iter(self.dataloader)
-        for i in range(n_samples):
-            input_batch = next(sampleiter)[0]
-            output_batch = self.vred.sample(input_batch)
-            output_batches_list.append(output_batch)
-        return output_batches_list
+        batchiter = iter(self.dataloader)
+        for _ in range(n_batches):
+            batch = next(batchiter)
+            _input_features = batch[0] 
+            _output_batch = self.vred.sample(_input_features)
+            output_batches_list.append(_output_batch)
+        output_batch = torch.cat(output_batches_list, dim=0)
+        return output_batch
+    
+    def losses(self, n_batches: int = 1, batch_size: int = 1):
+        self.log.debug(f"Computing losses for {n_batches} batches of batch_size {batch_size}")
+        loss_list = []
+        batchiter = iter(self.dataloader)
+        for _ in range(n_batches):
+            batch = next(batchiter)
+            _input_features = batch[0] 
+            _input_tiles = batch[1][1]
+            _loss = self.vred.loss(_input_features, _input_tiles)
+            loss_list.append(_loss)
+        losses = torch.stack(loss_list)
+        return losses
+
