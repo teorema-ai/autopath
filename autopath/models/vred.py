@@ -242,6 +242,12 @@ class VariationalReDecoder(nn.Module):
         self.class_batch_size = class_batch_size
         self.log = log or dbx.Logger(self.__class__.__name__)
 
+    def to(self, device):
+        self.classifier.to(device)
+        self.latent_gaussians.to(device)
+        self.decoder.to(device)
+        return self
+
     @property
     def n_classes(self):
         return self.classifier.n_classes
@@ -338,6 +344,12 @@ class VariationalReDecoderEvaluator:
         self.vred = vred
         self.dataloader = dataloader
         self.log = log or dbx.Logger(self.__class__.__name__)
+        self.device = 'cpu'
+
+    def to(self, device):
+        self.device = device
+        self.vred.to(device)
+        return self
 
     def samples(self, n_batches: int = 1, batch_size: int = 1):
         self.log.debug(f"Sampling {n_batches} batches of batch_size {batch_size}")
@@ -346,7 +358,7 @@ class VariationalReDecoderEvaluator:
         for _ in range(n_batches):
             batch = next(batchiter)
             _input_features = batch[0] 
-            _output_batch = self.vred.sample(_input_features)
+            _output_batch = self.vred.sample(_input_features.to(self.device)).to('cpu')
             output_batches_list.append(_output_batch)
         return output_batches_list
     
@@ -358,7 +370,7 @@ class VariationalReDecoderEvaluator:
             batch = next(batchiter)
             _input_features = batch[0] 
             _input_tiles = batch[1][1]
-            _loss = self.vred.loss(_input_features, _input_tiles)
+            _loss = self.vred.loss(_input_features.to(self.device), _input_tiles.to(self.device)).to('cpu')
             loss_list.append(_loss)
         return loss_list
 
