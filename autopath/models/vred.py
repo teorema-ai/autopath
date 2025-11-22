@@ -98,7 +98,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
     def forward(self, x, c):
         #c shape (x.shape[0])
         k = c[..., None]
-        self.log.detailed(f"forward: ----------------------> {x.shape=}, {k.shape=}")
+        self.log.detailed(f"forward: ----------------------> {x.shape=}, {c.shape=}, {k.shape=}")
         u = torch.cat([x, k], dim=-1) # a batch of [vector, scalar_class_idx]
         means_and_variances = []
         for i in range(len(self.latents)):
@@ -263,7 +263,7 @@ class VariationalReDecoder(nn.Module):
         return decoded_sample
 
     def loss(self, x, y):
-        classes = torch.tensor(list(range(self.n_classes))).reshape(1, -1).to(x.device)
+        classes = torch.tensor(list(range(self.n_classes)))
         class_probabilities = self.classifier(x).reshape(1, -1)
         losses = []
         if self.class_batch_size is None:
@@ -271,7 +271,7 @@ class VariationalReDecoder(nn.Module):
         for class_lo in range(0, self.n_classes, self.class_batch_size):
             class_hi = min(self.n_classes, class_lo + self.class_batch_size)
             class_probabilities_batch = class_probabilities[:, class_lo:class_hi]
-            classes_batch = classes[:, class_lo:class_hi]
+            classes_batch = classes[class_lo:class_hi]
             _loss = self._class_batch_loss(x, y, classes_batch, class_probabilities_batch)
             losses.append(_loss)
         loss = torch.sum(losses) #TODO: take .mean()
@@ -339,7 +339,7 @@ class VariationalReDecoderEvaluator:
         self.dataloader = dataloader
         self.log = log or dbx.Logger(self.__class__.__name__)
 
-    def sample(self, n_batches: int = 1, batch_size: int = 1):
+    def samples(self, n_batches: int = 1, batch_size: int = 1):
         self.log.debug(f"Sampling {n_batches} batches of batch_size {batch_size}")
         output_batches_list = []
         batchiter = iter(self.dataloader)
@@ -348,8 +348,7 @@ class VariationalReDecoderEvaluator:
             _input_features = batch[0] 
             _output_batch = self.vred.sample(_input_features)
             output_batches_list.append(_output_batch)
-        output_batch = torch.cat(output_batches_list, dim=0)
-        return output_batch
+        return output_batches_list
     
     def losses(self, n_batches: int = 1, batch_size: int = 1):
         self.log.debug(f"Computing losses for {n_batches} batches of batch_size {batch_size}")
@@ -361,6 +360,5 @@ class VariationalReDecoderEvaluator:
             _input_tiles = batch[1][1]
             _loss = self.vred.loss(_input_features, _input_tiles)
             loss_list.append(_loss)
-        losses = torch.stack(loss_list)
-        return losses
+        return loss_list
 
