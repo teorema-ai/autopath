@@ -5,6 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+import dbx
+
+
 class Conv2dSame(nn.Module):
     """Manual convolution with same padding
 
@@ -20,7 +23,7 @@ class Conv2dSame(nn.Module):
     Taken from: https://github.com/pytorch/pytorch/issues/3867#issuecomment-974159134
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, dilation=1, **kwargs):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, dilation=1, *, log = None, **kwargs):
         """Wrap base convolution layer
 
         See official PyTorch documentation for parameter details
@@ -42,6 +45,7 @@ class Conv2dSame(nn.Module):
         #dilation_ = _pair(dilation)
         dilation_ = (dilation, dilation)
         self._reversed_padding_repeated_twice = [0, 0] * len(kernel_size_)
+        self.log = log or dbx.Logger(self.__class__.__name__)
 
         # Follow the logic from ``nn._ConvNd``
         # https://github.com/pytorch/pytorch/blob/v1.10.0/torch/nn/modules/conv.py#L116
@@ -60,6 +64,9 @@ class Conv2dSame(nn.Module):
         :return torch.Tensor:
         """
         padded = F.pad(imgs, self._reversed_padding_repeated_twice)
+        self.log.debug(f"imgs.shape: {imgs.shape}")
+        self.log.debug(f"self._reversed_padding_repeated_twice: {self._reversed_padding_repeated_twice}")
+        self.log.debug(f"padded.shape: {padded.shape}")
         return self.conv(padded)
 
 
