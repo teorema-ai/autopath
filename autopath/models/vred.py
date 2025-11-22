@@ -175,6 +175,8 @@ class ConvDecoder2D(nn.Module):
         mean = torch.cat([f for f in features if f.shape[-2] == height], dim=1)
         self.log.debug(f"bottom: {height=}, {mean.shape=}")
         self.log.debug(f"num_layers: {self.num_layers}, top height: {height*(2**self.num_layers)}")
+
+        self.log.debug(f"feature_shapes: {[f.shape for f in features]}")
         bs, _, _, width = mean.shape
 
         multiscale_features = []
