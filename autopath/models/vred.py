@@ -99,9 +99,11 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         #c shape (x.shape[0])
         k = c[..., None]
         self.log.detailed(f"forward: ----------------------> {x.shape=}, {c.shape=}, {k.shape=}")
+        self.log.detailed(f"forward: devices: -------------> {x.device=}, {c.device=}")
         u = torch.cat([x, k], dim=-1) # a batch of [vector, scalar_class_idx]
         means_and_variances = []
         for i in range(len(self.latents)):
+            self.log.detailed(f"latents: devices: latents[{i}].device={self.latents[i].device}, {u.device=}")
             w = self.latents[i](u)
             m = self.means[i](w)
             pv = self.prevariances[i](w)
