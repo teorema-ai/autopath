@@ -285,7 +285,7 @@ class VariationalReDecoder(nn.Module):
     def _class_batch_loss(self, x, y, classes, class_probabilities):
         b = x.shape[0]
         k = classes.shape[1]
-        C = classes.repeat(b, 1).T.reshape(b*k, 1)
+        C = classes.repeat(b).reshape(b*k)
         X = x.repeat(self.n_classes, *([1]*len(x.shape[1:])))
         gaussian_means_and_variances = self.latent_gaussians(X, C)
         del X
