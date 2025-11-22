@@ -173,6 +173,7 @@ class ConvDecoder2D(nn.Module):
     def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
         height = min(f.shape[-2] for f in features)
         mean = torch.cat([f for f in features if f.shape[-2] == height], dim=1)
+        self.log.debug(f"top: {height=}, {mean.shape=}")
         bs, _, _, width = mean.shape
 
         multiscale_features = []
