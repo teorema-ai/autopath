@@ -265,13 +265,15 @@ class VariationalReDecoder(nn.Module):
         classes = torch.tensor(list(range(self.n_classes))).reshape(1, -1).to(x.device)
         class_probabilities = self.classifier(x).reshape(1, -1)
         losses = []
+        if self.class_batch_size is None:
+            self.class_batch_size = self.n_classes
         for class_lo in range(0, self.n_classes, self.class_batch_size):
             class_hi = min(self.n_classes, class_lo + self.class_batch_size)
             class_probabilities_batch = class_probabilities[:, class_lo:class_hi]
             classes_batch = classes[:, class_lo:class_hi]
             _loss = self._class_batch_loss(x, y, classes_batch, class_probabilities_batch)
             losses.append(_loss)
-        loss = torch.sum(losses)
+        loss = torch.sum(losses) #TODO: take .mean()
         del losses
         del class_probabilities
         del classes
