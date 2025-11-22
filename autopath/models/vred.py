@@ -190,6 +190,7 @@ class ConvDecoder2D(nn.Module):
             up_layer = getattr(self, f"up_layer_{i}")
             self.log.debug(f"{height=}, {width=}, {skip_features.shape=}, {mean.shape=}")
             mean = up_layer(mean, skip_features)
+            self.log.debug(f"up_layer_{i}: {mean.shape=}")
             if (height, width) in self.multiscale_resolutions:
                 multiscale_features.append(mean)
                 found_resolutions.append((height, width))
