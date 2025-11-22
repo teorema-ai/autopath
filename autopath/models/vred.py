@@ -227,8 +227,8 @@ class VariationalReDecoder(nn.Module):
         assert self.classifier.n_classes == self.latent_gaussians.n_classes, f"Classifier has {self.classifier.n_classes} classes but latent_gaussians has {self.latent_gaussians.n_classes} classes"
         self.decoder = ConvDecoder2D(
             num_input_features=self.latent_gaussians.n_channels,
-            skip_features_per_layer=[self.latent_gaussians.n_channels]*self.latent_gaussians.n_scales,
-            output_features_per_layer=[self.latent_gaussians.n_channels]*self.latent_gaussians.n_scales,
+            skip_features_per_layer=[self.latent_gaussians.n_channels]*(self.latent_gaussians.n_scales-2) + [self.latent_gaussians.n_channels],
+            output_features_per_layer=[self.latent_gaussians.n_channels]*(self.latent_gaussians.n_scales-2) + [self.latent_gaussians.n_channels],
             kernel_size=kernel_size,
             use_batch_norm=use_batch_norm,
             variance_scale=variance_scale,
