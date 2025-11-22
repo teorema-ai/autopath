@@ -184,6 +184,7 @@ class ConvDecoder2D(nn.Module):
             skip_features += [f for f in features if f.shape[-2] == height]
             skip_features = torch.cat(skip_features, dim=1)
             up_layer = getattr(self, f"up_layer_{i}")
+            self.log.debug(f"{height=}, {width=}, {skip_features.shape=}, {mean.shape=}")
             mean = up_layer(mean, skip_features)
             if (height, width) in self.multiscale_resolutions:
                 multiscale_features.append(mean)
