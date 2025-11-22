@@ -282,7 +282,7 @@ def gigapath_vred_evaluator(name, **dataloader_kwargs):
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN":
         n_hidden_layers = 2
         n_classes = 100
-        n_latent_channels = 5
+        n_channels = 5
         classifier = Classifier(
             input_dim=input_dim,
             n_hidden_layers=n_hidden_layers,
@@ -290,7 +290,7 @@ def gigapath_vred_evaluator(name, **dataloader_kwargs):
         )
         latent_gaussians = ClassMultiscaleLatentGaussians2D(
             n_classes=n_classes,
-            n_channels=n_latent_channels,
+            n_channels=n_channels,
             input_dim=input_dim,
             n_hidden_layers=n_hidden_layers,
             fine_scale=256,

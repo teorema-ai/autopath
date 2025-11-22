@@ -52,7 +52,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
     def __init__(self, 
                  *, 
                  n_classes: int = 100, 
-                 n_channels: int = 128,
+                 n_channels: int = 16,
                  input_dim: int = 1536, 
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
@@ -78,8 +78,8 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.prevariances = []
 
         self.scales = [fine_scale//(2**i) for i in range(self.n_scales)]
-        self.scale_dims = [3*fine_scale**2] + [
-            self.n_channels*scale**2 for scale in self.scales[1:]
+        self.scale_dims = [
+            self.n_channels*scale**2 for scale in self.scales
         ]
         self.log.debug(f"scales: {self.scales}")
         self.log.debug(f"scale_dims: {self.scale_dims}")
@@ -106,9 +106,8 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             pv = self.prevariances[i](w)
             v = F.softplus(pv) + self.variance_eps
             scale = self.scales[i]
-            n_channels = 3 if i == 0 else self.n_channels
-            m = m.reshape(m.shape[0], n_channels, scale, scale)
-            v = v.reshape(v.shape[0], n_channels, scale, scale)
+            m = m.reshape(m.shape[0], self.n_channels, scale, scale)
+            v = v.reshape(v.shape[0], self.n_channels, scale, scale)
             means_and_variances.append((m, v))
             self.log.debug(f"Generated latents for scale {self.scales[i]}, {m.shape=}, {v.shape=}")
         return tuple(means_and_variances)
@@ -169,6 +168,7 @@ class ConvDecoder2D(nn.Module):
             layer_idx = self.num_layers - i - 1
             setattr(self, f"up_layer_{layer_idx}", layer)
             in_channels = out_channels
+        self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.multiscale_resolutions = multiscale_resolutions or []
         self.variance_scale = variance_scale
         self.log = log or dbx.Logger(self.__class__.__name__)
@@ -200,6 +200,8 @@ class ConvDecoder2D(nn.Module):
         assert len(found_resolutions) == len(
             self.multiscale_resolutions
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
+        mean = self.final_conv(mean)
+        self.log.debug(f"final_conv: mean: {mean.shape=}")
         variance = torch.full((bs, mean.shape[1], height, width), self.variance_scale)
         if self.multiscale_resolutions:
             return mean, variance, multiscale_features
