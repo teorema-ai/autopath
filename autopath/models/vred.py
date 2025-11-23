@@ -73,9 +73,10 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.variance_eps = variance_eps
         self.log = log or dbx.Logger(self.__class__.__name__)
 
-        self.latents = []
-        self.means = []
-        self.prevariances = []
+        self.latents = nn.ModuleList()
+        self.means = nn.ModuleList()
+        self.prevariances = nn.ModuleList()
+        self.softpluses = nn.ModuleList()
 
         self.scales = [fine_scale//(2**i) for i in range(self.n_scales)]
         self.scale_dims = [
@@ -94,6 +95,8 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             self.latents.append(nn.Sequential(*hidden_modules))
             self.means.append(nn.Linear(hidden_dim, scale_dim))
             self.prevariances.append(nn.Linear(hidden_dim, scale_dim))
+            self.softpluses.append(nn.Softplus())
+        self.log.detailed(f"named_parameters: {list(self.named_parameters())}")
 
     def forward(self, x, c):
         #c shape (x.shape[0])
@@ -103,11 +106,14 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         u = torch.cat([x, k], dim=-1) # a batch of [vector, scalar_class_idx]
         means_and_variances = []
         for i in range(len(self.latents)):
-            self.log.detailed(f"latents: devices: latents[{i}].device={self.latents[i].device}, {u.device=}")
+            latents_devices = {k: v.device for k, v in self.latents[i].named_parameters()}
+            self.log.detailed(f"latents: devices: latents[{i}]: devices={latents_devices}, {u.device=}")
             w = self.latents[i](u)
+            self.log.detailed(f"means: devices: means[{i}]: {self.means[i].device=}, {w.device=}")
             m = self.means[i](w)
+            self.log.detailed(f"prevariances: devices: prevariances[{i}]: {self.prevariances[i].device=}, {w.device=}")
             pv = self.prevariances[i](w)
-            v = F.softplus(pv) + self.variance_eps
+            v = self.softpluses[i](pv) + self.variance_eps
             scale = self.scales[i]
             m = m.reshape(m.shape[0], self.n_channels, scale, scale)
             v = v.reshape(v.shape[0], self.n_channels, scale, scale)
@@ -169,7 +175,7 @@ class ConvDecoder2D(nn.Module):
                 add_skip=add_skip_features,
             )
             layer_idx = self.num_layers - i - 1
-            setattr(self, f"up_layer_{layer_idx}", layer)
+            setattr(self, f"up_layer_{layer_idx}", layer) #TODO: use nn.ModuleList
             in_channels = out_channels
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.multiscale_resolutions = multiscale_resolutions or []
@@ -193,7 +199,7 @@ class ConvDecoder2D(nn.Module):
             skip_features = [torch.empty(bs, 0, height, width, device=mean.device)]
             skip_features += [f for f in features if f.shape[-2] == height]
             skip_features = torch.cat(skip_features, dim=1)
-            up_layer = getattr(self, f"up_layer_{i}")
+            up_layer = getattr(self, f"up_layer_{i}") # TODO: use a nn.ModuleList
             self.log.debug(f"{height=}, {width=}, {skip_features.shape=}, {mean.shape=}")
             mean = up_layer(mean, skip_features)
             self.log.debug(f"up_layer_{i}: {mean.shape=}")
