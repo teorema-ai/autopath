@@ -276,12 +276,12 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
     return next(iter(dataloader))
 
 
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).samples()"
+
+# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).samples(1)"
+# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).samples(2)"
 #
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(1, 1)"
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(2, 1)"
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(1, 2)"
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(2, 2)"
+# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(1)"
+# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(2)"
 def gigapath_vred_evaluator(name, **dataloader_kwargs):
     input_dim = 1536
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN":
