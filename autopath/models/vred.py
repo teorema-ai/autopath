@@ -109,9 +109,9 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             latents_devices = {k: v.device for k, v in self.latents[i].named_parameters()}
             self.log.detailed(f"latents: devices: latents[{i}]: devices={latents_devices}, {u.device=}")
             w = self.latents[i](u)
-            self.log.detailed(f"means: devices: means[{i}]: {self.means[i].device=}, {w.device=}")
+            self.log.detailed(f"means: devices: means[{i}]: {self.means[i].weight.device=}, {w.device=}")
             m = self.means[i](w)
-            self.log.detailed(f"prevariances: devices: prevariances[{i}]: {self.prevariances[i].device=}, {w.device=}")
+            self.log.detailed(f"prevariances: devices: prevariances[{i}]: {self.prevariances[i].weight.device=}, {w.device=}")
             pv = self.prevariances[i](w)
             v = self.softpluses[i](pv) + self.variance_eps
             scale = self.scales[i]
