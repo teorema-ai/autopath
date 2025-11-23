@@ -250,11 +250,13 @@ class VariationalReDecoder(nn.Module):
         )
         self.class_batch_size = class_batch_size
         self.log = log or dbx.Logger(self.__class__.__name__)
+        self.device = 'cpu'
 
     def to(self, device):
         self.classifier.to(device)
         self.latent_gaussians.to(device)
         self.decoder.to(device)
+        self.device = device
         return self
 
     @property
