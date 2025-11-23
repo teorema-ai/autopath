@@ -299,7 +299,7 @@ def gigapath_vred(n_hidden_layers: int = 2, n_classes: int = 100, n_channels: in
     return vred
     
 
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=2).samples(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=2).to('cuda').samples(1)"
 def gigapath_vred_evaluator(name, **dataloader_kwargs):
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN":
         vred = gigapath_vred(n_hidden_layers=2, n_classes=100, n_channels=5)
