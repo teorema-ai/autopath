@@ -276,36 +276,33 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
     return next(iter(dataloader))
 
 
-
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).samples(1)"
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).samples(2)"
-#
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(1)"
-# git commit -am "gigaq: VRED eval: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN', batch_size=2).losses(2)"
-def gigapath_vred_evaluator(name, **dataloader_kwargs):
+# git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred()"
+def gigapath_vred(n_hidden_layers: int = 2, n_classes: int = 100, n_channels: int = 10):
     input_dim = 1536
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5CHAN":
-        n_hidden_layers = 2
-        n_classes = 100
-        n_channels = 5
-        classifier = Classifier(
-            input_dim=input_dim,
-            n_hidden_layers=n_hidden_layers,
-            n_classes=n_classes,
-        )
-        latent_gaussians = ClassMultiscaleLatentGaussians2D(
-            n_classes=n_classes,
-            n_channels=n_channels,
-            input_dim=input_dim,
-            n_hidden_layers=n_hidden_layers,
-            fine_scale=256,
-            n_scales=4,
-        )
-        vred = VariationalReDecoder(
-            classifier=classifier,
-            latent_gaussians=latent_gaussians,
-        )
-        #
+    classifier = Classifier(
+        input_dim=input_dim,
+        n_hidden_layers=n_hidden_layers,
+        n_classes=n_classes,
+    )
+    latent_gaussians = ClassMultiscaleLatentGaussians2D(
+        n_classes=n_classes,
+        n_channels=n_channels,
+        input_dim=input_dim,
+        n_hidden_layers=n_hidden_layers,
+        fine_scale=256,
+        n_scales=4,
+    )
+    vred = VariationalReDecoder(
+        classifier=classifier,
+        latent_gaussians=latent_gaussians,
+    )
+    return vred
+    
+
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_10CLS_5CHN', batch_size=2).samples(1)"
+def gigapath_vred_evaluator(name, **dataloader_kwargs):
+    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHAN":
+        vred = gigapath_vred(n_hidden_layers=2, n_classes=100, n_channels=5)
         featureloader = gigapath_featureset_dataloader("GIGAPATH_BASELINE_CPTAC_8020_TEST", **dataloader_kwargs)
         vred_evaluator = VariationalReDecoderEvaluator(vred, featureloader)
     else:
