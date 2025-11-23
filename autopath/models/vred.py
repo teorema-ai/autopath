@@ -269,7 +269,7 @@ class VariationalReDecoder(nn.Module):
         gaussian_means_and_variances = self.latent_gaussians(x, ksample)
         multiscale_means = []
         for mean, variance in gaussian_means_and_variances:
-            normal_sample = torch.randn(mean.shape)
+            normal_sample = torch.randn(mean.shape).to(x.device)
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         decoded_mean, decoded_variance = self.decoder(multiscale_means)
         normal_sample = torch.randn(decoded_mean.shape)
