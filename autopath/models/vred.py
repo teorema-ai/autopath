@@ -273,6 +273,7 @@ class VariationalReDecoder(nn.Module):
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         decoded_mean, decoded_variance = self.decoder(multiscale_means)
         normal_sample = torch.randn(decoded_mean.shape).to(x.device)
+        self.log.detailed(f"sample: {decoded_mean.device=}, {decoded_variance.device=}, {normal_sample.device=}, {x.device=}")
         decoded_sample = decoded_mean + normal_sample*torch.sqrt(decoded_variance)
         return decoded_sample
 
