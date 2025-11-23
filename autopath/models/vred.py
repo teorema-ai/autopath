@@ -210,7 +210,7 @@ class ConvDecoder2D(nn.Module):
             self.multiscale_resolutions
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
         mean = self.final_conv(mean)
-        self.log.debug(f"final_conv: mean: {mean.shape=}")
+        self.log.debug(f"final_conv: mean: {mean.shape=}, {mean.device=}")
         variance = torch.full((bs, mean.shape[1], height, width), self.variance_scale)
         if self.multiscale_resolutions:
             return mean, variance, multiscale_features
