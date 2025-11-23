@@ -279,7 +279,10 @@ class VariationalReDecoder(nn.Module):
         return decoded_sample
 
     def loss(self, x, y):
-        classes = torch.tensor(list(range(self.n_classes)))
+        x = x.to(self.device)
+        y = y.to(self.device)
+        self.log.debug(f"Computing loss for x,y of shapes: {x.shape=}, {y.shape=}, devices: {x.device=}, {y.device=}")
+        classes = torch.tensor(list(range(self.n_classes))).to(self.device)
         class_probabilities = self.classifier(x).reshape(1, -1)
         losses = []
         if self.class_batch_size is None:
@@ -310,7 +313,7 @@ class VariationalReDecoder(nn.Module):
         torch.cuda.empty_cache()
         multiscale_means = []
         for mean, variance in gaussian_means_and_variances:
-            normal_sample = torch.randn(mean.shape)
+            normal_sample = torch.randn(mean.shape).to(x.device)
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         Mhat, Vhat = self.decoder(multiscale_means)
         del multiscale_means
