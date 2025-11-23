@@ -366,8 +366,8 @@ class VariationalReDecoderEvaluator:
         self.vred.to(device)
         return self
 
-    def samples(self, n_batches: int = 1, batch_size: int = 1):
-        self.log.debug(f"Sampling {n_batches} batches of batch_size {batch_size}")
+    def samples(self, n_batches: int = 1):
+        self.log.debug(f"Sampling {n_batches} batches")
         output_batches_list = []
         batchiter = iter(self.dataloader)
         for _ in range(n_batches):
@@ -377,8 +377,8 @@ class VariationalReDecoderEvaluator:
             output_batches_list.append(_output_batch)
         return output_batches_list
     
-    def losses(self, n_batches: int = 1, batch_size: int = 1):
-        self.log.debug(f"Computing losses for {n_batches} batches of batch_size {batch_size}")
+    def losses(self, n_batches: int = 1):
+        self.log.debug(f"Computing losses for {n_batches} batches")
         loss_list = []
         batchiter = iter(self.dataloader)
         for _ in range(n_batches):
