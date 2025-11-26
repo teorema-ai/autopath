@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import lightning as L
+
 import dbx
 
 from .layers import UpLayer
@@ -281,8 +283,6 @@ class VariationalReDecoder(nn.Module):
         return decoded_sample
 
     def loss(self, x, y):
-        x = x.to(self.device)
-        y = y.to(self.device)
         self.log.debug(f"Computing loss for x,y of shapes: {x.shape=}, {y.shape=}, devices: {x.device=}, {y.device=}")
         classes = torch.tensor(list(range(self.n_classes))).to(self.device)
         class_probabilities = self.classifier(x).reshape(1, -1)
@@ -388,4 +388,22 @@ class VariationalReDecoderEvaluator:
             _loss = self.vred.loss(_input_features.to(self.device), _input_tiles.to(self.device)).to('cpu')
             loss_list.append(_loss)
         return loss_list
+
+
+class VariationalReDecoderLightning(L.LightningModule):
+    def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3):
+        super().__init__()
+        self.vred = vred
+        self.learning_rate = learning_rate
+
+    def training_step(self, batch, batch_idx):
+        features, labels = batch
+        bag, tile = labels
+        loss = self.vred.loss(features, tile)
+        self.log("training_step: {loss=}")
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
+        return optimizer
 

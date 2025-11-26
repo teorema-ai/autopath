@@ -6,7 +6,7 @@ import torch.utils.data
 import dbx
 from dbx import Datablock
 
-from autopath.models import vred
+from autopath.models.vred import VariationalReDecoderLightning
 
 
 class VariationalReDecoderStill(Datablock):
@@ -14,11 +14,10 @@ class VariationalReDecoderStill(Datablock):
     
     @dataclass 
     class CONFIG:
-        vae: vred.VariationalReDecoder
-        features: torch.utils.data.Dataset
-        loss: nn.Module
+        vred_lightning: VariationalReDecoderLightning
+        featureset: torch.utils.data.Dataset
 
     def __init__(self, *args, n_devices: int = 1, **kwargs):
         super().__init__(*args, n_devices=n_devices, **kwargs)
-
+        
     ...
