@@ -426,7 +426,7 @@ class VariationalReDecoderStill(Datablock):
     @dataclass 
     class CONFIG:
         lightning: VariationalReDecoderLightning
-        featureloader: torch.utils.data.DataLoader
+        dataloader: torch.utils.data.DataLoader
         ckpt_path: str = None
         max_steps: int = None
 
@@ -440,6 +440,8 @@ class VariationalReDecoderStill(Datablock):
             max_steps=self.cfg.max_steps,
             logger=logger,
         )
+        self.log.debug(f"Built {trainer=}")
+        self.log.debug(f"Launching the training for {self.cfg.max_steps=}")
         trainer.fit(model=self.cfg.lightning, train_dataloaders=self.cfg.dataloader)
         return self
 
