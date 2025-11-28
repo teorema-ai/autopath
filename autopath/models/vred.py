@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import functools
 import gc
 from typing import Callable, List, Optional, Tuple
 
@@ -395,27 +396,34 @@ class VariationalReDecoderEvaluator(Datablock):
         return loss_list
 
 
-class VariationalReDecoderLightning(L.LightningModule, Datablock):
+class VariationalReDecoderLightning(Datablock):
+    class Lightning(L.LightningModule):
+        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3):
+            super().__init__()
+            self.vred = vred
+            self.learning_rate = learning_rate
+            self.save_hyperparameters(ignore=['vred'])
+                                         
+    def training_step(self, batch, batch_idx):
+        features, labels = batch
+        bag, tile = labels
+        loss = self.vred.loss(features, tile)
+        self.log("training_step: {loss=}")
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
+        return optimizer
+
     @dataclass
     class CONFIG:
         vred: VariationalReDecoder
         learning_rate: float = 1e-3
 
-    def __init__(self, *args, **kwargs,):
-        L.LightningModule.__init__(self)
-        Datablock.__init__(self, *args, **kwargs)
-
-    def training_step(self, batch, batch_idx):
-        features, labels = batch
-        bag, tile = labels
-        loss = self.cfg.vred.loss(features, tile)
-        self.log("training_step: {loss=}")
-        return loss
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.cfg.vred.parameters(), lr=self.cfg.learning_rate)
-        return optimizer
-
+    @functools.cached_property
+    def lightning_module(self):
+        return self.Lightning(vred=self.cfg.vred, learning_rate=self.cfg.learning_rate)
+    
 
 class VariationalReDecoderStill(Datablock):
     VERSION = 1
@@ -442,7 +450,7 @@ class VariationalReDecoderStill(Datablock):
         )
         self.log.debug(f"Built {trainer=}")
         self.log.debug(f"Launching the training for {self.cfg.max_steps=}")
-        trainer.fit(model=self.cfg.lightning, train_dataloaders=self.cfg.dataloader)
+        trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
         return self
 
   
