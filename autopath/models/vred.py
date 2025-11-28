@@ -449,7 +449,7 @@ class VariationalReDecoderStill(Datablock):
 
     def __build__(self):
         logger = TensorBoardLogger(save_dir=self.dirpath('logs'))
-        trainer = dbx.LightningTrainer(
+        trainer = L.LightningTrainer(
             default_root_dir=self.dirpath('ckpts'), 
             max_steps=self.cfg.max_steps,
             logger=logger,
