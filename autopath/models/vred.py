@@ -410,7 +410,7 @@ class VariationalReDecoderLightning(Datablock):
             features, labels = batch
             bag, tile = labels
             loss = self.vred.loss(features, tile)
-            self.log("training_step: {loss=}")
+            self.log.debug("training_step: {loss=}")
             return loss
 
         def configure_optimizers(self):
