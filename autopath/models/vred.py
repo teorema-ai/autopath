@@ -438,7 +438,7 @@ class VariationalReDecoderStill(Datablock):
         lightning: VariationalReDecoderLightning
         dataloader: torch.utils.data.DataLoader
         init_ckpt_path: str = None
-        max_steps: int = None
+        max_steps: int = 1
 
     def __init__(self, *args, n_devices: int = 1, **kwargs):
         super().__init__(*args, n_devices=n_devices, **kwargs)
@@ -453,6 +453,7 @@ class VariationalReDecoderStill(Datablock):
         trainer = L.pytorch.Trainer(
             default_root_dir=self.dirpath('ckpts'), 
             max_steps=self.cfg.max_steps,
+            devices=self.n_devices,
             logger=logger,
         )
         self.log.debug(f"Built {trainer=} for lightining {self.cfg.lightning}")
