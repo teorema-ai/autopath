@@ -426,7 +426,7 @@ class VariationalReDecoderStill(Datablock):
     @dataclass 
     class CONFIG:
         lightning: VariationalReDecoderLightning
-        featureloader: torch.utils.data.Dataloader
+        featureloader: torch.utils.data.DataLoader
         ckpt_path: str = None
         max_steps: int = None
 
