@@ -274,7 +274,7 @@ class VariationalReDecoder(nn.Module):
         self.log.debug(f"Computing class probabilities for x of shape: {x.shape}")
         class_probabilities = self.classifier(x)
         class_distribution = torch.distributions.Categorical(probs=class_probabilities)
-        ksample = class_distribution.sample()
+        ksample = class_distribution.sample().to(x.device)
         self.log.debug(f"Sampled classes {ksample}")
         gaussian_means_and_variances = self.latent_gaussians(x, ksample)
         multiscale_means = []
