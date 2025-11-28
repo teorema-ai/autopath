@@ -331,10 +331,10 @@ def gigapath_vred_lightning(vred_name, learning_rate: float = 0.03):
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST').to('cuda').build()"
 def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_steps: int = None, init_ckpt_path: str = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False,):
     evaluator = gigapath_vred_evaluator(vred_dataset_name, batch_size=batch_size, shuffle=shuffle)
-    lightning = VariationalReDecoderLightning(spec=dict(vred=evaluator.spec.vred, learning_rate=learning_rate))
+    lightning = VariationalReDecoderLightning(spec=dict(vred=evaluator.spec['vred'], learning_rate=learning_rate))
     still = VariationalReDecoderStill(spec=dict(
         lightning=lightning, 
-        dataloader=evaluator.spec.dataloader,
+        dataloader=evaluator.spec['dataloader'],
         max_steps=max_steps,
         init_ckpt_path=init_ckpt_path,
         ),
