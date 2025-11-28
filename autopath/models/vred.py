@@ -360,7 +360,7 @@ class VariationalReDecoderEvaluator(Datablock):
     @dataclass
     class CONFIG:
         vred: VariationalReDecoder
-        dataloader: torch.utils.data.Dataloader
+        dataloader: torch.utils.data.DataLoader
 
     def __post_init__(self):
         self.vred = self.cfg.vred
