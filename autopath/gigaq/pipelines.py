@@ -277,8 +277,15 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
     return next(iter(dataloader))
 
 
-# git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred()"
-def gigapath_vred(n_hidden_layers: int = 2, n_classes: int = 100, n_channels: int = 10):
+# git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN')"
+def gigapath_vred(name):
+    if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN":
+        n_hidden_layers=2
+        n_classes=100
+        n_channels=5
+    else:
+        raise ValueError(f"Unknown gigapath_vred: {name}")
+    
     input_dim = 1536
     classifier = Classifier(
         input_dim=input_dim,
@@ -299,26 +306,26 @@ def gigapath_vred(n_hidden_layers: int = 2, n_classes: int = 100, n_channels: in
     )
     return vred
     
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=1).to('cuda').samples(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=1).to('cuda').samples(2)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=2).to('cuda').samples(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=2).to('cuda').samples(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').samples(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').samples(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').samples(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').samples(2)"
 #
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=1).to('cuda').losses(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=1).to('cuda').losses(2)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=2).to('cuda').losses(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN', batch_size=2).to('cuda').losses(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
 def gigapath_vred_evaluator(name, **dataloader_kwargs):
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_2HDN_100CLS_5CHN":
-        vred = gigapath_vred(n_hidden_layers=2, n_classes=100, n_channels=5)
-        featureloader = gigapath_featureset_dataloader("GIGAPATH_BASELINE_CPTAC_8020_TEST", **dataloader_kwargs)
-        vred_evaluator = VariationalReDecoderEvaluator(vred, featureloader)
-    else:
-        raise ValueError(f"Unknown gigapath_vred_evaluator: {name}")
+    vredname, _clipname = name.split('_BASELINE_CPTAC_')
+    clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
+    vred = gigapath_vred(vredname)
+    featureloader = gigapath_featureset_dataloader(clipname, **dataloader_kwargs)
+    vred_evaluator = VariationalReDecoderEvaluator(vred, featureloader)
     return vred_evaluator
 
 
 def gigapath_vred_still(dataset_name, *, max_steps: int = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False):
+    
     still = VariationalReDecoderStill(spec=dict(
         ...
     ))
