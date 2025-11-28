@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import lightning as L
-from lightning.pytorch.loggers import TensorBoardLogger
+import lightning.pytorch.loggers
 
 
 import dbx
@@ -448,7 +448,10 @@ class VariationalReDecoderStill(Datablock):
         return False
 
     def __build__(self):
-        logger = TensorBoardLogger(save_dir=self.dirpath('logs'))
+        logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'))
+        self.log.debug(f"Built {logger=} for lightining {self.cfg.lighthing}")
+        model = self.cfg.lightning
+        self.log.debug(f"Built {model=} for lightining {self.cfg.lighthing}")
         trainer = L.LightningTrainer(
             default_root_dir=self.dirpath('ckpts'), 
             max_steps=self.cfg.max_steps,
