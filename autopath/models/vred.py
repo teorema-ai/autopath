@@ -441,6 +441,10 @@ class VariationalReDecoderStill(Datablock):
     def __init__(self, *args, n_devices: int = 1, **kwargs):
         super().__init__(*args, n_devices=n_devices, **kwargs)
 
+    def valid(self):
+        #TODO: check if max_steps has been run and a corresponding ckpt has been generated
+        return False
+
     def __build__(self):
         logger = L.TensorBoardLogger(save_dir=self.dirpath('logs'))
         trainer = dbx.LightningTrainer(
