@@ -406,16 +406,16 @@ class VariationalReDecoderLightning(Datablock):
             self.learning_rate = learning_rate
             self.save_hyperparameters(ignore=['vred'])
                                          
-    def training_step(self, batch, batch_idx):
-        features, labels = batch
-        bag, tile = labels
-        loss = self.vred.loss(features, tile)
-        self.log("training_step: {loss=}")
-        return loss
+        def training_step(self, batch, batch_idx):
+            features, labels = batch
+            bag, tile = labels
+            loss = self.vred.loss(features, tile)
+            self.log("training_step: {loss=}")
+            return loss
 
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
-        return optimizer
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
+            return optimizer
 
     @dataclass
     class CONFIG:
