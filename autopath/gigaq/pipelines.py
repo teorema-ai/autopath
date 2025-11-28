@@ -319,8 +319,8 @@ def gigapath_vred(name):
 def gigapath_vred_evaluator(vred_dataset_name, **dataloader_kwargs):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
-    vred = gigapath_vred(vredname)
-    featureloader = gigapath_featureset_dataloader(clipname, **dataloader_kwargs)
+    vred = dbx.quote(gigapath_vred, vredname)
+    featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
     return vred_evaluator
 
