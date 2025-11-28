@@ -289,7 +289,7 @@ class VariationalReDecoder(nn.Module):
 
     def loss(self, x, y):
         self.log.debug(f"Computing loss for x,y of shapes: {x.shape=}, {y.shape=}, devices: {x.device=}, {y.device=}")
-        classes = torch.tensor(list(range(self.n_classes))).to(self.device)
+        classes = torch.tensor(list(range(self.n_classes))).to(x.device)
         class_probabilities = self.classifier(x).reshape(1, -1)
         losses = []
         if self.class_batch_size is None:
