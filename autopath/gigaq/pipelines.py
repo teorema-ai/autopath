@@ -38,6 +38,7 @@ from autopath.models.vred import (
     ClassMultiscaleLatentGaussians2D,
     VariationalReDecoder,
     VariationalReDecoderEvaluator,
+    VariationalReDecoderStill,
 )
 
 
@@ -315,3 +316,9 @@ def gigapath_vred_evaluator(name, **dataloader_kwargs):
     else:
         raise ValueError(f"Unknown gigapath_vred_evaluator: {name}")
     return vred_evaluator
+
+
+def gigapath_vred_still(dataset_name, *, max_steps: int = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False):
+    still = VariationalReDecoderStill(spec=dict(
+        ...
+    ))
