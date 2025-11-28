@@ -356,12 +356,15 @@ class VariationalReDecoder(nn.Module):
         return loss
     
 
-class VariationalReDecoderEvaluator:
-    def __init__(self, vred, dataloader, *, log: dbx.Logger = None):
-        self.vred = vred
-        self.dataloader = dataloader
-        self.log = log or dbx.Logger(self.__class__.__name__)
-        self.device = 'cpu'
+class VariationalReDecoderEvaluator(Datablock):
+    @dataclass
+    class CONFIG:
+        vred: VariationalReDecoder
+        dataloader: torch.utils.data.Dataloader
+
+    def __post_init__(self):
+        self.vred = self.cfg.vred
+        self.dataloader = self.cfg.dataloader
 
     def to(self, device):
         self.device = device
@@ -392,21 +395,25 @@ class VariationalReDecoderEvaluator:
         return loss_list
 
 
-class VariationalReDecoderLightning(L.LightningModule):
-    def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3):
-        super().__init__()
-        self.vred = vred
-        self.learning_rate = learning_rate
+class VariationalReDecoderLightning(L.LightningModule, Datablock):
+    @dataclass
+    class CONFIG:
+        vred: VariationalReDecoder
+        learning_rate: float = 1e-3
+
+    def __init__(self, *args, **kwargs,):
+        L.LightningModule.__init__(self)
+        Datablock.__init__(self, *args, **kwargs)
 
     def training_step(self, batch, batch_idx):
         features, labels = batch
         bag, tile = labels
-        loss = self.vred.loss(features, tile)
+        loss = self.cfg.vred.loss(features, tile)
         self.log("training_step: {loss=}")
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(self.cfg.vred.parameters(), lr=self.cfg.learning_rate)
         return optimizer
 
 
@@ -418,19 +425,13 @@ class VariationalReDecoderStill(Datablock):
     
     @dataclass 
     class CONFIG:
-        vred_lightning: VariationalReDecoderLightning
-        featureset: torch.utils.data.Dataset
+        lightning: VariationalReDecoderLightning
+        featureloader: torch.utils.data.Dataloader
         ckpt_path: str = None
         max_steps: int = None
-        batch_size: int = 1
-        shuffle: bool = False
 
     def __init__(self, *args, n_devices: int = 1, **kwargs):
         super().__init__(*args, n_devices=n_devices, **kwargs)
-         
-    def __post_init__(self):
-        
-        return self
 
     def __build__(self):
         logger = L.TensorBoardLogger(save_dir=self.dirpath('logs'))
@@ -439,8 +440,7 @@ class VariationalReDecoderStill(Datablock):
             max_steps=self.cfg.max_steps,
             logger=logger,
         )
-        dataloader = torch.utils.data.DataLoader(self.cfg.featureset, batch_size=self.cfg.batch_size, shuffle=self.cfg.shuffle)
-        trainer.fit(model=self.cfg.vred_lightning, train_dataloaders=dataloader)
+        trainer.fit(model=self.cfg.lightning, train_dataloaders=self.cfg.dataloader)
         return self
 
   
