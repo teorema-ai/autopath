@@ -456,7 +456,7 @@ class VariationalReDecoderStill(Datablock):
             logger=logger,
         )
         self.log.debug(f"Built {trainer=} for lightining {self.cfg.lightning}")
-        self.log.debug(f"Launching the training for {self.cfg.max_steps=}")
+        self.log.debug(f"Launching training for {self.cfg.max_steps=}")
         trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
         return self
 
