@@ -8,6 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import lightning as L
+from lightning.pytorch.loggers import TensorBoardLogger
+
 
 import dbx
 from dbx import Datablock
@@ -446,7 +448,7 @@ class VariationalReDecoderStill(Datablock):
         return False
 
     def __build__(self):
-        logger = L.TensorBoardLogger(save_dir=self.dirpath('logs'))
+        logger = TensorBoardLogger(save_dir=self.dirpath('logs'))
         trainer = dbx.LightningTrainer(
             default_root_dir=self.dirpath('ckpts'), 
             max_steps=self.cfg.max_steps,
