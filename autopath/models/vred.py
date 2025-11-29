@@ -306,6 +306,7 @@ class VariationalReDecoder(nn.Module):
         del classes
         gc.collect()
         torch.cuda.empty_cache()
+        self.log.detailed(f"loss: -------------requires_grad ------------> {loss.requires_grad}")
         return loss
 
     def _class_batch_loss(self, x, y, classes, class_probabilities):
