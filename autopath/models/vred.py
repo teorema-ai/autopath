@@ -299,6 +299,7 @@ class VariationalReDecoder(nn.Module):
             class_probabilities_batch = class_probabilities[:, class_lo:class_hi]
             classes_batch = classes[class_lo:class_hi]
             _loss = self._class_batch_loss(x, y, classes_batch, class_probabilities_batch)
+            self.log.detailed(f"loss: _loss: -------------requires_grad ------------> {_loss.requires_grad}")
             losses.append(_loss)
         loss = torch.sum(torch.tensor(losses)) #TODO: take .mean()?
         del losses
@@ -306,7 +307,7 @@ class VariationalReDecoder(nn.Module):
         del classes
         gc.collect()
         torch.cuda.empty_cache()
-        self.log.detailed(f"loss: -------------requires_grad ------------> {loss.requires_grad}")
+        self.log.detailed(f"loss: loss: -------------requires_grad ------------> {loss.requires_grad}")
         return loss
 
     def _class_batch_loss(self, x, y, classes, class_probabilities):
