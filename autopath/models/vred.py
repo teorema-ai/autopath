@@ -452,10 +452,11 @@ class VariationalReDecoderStill(Datablock):
 
     def __build__(self):
         logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'))
+        default_root_dir = self.dirpath('ckpts')
         self.log.debug(f"Built {logger=} for lightining {self.cfg.lightning}")
-        self.log.debug(f"Building trainer for {self.cfg.max_steps=} for lightining {self.cfg.lightning}")
+        self.log.debug(f"Building trainer using {default_root_dir=} to train for {self.cfg.max_steps=} using {self.cfg.lightning=} and {self.n_devices=}")
         trainer = L.pytorch.Trainer(
-            default_root_dir=self.dirpath('ckpts'), 
+            default_root_dir=default_root_dir, 
             max_steps=self.cfg.max_steps,
             devices=self.n_devices,
             logger=logger,
