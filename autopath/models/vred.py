@@ -46,14 +46,14 @@ class Classifier(nn.Module):
         self.log = log or dbx.Logger(self.__class__.__name__)
 
     def forward(self, x):
-        self.log.debug(f"Generating classes for x of type: {type(x)}")
+        self.log.detailed(f"Generating classes for x of type: {type(x)}")
         for i in range(self.n_hidden_layers):
             x = self.hidden_layers[i](x)
             x = self.hidden_activations[i](x)
         x = self.last_layer(x)
-        self.log.debug(f"Generated logits of shape: {x.shape=}")
+        self.log.detailed(f"Generated logits of shape: {x.shape=}")
         x = F.softmax(x, dim=1)
-        self.log.debug(f"Generated classes of shape: {x.shape=}")
+        self.log.detailed(f"Generated classes of shape: {x.shape=}")
         return x
     
 
@@ -127,7 +127,7 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             m = m.reshape(m.shape[0], self.n_channels, scale, scale)
             v = v.reshape(v.shape[0], self.n_channels, scale, scale)
             means_and_variances.append((m, v))
-            self.log.debug(f"Generated latents for scale {self.scales[i]}, {m.shape=}, {v.shape=}")
+            self.log.detailed(f"Generated latents for scale {self.scales[i]}, {m.shape=}, {v.shape=}")
         return tuple(means_and_variances)
     
 
@@ -194,10 +194,10 @@ class ConvDecoder2D(nn.Module):
     def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
         height = min(f.shape[-2] for f in features)
         mean = torch.cat([f for f in features if f.shape[-2] == height], dim=1)
-        self.log.debug(f"bottom: {height=}, {mean.shape=}")
-        self.log.debug(f"num_layers: {self.num_layers}, top height: {height*(2**self.num_layers)}")
+        self.log.detailed(f"bottom: {height=}, {mean.shape=}")
+        self.log.detailed(f"num_layers: {self.num_layers}, top height: {height*(2**self.num_layers)}")
 
-        self.log.debug(f"feature_shapes: {[f.shape for f in features]}")
+        self.log.detailed(f"feature_shapes: {[f.shape for f in features]}")
         bs, _, _, width = mean.shape
 
         multiscale_features = []
@@ -209,9 +209,9 @@ class ConvDecoder2D(nn.Module):
             skip_features += [f for f in features if f.shape[-2] == height]
             skip_features = torch.cat(skip_features, dim=1)
             up_layer = getattr(self, f"up_layer_{i}") # TODO: use a nn.ModuleList
-            self.log.debug(f"{height=}, {width=}, {skip_features.shape=}, {mean.shape=}")
+            self.log.detailed(f"{height=}, {width=}, {skip_features.shape=}, {mean.shape=}")
             mean = up_layer(mean, skip_features)
-            self.log.debug(f"up_layer_{i}: {mean.shape=}")
+            self.log.detailed(f"up_layer_{i}: {mean.shape=}")
             if (height, width) in self.multiscale_resolutions:
                 multiscale_features.append(mean)
                 found_resolutions.append((height, width))
@@ -219,9 +219,9 @@ class ConvDecoder2D(nn.Module):
             self.multiscale_resolutions
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
         mean = self.final_conv(mean)
-        self.log.debug(f"final_conv: mean: {mean.shape=}, {mean.device=}")
+        self.log.detailed(f"final_conv: mean: {mean.shape=}, {mean.device=}")
         variance = torch.full((bs, mean.shape[1], height, width), self.variance_scale).to(mean.device)
-        self.log.debug(f"final_conv: variance: {variance.shape=}, {variance.device=}")
+        self.log.detailed(f"final_conv: variance: {variance.shape=}, {variance.device=}")
         if self.multiscale_resolutions:
             return mean, variance, multiscale_features
         else:
@@ -277,11 +277,11 @@ class VariationalReDecoder(nn.Module):
         return self.classifier.n_classes
     
     def sample(self, x):
-        self.log.debug(f"Computing class probabilities for x of shape: {x.shape}")
+        self.log.detailed(f"Computing class probabilities for x of shape: {x.shape}")
         class_probabilities = self.classifier(x)
         class_distribution = torch.distributions.Categorical(probs=class_probabilities)
         ksample = class_distribution.sample().to(x.device)
-        self.log.debug(f"Sampled classes {ksample}")
+        self.log.detailed(f"Sampled classes {ksample}")
         gaussian_means_and_variances = self.latent_gaussians(x, ksample)
         multiscale_means = []
         for mean, variance in gaussian_means_and_variances:
@@ -485,7 +485,7 @@ class VariationalReDecoderStill(Datablock):
     def __build__(self):
         logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'))
         default_root_dir = self.dirpath('ckpts')
-        self.log.debug(f"Built {logger=} for lightining {self.cfg.lightning}")
+        self.log.detailed(f"Built {logger=} for lightining {self.cfg.lightning}")
         self.log.debug(f"Building trainer using {default_root_dir=} to train for {self.cfg.max_steps=} using {self.cfg.lightning=} and {self.n_devices=}")
         trainer = L.pytorch.Trainer(
             default_root_dir=default_root_dir, 
