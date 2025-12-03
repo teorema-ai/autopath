@@ -418,7 +418,12 @@ class VariationalReDecoderLightning(Datablock):
 
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
-            return optimizer
+            stepping_batches = self.trainer.estimated_stepping_batches
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.learning_rate, total_steps=stepping_batches)
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
+            }
 
     @dataclass
     class CONFIG:
@@ -457,6 +462,7 @@ class VariationalReDecoderStill(Datablock):
         self.log.debug(f"Building trainer using {default_root_dir=} to train for {self.cfg.max_steps=} using {self.cfg.lightning=} and {self.n_devices=}")
         trainer = L.pytorch.Trainer(
             default_root_dir=default_root_dir, 
+            max_epochs=self.cfg.max_epochs, 
             limit_train_batches=self.cfg.max_steps,
             devices=self.n_devices,
             logger=logger,
