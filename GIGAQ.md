@@ -95,7 +95,7 @@ conda activate autopath
 pip install tensorboard
 tmux # tensorboard
 # cd /path/to/tensorboard/dir/.. # dbx.print "autopath.gigaq.dinov2.pipelines.gigaq_still('BASELINE_CPTAC_8020_TRAIN').dirpath('tensorboard')"
-nohup tensorboard --logdir=tensorboard > tensorboard.out &
+nohup tensorboard --logdir=tensorboard --port 7007 > tensorboard.out &
 
 # detectron2
 #pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu118/torch2.1/index.html # Example for CUDA 11.8 and PyTorch 2.1
