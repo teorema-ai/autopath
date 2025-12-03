@@ -3,6 +3,8 @@ import functools
 import gc
 from typing import Callable, List, Optional, Tuple
 
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -425,11 +427,16 @@ class VariationalReDecoderLightning(Datablock):
             features, labels = batch
             bag, tile = labels
             loss = self.vred.loss(features, tile)
+            self.logger.experiment.add_scalar(f"Loss", loss, self.global_step)
             if self.vred.loss_capture_distribution:
-                for i, mean in enumerate(self.vred.means):
-                    j = torch.randint(mean.shape[0])
-                    meanj = mean[j].squeeze()
-                    self.logger.experiment.add_image(f"Distribution Mean/{i},{j}", meanj, self.global_step)
+                i = np.randint(len(self.vred.means))
+                mean = self.vred.means[i]
+                variance = self.vred.variances[i]
+                j = np.randint(mean.shape[0])
+                meanj = mean[j].squeeze()
+                variancej = variance[j].squeeze()
+                self.logger.experiment.add_image(f"Distribution Mean/{i},{j}", meanj, self.global_step)
+                self.logger.experiment.add_image(f"Distribution Variance/{i},{j}", variancej, self.global_step)
             return loss
 
         def configure_optimizers(self):
