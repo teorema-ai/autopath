@@ -335,7 +335,7 @@ class VariationalReDecoder(nn.Module):
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         Mhat, Vhat = self.decoder(multiscale_means)
         if self.loss_capture_distribution:
-            self.means.append(multiscale_means)
+            self.means.append(Mhat)
             self.variances.append(Vhat)
         del multiscale_means
         gc.collect()
