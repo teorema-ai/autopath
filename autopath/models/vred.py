@@ -427,8 +427,9 @@ class VariationalReDecoderLightning(Datablock):
             loss = self.vred.loss(features, tile)
             if self.vred.loss_capture_distribution:
                 for i, mean in enumerate(self.vred.means):
-                    self.log.debug(f"training_step: self.vred.means[{i}]: type {type(mean)}")
-                    self.logger.experiment.add_image(f"Distribution Mean/{i}", mean, self.global_step)
+                    j = torch.randint(mean.shape[0])
+                    meanj = mean[j].squeeze()
+                    self.logger.experiment.add_image(f"Distribution Mean/{i},{j}", meanj, self.global_step)
             return loss
 
         def configure_optimizers(self):
