@@ -457,7 +457,7 @@ class VariationalReDecoderStill(Datablock):
         self.log.debug(f"Building trainer using {default_root_dir=} to train for {self.cfg.max_steps=} using {self.cfg.lightning=} and {self.n_devices=}")
         trainer = L.pytorch.Trainer(
             default_root_dir=default_root_dir, 
-            max_steps=self.cfg.max_steps,
+            limit_train_batches=self.cfg.max_steps,
             devices=self.n_devices,
             logger=logger,
         )
