@@ -428,6 +428,9 @@ class VariationalReDecoderLightning(Datablock):
             bag, tile = labels
             loss = self.vred.loss(features, tile)
             self.logger.experiment.add_scalar(f"Loss", loss, self.global_step)
+            scheduler = self.lr_schedulers()
+            lr = scheduler.get_last_lr()[0]
+            self.logger.experiment.add_scalar(f"Learning Rate", lr, self.global_step)
             if self.vred.loss_capture_distribution:
                 i = np.random.randint(len(self.vred.means))
                 mean = self.vred.means[i]
