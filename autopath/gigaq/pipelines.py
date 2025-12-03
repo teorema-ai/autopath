@@ -279,7 +279,7 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
 
 
 # git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN')"
-def gigapath_vred(name):
+def gigapath_vred(name, loss_capture_distribution: bool = False):
     if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN":
         n_hidden_layers=2
         n_classes=100
@@ -304,6 +304,7 @@ def gigapath_vred(name):
     vred = VariationalReDecoder(
         classifier=classifier,
         latent_gaussians=latent_gaussians,
+        loss_capture_distribution=loss_capture_distribution,
     )
     return vred
     
@@ -316,21 +317,18 @@ def gigapath_vred(name):
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
-def gigapath_vred_evaluator(vred_dataset_name, **dataloader_kwargs):
+def gigapath_vred_evaluator(vred_dataset_name, loss_capture_distribution: bool = False, *, batch_size: int = 1, *dataloader_kwargs):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
-    vred = dbx.quote(gigapath_vred, vredname)
+    vred = dbx.quote(gigapath_vred, vredname, loss_capture_distribution=loss_capture_distribution)
     featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
     return vred_evaluator
 
-#TODO: #REMOVE?
-def gigapath_vred_lightning(vred_name, learning_rate: float = 0.03):
-    return VariationalReDecoderLightning(spec=dict(vred=dbx.quote(gigapath_vred, vred_name), learning_rate=learning_rate))
 
-# git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=10, max_steps=10, batch_size=3, shuffle=False).to('cuda').build()"
-def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_epochs: int = 3, max_steps: int = 1, init_ckpt_path: str = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False,):
-    evaluator = gigapath_vred_evaluator(vred_dataset_name, batch_size=batch_size, shuffle=shuffle)
+# git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=10, max_steps=10, batch_size=3, shuffle=False, loss_capture_distribution=True).to('cuda').build()"
+def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_epochs: int = 3, max_steps: int = 1, init_ckpt_path: str = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False, loss_capture_distribution: bool = False):
+    evaluator = gigapath_vred_evaluator(vred_dataset_name, batch_size=batch_size, shuffle=shuffle, loss_capture_distribution=loss_capture_distribution)
     lightning = VariationalReDecoderLightning(spec=dict(vred=evaluator.spec['vred'], learning_rate=learning_rate))
     still = VariationalReDecoderStill(spec=dict(
         lightning=lightning, 

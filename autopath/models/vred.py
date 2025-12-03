@@ -241,6 +241,7 @@ class VariationalReDecoder(nn.Module):
                  use_batch_norm: bool = True,
                  variance_scale: float = 0.03,
                  class_batch_size: int = None,
+                 loss_capture_distribution: bool = False,
                  log: dbx.Logger = None,
     ):
         super().__init__()
@@ -256,8 +257,11 @@ class VariationalReDecoder(nn.Module):
             variance_scale=variance_scale,
         )
         self.class_batch_size = class_batch_size
+        self.loss_capture_distribution = loss_capture_distribution
         self.log = log or dbx.Logger(self.__class__.__name__)
         self.device = 'cpu'
+        self.means = None
+        self.variances = None
 
     def to(self, device):
         self.classifier.to(device)
@@ -292,6 +296,9 @@ class VariationalReDecoder(nn.Module):
         classes = torch.tensor(list(range(self.n_classes))).to(x.device)
         class_probabilities = self.classifier(x).reshape(1, -1)
         _losses = []
+        if self.loss_capture_distribution:
+            self.means = []
+            self.variances = []
         if self.class_batch_size is None:
             self.class_batch_size = self.n_classes
         for class_lo in range(0, self.n_classes, self.class_batch_size):
@@ -327,6 +334,9 @@ class VariationalReDecoder(nn.Module):
             normal_sample = torch.randn(mean.shape).to(x.device)
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         Mhat, Vhat = self.decoder(multiscale_means)
+        if self.loss_capture_distribution:
+            self.means.append(multiscale_means)
+            self.variances.append(Vhat)
         del multiscale_means
         gc.collect()
         torch.cuda.empty_cache()
@@ -414,6 +424,9 @@ class VariationalReDecoderLightning(Datablock):
             features, labels = batch
             bag, tile = labels
             loss = self.vred.loss(features, tile)
+            if self.vred.loss_capture_distribution:
+                for i, mean in enumerate(self.vred.means):
+                    self.logger.experiment.add_image(f"Distribution Mean/{i}", mean, self.global_step)
             return loss
 
         def configure_optimizers(self):
