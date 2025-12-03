@@ -414,11 +414,12 @@ class VariationalReDecoderEvaluator(Datablock):
 
 class VariationalReDecoderLightning(Datablock):
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3):
+        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, log: dbx.Logger = dbx.Logger()):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
             self.save_hyperparameters(ignore=['vred'])
+            self.log = log
                                          
         def training_step(self, batch, batch_idx):
             features, labels = batch
@@ -426,6 +427,7 @@ class VariationalReDecoderLightning(Datablock):
             loss = self.vred.loss(features, tile)
             if self.vred.loss_capture_distribution:
                 for i, mean in enumerate(self.vred.means):
+                    self.log.debug(f"training_step: self.vred.means[{i}]: type {type(mean)}")
                     self.logger.experiment.add_image(f"Distribution Mean/{i}", mean, self.global_step)
             return loss
 
