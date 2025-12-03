@@ -446,6 +446,7 @@ class VariationalReDecoderStill(Datablock):
         lightning: VariationalReDecoderLightning
         dataloader: torch.utils.data.DataLoader
         init_ckpt_path: str = None
+        max_epochs: int = 1
         max_steps: int = 1
 
     def __init__(self, *args, n_devices: int = 1, **kwargs):
