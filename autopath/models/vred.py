@@ -91,8 +91,8 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.scale_dims = [
             self.n_channels*scale**2 for scale in self.scales
         ]
-        self.log.debug(f"scales: {self.scales}")
-        self.log.debug(f"scale_dims: {self.scale_dims}")
+        self.log.detailed(f"scales: {self.scales}")
+        self.log.detailed(f"scale_dims: {self.scale_dims}")
         for scale_dim in self.scale_dims:
             hidden_modules = []
             for i in range(n_hidden_layers):

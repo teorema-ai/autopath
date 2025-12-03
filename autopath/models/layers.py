@@ -64,9 +64,9 @@ class Conv2dSame(nn.Module):
         :return torch.Tensor:
         """
         padded = F.pad(imgs, self._reversed_padding_repeated_twice)
-        self.log.debug(f"imgs.shape: {imgs.shape}")
-        self.log.debug(f"self._reversed_padding_repeated_twice: {self._reversed_padding_repeated_twice}")
-        self.log.debug(f"padded.shape: {padded.shape}")
+        self.log.detailed(f"imgs.shape: {imgs.shape}")
+        self.log.detailed(f"self._reversed_padding_repeated_twice: {self._reversed_padding_repeated_twice}")
+        self.log.detailed(f"padded.shape: {padded.shape}")
         return self.conv(padded)
 
 
