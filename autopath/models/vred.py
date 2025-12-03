@@ -429,10 +429,10 @@ class VariationalReDecoderLightning(Datablock):
             loss = self.vred.loss(features, tile)
             self.logger.experiment.add_scalar(f"Loss", loss, self.global_step)
             if self.vred.loss_capture_distribution:
-                i = np.randint(len(self.vred.means))
+                i = np.random.randint(len(self.vred.means))
                 mean = self.vred.means[i]
                 variance = self.vred.variances[i]
-                j = np.randint(mean.shape[0])
+                j = np.random.randint(mean.shape[0])
                 meanj = mean[j].squeeze()
                 variancej = variance[j].squeeze()
                 self.logger.experiment.add_image(f"Distribution Mean/{i},{j}", meanj, self.global_step)
