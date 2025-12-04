@@ -496,8 +496,7 @@ class VariationalReDecoderStill(Datablock):
         )
         self.log.debug(f"Built {trainer=} for lightining {self.cfg.lightning}")
         self.log.debug(f"Launching training for {self.cfg.max_steps=}")
-        with torch.autograd.detect_anomaly(True):
-            trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
+        trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
         return self
 
   
