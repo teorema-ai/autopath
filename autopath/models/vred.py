@@ -337,6 +337,7 @@ class VariationalReDecoder(nn.Module):
             normal_sample = torch.randn(mean.shape).to(x.device)
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         Mhat, Vhat = self.decoder(multiscale_means)
+        self.log.debug(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} from {len(multiscale_means)} multiscale means")
         if self.loss_capture_distribution:
             self.means.append(Mhat)
             self.variances.append(Vhat)
