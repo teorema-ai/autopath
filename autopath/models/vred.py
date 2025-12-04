@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import functools
 import gc
+import os
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
@@ -475,8 +476,13 @@ class VariationalReDecoderStill(Datablock):
         max_epochs: int = 1
         max_steps: int = 1
 
-    def __init__(self, *args, n_devices: int = 1, **kwargs):
-        super().__init__(*args, n_devices=n_devices, **kwargs)
+    def __init__(self, *args, n_devices: int = 1, logs: str = None, **kwargs):
+        super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
+        # Link the logs directory to the provided location (e.g., for Tensorboard to pick up the logs)
+        if self.logs is not None:
+            self.log.verbose(f"Linking logs to {self.logs}")
+            os.path.rm(self.logs, ignore_errors=True, recursive=True)
+            os.path.symlink(self.dirpath('logs'), self.logs)
 
     def valid(self):
         #TODO: check if max_steps has been run and a corresponding ckpt has been generated

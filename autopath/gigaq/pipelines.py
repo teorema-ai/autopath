@@ -326,9 +326,9 @@ def gigapath_vred_evaluator(vred_dataset_name, loss_capture_distribution: bool =
     return vred_evaluator
 
 
-# git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=10, max_steps=10, batch_size=10, shuffle=False, loss_capture_distribution=True, learning_rate=1e-3).to('cuda').build()"
-# git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=3, max_steps=1000, batch_size=8, shuffle=False, loss_capture_distribution=True, learning_rate=8e-4, n_devices=1).build()"
-def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_epochs: int = 3, max_steps: int = 1, init_ckpt_path: str = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False, loss_capture_distribution: bool = False):
+# git commit -am 'gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=10, max_steps=10, batch_size=10, shuffle=False, loss_capture_distribution=True, learning_rate=1e-3).to('cuda').build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=3, max_steps=1000, batch_size=8, shuffle=False, loss_capture_distribution=True, learning_rate=8e-4, n_devices=1, logs="$HOME/autopath/tensorboard/vred").build()'
+def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_epochs: int = 3, max_steps: int = 1, init_ckpt_path: str = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False, loss_capture_distribution: bool = False, logs: str = None):
     evaluator = gigapath_vred_evaluator(vred_dataset_name, batch_size=batch_size, shuffle=shuffle, loss_capture_distribution=loss_capture_distribution)
     lightning = VariationalReDecoderLightning(spec=dict(vred=evaluator.spec['vred'], learning_rate=learning_rate))
     still = VariationalReDecoderStill(spec=dict(
@@ -339,6 +339,7 @@ def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_e
         init_ckpt_path=init_ckpt_path,
         ),
         n_devices=n_devices,
+        logs=logs,
     )
     return still
     

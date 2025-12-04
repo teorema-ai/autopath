@@ -1,5 +1,6 @@
 run/
 notebooks/
+tensorboard/
 *.egg-info
 jupyter.out
 __pycache__
