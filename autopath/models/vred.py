@@ -417,7 +417,7 @@ class VariationalReDecoderEvaluator(Datablock):
 
 class VariationalReDecoderLightning(Datablock):
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, log: dbx.Logger = dbx.Logger()):
+        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
@@ -434,6 +434,7 @@ class VariationalReDecoderLightning(Datablock):
             self.logger.experiment.add_scalar(f"Learning Rate", lr, self.global_step)
             if self.vred.loss_capture_distribution:
                 i = np.random.randint(len(self.vred.means))
+                self.log.debug(f"training_step: picked {i} from {len(self.vred.means)} self.vred.means")
                 mean = self.vred.means[i]
                 variance = self.vred.variances[i]
                 j = np.random.randint(mean.shape[0])
@@ -475,6 +476,7 @@ class VariationalReDecoderStill(Datablock):
         init_ckpt_path: str = None
         max_epochs: int = 1
         max_steps: int = 1
+        log_interval: int = 1
 
     def __init__(self, *args, n_devices: int = 1, logs: str = None, **kwargs):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
@@ -498,6 +500,7 @@ class VariationalReDecoderStill(Datablock):
             default_root_dir=default_root_dir, 
             max_epochs=self.cfg.max_epochs, 
             limit_train_batches=self.cfg.max_steps,
+            log_every_n_steps=self.cfg.log_interval,
             devices=self.n_devices,
             logger=logger,
         )
