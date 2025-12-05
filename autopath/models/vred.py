@@ -486,7 +486,7 @@ class VariationalReDecoderStill(Datablock):
             self.log.verbose(f"---------------------- Linking logs to {self.logs}----------------------------")
             if os.path.exists(self.logs):
                 os.unlink(self.logs)
-            os.symlink(self.dirpath('logs'), self.logs)
+            os.symlink(self.dirpath('logs', ensure=True), self.logs)
 
     def valid(self):
         #TODO: check if max_steps has been run and a corresponding ckpt has been generated
