@@ -300,8 +300,8 @@ class VariationalReDecoder(nn.Module):
         class_probabilities = self.classifier(x).reshape(1, -1)
         _losses = []
         if self.loss_capture_distribution:
-            self.means = []
-            self.variances = []
+            self.means_list = []
+            self.variances_list = []
         if self.class_batch_size is None:
             self.class_batch_size = self.n_classes
         for class_lo in range(0, self.n_classes, self.class_batch_size):
@@ -314,6 +314,11 @@ class VariationalReDecoder(nn.Module):
         losses = torch.stack(_losses)
         self.log.detailed(f"loss: losses: -------------requires_grad ------------> {losses.requires_grad}")
         loss = torch.sum(losses, dim=0) #TODO: take .mean()?
+        if self.loss_capture_distribution:
+            self.means = torch.cat(self.means_list, dim=0)
+            self.variances = torch.cat(self.variances_list, dim=0)
+            del self.means_list
+            del self.variances_list
         del losses
         del class_probabilities
         del classes
@@ -339,8 +344,8 @@ class VariationalReDecoder(nn.Module):
         Mhat, Vhat = self.decoder(multiscale_means)
         self.log.debug(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} Mhat from {len(multiscale_means)} multiscale means")
         if self.loss_capture_distribution:
-            self.means.append(Mhat)
-            self.variances.append(Vhat)
+            self.means_list.append(Mhat)
+            self.variances_list.append(Vhat)
         del multiscale_means
         gc.collect()
         torch.cuda.empty_cache()
@@ -434,15 +439,12 @@ class VariationalReDecoderLightning(Datablock):
             lr = scheduler.get_last_lr()[0]
             self.logger.experiment.add_scalar(f"Learning Rate", lr, self.global_step)
             if self.vred.loss_capture_distribution:
-                i = np.random.randint(len(self.vred.means))
-                self.log.debug(f"training_step: picked {i} from {len(self.vred.means)} self.vred.means")
-                mean = self.vred.means[i]
-                variance = self.vred.variances[i]
-                j = np.random.randint(mean.shape[0])
-                meanj = mean[j].squeeze()
-                variancej = variance[j].squeeze()
-                self.logger.experiment.add_image(f"Distribution Mean/{i},{j}", meanj, self.global_step)
-                self.logger.experiment.add_image(f"Distribution Variance/{i},{j}", variancej, self.global_step)
+                n = self.vred.means.shape[0]
+                j = np.random.randint(n)
+                meanj = self.means[j].squeeze()
+                variancej = self.variances[j].squeeze()
+                self.logger.experiment.add_image(f"Distribution Mean/{j}/{n}", meanj, self.global_step)
+                self.logger.experiment.add_image(f"Distribution Variance/{j}/{n}", variancej, self.global_step)
             return loss
 
         def configure_optimizers(self):
