@@ -265,6 +265,15 @@ class VariationalReDecoder(nn.Module):
         self.device = 'cpu'
         self.means = None
         self.variances = None
+        self.apply(self.init_weights)
+
+    @staticmethod
+    def init_weights(m):
+        if hasattr(m, 'weight'):
+            torch.nn.init.normal_(m.weight.data, mean=0.0, std=0.01)
+            torch.nn.init.normal_(m.bias.data, mean=0.0, std=0.01)
+
+
 
     def to(self, device):
         self.classifier.to(device)
