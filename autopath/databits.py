@@ -61,7 +61,7 @@ class Clip(Datablock):
         return len(self.shards)
     
     def __build__(self):
-        self.log.verbose(f"Computing shard lens")
+        self.log.verbose(f"Obtaining shard lens")
         if self.verbose:
             shardsitor = tqdm.tqdm(self.shards)
         else:

@@ -19,7 +19,7 @@ from dbx import Datablock
 
 from .layers import UpLayer
 
-VRED_VERSION = 3
+VRED_VERSION = 2
 
 class Classifier(nn.Module):
     def __init__(self, 
@@ -266,7 +266,11 @@ class VariationalReDecoder(nn.Module):
         self.device = 'cpu'
         self.means = None
         self.variances = None
+        """
+        self.log.verbose("Initializing model parameters ... ")
         self.apply(self.init_weights)
+        self.log.verbose("Initializing model parameters ... done")
+        """
 
     @staticmethod
     def init_weights(m):
