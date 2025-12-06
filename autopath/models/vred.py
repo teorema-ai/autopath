@@ -456,7 +456,7 @@ class VariationalReDecoderLightning(Datablock):
             """
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                 optimizer,
-                max_lr=self.learning_rate,
+                #max_lr=self.learning_rate,
                 T_max=stepping_batches,
                 eta_min=1e-6
             )
