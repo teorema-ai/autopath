@@ -19,6 +19,7 @@ from dbx import Datablock
 
 from .layers import UpLayer
 
+VRED_VERSION = 3
 
 class Classifier(nn.Module):
     def __init__(self, 
@@ -273,8 +274,6 @@ class VariationalReDecoder(nn.Module):
             torch.nn.init.normal_(m.weight.data, mean=0.0, std=0.01)
             torch.nn.init.normal_(m.bias.data, mean=0.0, std=0.01)
 
-
-
     def to(self, device):
         self.classifier.to(device)
         self.latent_gaussians.to(device)
@@ -431,7 +430,7 @@ class VariationalReDecoderEvaluator(Datablock):
 
 
 class VariationalReDecoderLightning(Datablock):
-    VERSION = 2
+    VERSION = VRED_VERSION
     class Lightning(L.LightningModule):
         def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
@@ -486,7 +485,7 @@ class VariationalReDecoderLightning(Datablock):
     
 
 class VariationalReDecoderStill(Datablock):
-    VERSION = 2
+    VERSION = VRED_VERSION
     TOPICFILES = {'logs': None,
                   'ckpts': None,
     }
