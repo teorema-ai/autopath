@@ -269,7 +269,7 @@ class VariationalReDecoder(nn.Module):
 
     @staticmethod
     def init_weights(m):
-        if hasattr(m, 'weight'):
+        if hasattr(m, 'weight') and m.weight is not None and m.weight.requires_grad:
             torch.nn.init.normal_(m.weight.data, mean=0.0, std=0.01)
             torch.nn.init.normal_(m.bias.data, mean=0.0, std=0.01)
 
