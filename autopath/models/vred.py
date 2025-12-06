@@ -422,6 +422,7 @@ class VariationalReDecoderEvaluator(Datablock):
 
 
 class VariationalReDecoderLightning(Datablock):
+    VERSION = 2
     class Lightning(L.LightningModule):
         def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
@@ -450,7 +451,16 @@ class VariationalReDecoderLightning(Datablock):
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
             stepping_batches = self.trainer.estimated_stepping_batches
+            """
             scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.learning_rate, total_steps=stepping_batches)
+            """
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                max_lr=self.learning_rate,
+                T_max=stepping_batches,
+                eta_min=1e-6
+            )
+            self.log.verbose(f"Using learning rate scheduler: {scheduler}")
             return {
                 "optimizer": optimizer,
                 "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
@@ -467,7 +477,7 @@ class VariationalReDecoderLightning(Datablock):
     
 
 class VariationalReDecoderStill(Datablock):
-    VERSION = 1
+    VERSION = 2
     TOPICFILES = {'logs': None,
                   'ckpts': None,
     }
