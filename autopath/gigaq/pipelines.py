@@ -279,7 +279,7 @@ def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
 
 
 # git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN')"
-def gigapath_vred(name, loss_capture_distribution: bool = False):
+def gigapath_vred(name, log_images: bool = False):
     if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN":
         n_hidden_layers=2
         n_classes=100
@@ -304,7 +304,7 @@ def gigapath_vred(name, loss_capture_distribution: bool = False):
     vred = VariationalReDecoder(
         classifier=classifier,
         latent_gaussians=latent_gaussians,
-        loss_capture_distribution=loss_capture_distribution,
+        log_images=log_images,
     )
     return vred
     
@@ -317,10 +317,10 @@ def gigapath_vred(name, loss_capture_distribution: bool = False):
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
-def gigapath_vred_evaluator(vred_dataset_name, loss_capture_distribution: bool = False, **dataloader_kwargs):
+def gigapath_vred_evaluator(vred_dataset_name, log_images: bool = False, **dataloader_kwargs):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
-    vred = dbx.quote(gigapath_vred, vredname, loss_capture_distribution=loss_capture_distribution)
+    vred = dbx.quote(gigapath_vred, vredname, log_images=log_images)
     featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
     return vred_evaluator
