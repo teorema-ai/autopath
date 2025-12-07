@@ -381,6 +381,7 @@ class VariationalReDecoder(nn.Module):
         Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
         _loss_ = torch.sqrt((Mhat - Y)**2/Vhat) # (k b) c h w
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
+        self.log.debug(f"_class_batch_loss: _loss: {_loss}, _loss_: {_loss_}")
         del Y
         del _loss_
         gc.collect()
@@ -460,9 +461,10 @@ class VariationalReDecoderLightning(Datablock):
                 j = np.random.randint(k)
                 mean = self.vred.means[k*i+j].squeeze()
                 variance = self.vred.variances[k*i+j].squeeze()
-                self.logger.experiment.add_image(f"Distribution Mean/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
-                self.logger.experiment.add_image(f"Distribution Variance/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
-                self.logger.experiment.add_image(f"Tile/{i}/{b}", tile[i], self.global_step)
+                step = self.global_step
+                self.logger.experiment.add_image(f"Distribution Mean/({k}*{i}+{j}={k*i+j})/{n}/{step=}", mean, self.global_step)
+                self.logger.experiment.add_image(f"Distribution Variance/({k}*{i}+{j}={k*i+j})/{n}/{step=}", variance, self.global_step)
+                self.logger.experiment.add_image(f"Tile/{i}/{b}/{step=}", tile[i], self.global_step)
             return loss
 
         def configure_optimizers(self):
