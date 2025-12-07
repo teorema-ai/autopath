@@ -512,6 +512,8 @@ class VariationalReDecoderStill(Datablock):
 
     def __init__(self, *args, n_devices: int = 1, logs: str = None, **kwargs):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
+
+    def __pre_build__(self):
         # Link the logs directory to the provided location (e.g., for Tensorboard to pick up the logs)
         if self.logs is not None:
             self.log.verbose(f"---------------------- Linking logs to {self.logs}----------------------------")
