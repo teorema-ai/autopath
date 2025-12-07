@@ -518,7 +518,7 @@ class VariationalReDecoderStill(Datablock):
         if self.logs is not None:
             self.log.verbose(f"---------------------- Linking logs to {self.logs}----------------------------")
             if os.path.exists(self.logs):
-                os.unlink(self.logs)
+                os.remove(self.logs)
             os.symlink(self.dirpath('logs', ensure=True), self.logs)
 
     def valid(self):
