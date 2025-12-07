@@ -462,9 +462,9 @@ class VariationalReDecoderLightning(Datablock):
                 mean = self.vred.means[k*i+j].squeeze()
                 variance = self.vred.variances[k*i+j].squeeze()
                 step = self.global_step
-                self.logger.experiment.add_image(f"Distribution Mean/({k}*{i}+{j}={k*i+j})/{n}/{step=}", mean, self.global_step)
-                self.logger.experiment.add_image(f"Distribution Variance/({k}*{i}+{j}={k*i+j})/{n}/{step=}", variance, self.global_step)
-                self.logger.experiment.add_image(f"Tile/{i}/{b}/{step=}", tile[i], self.global_step)
+                self.logger.experiment.add_image(f"Distribution Mean/{step=}/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
+                self.logger.experiment.add_image(f"Distribution Variance/{step=}/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
+                self.logger.experiment.add_image(f"Tile/{step=}/{i}/{b}", tile[i], self.global_step)
             return loss
 
         def configure_optimizers(self):
