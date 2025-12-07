@@ -329,11 +329,14 @@ def gigapath_vred_evaluator(vred_dataset_name, log_images: bool = False, **datal
 # git commit -am 'gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=10, max_steps=10, batch_size=10, shuffle=False, log_images=True, learning_rate=1e-3).to('cuda').build()'
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=3, max_steps=100, batch_size=8, shuffle=False, log_images=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=8e-3).build()'
 def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_epochs: int = 3, max_steps: int = 1, init_ckpt_path: str = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False, log_images: bool = False, logs: str = None):
-    evaluator = gigapath_vred_evaluator(vred_dataset_name, batch_size=batch_size, shuffle=shuffle, log_images=log_images)
-    lightning = VariationalReDecoderLightning(spec=dict(vred=evaluator.spec['vred'], learning_rate=learning_rate))
+    vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
+    clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
+    vred = dbx.quote(gigapath_vred, vredname, log_images=log_images)
+    featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, batch_size=batch_size, shuffle=shuffle)
+    lightning = VariationalReDecoderLightning(spec=dict(vred=vred, learning_rate=learning_rate))
     still = VariationalReDecoderStill(spec=dict(
         lightning=lightning, 
-        dataloader=evaluator.spec['dataloader'],
+        dataloader=featureloader,
         max_epochs=max_epochs,
         max_steps=max_steps,
         init_ckpt_path=init_ckpt_path,
