@@ -517,9 +517,11 @@ class VariationalReDecoderStill(Datablock):
         # Link the logs directory to the provided location (e.g., for Tensorboard to pick up the logs)
         if self.logs is not None:
             self.log.verbose(f"---------------------- Linking logs to {self.logs}----------------------------")
-            if os.path.exists(self.logs):
-                self.log.debug(f"Removing existing {self.logs} link")
+            try:
+                self.log.debug(f"Removing {self.logs} link")
                 os.remove(self.logs)
+            except:
+                pass
             os.symlink(self.dirpath('logs', ensure=True), self.logs)
 
     def valid(self):
