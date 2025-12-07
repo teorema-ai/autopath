@@ -381,7 +381,10 @@ class VariationalReDecoder(nn.Module):
         Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
         _loss_ = torch.sqrt((Mhat - Y)**2/Vhat) # (k b) c h w
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
-        self.log.debug(f"_class_batch_loss: _loss: {_loss}, _loss_: {_loss_}")
+        _loss_nans = torch.isnan(_loss).sum().item()
+        _loss_nans_ = torch.isnan(_loss_).sum().item()
+        _loss_grad_nans = torch.isnan(_loss.grad).sum().item()
+        self.log.debug(f"_class_batch_loss: _loss_nans: {_loss_nans}, _loss_nans_: {_loss_nans_}, _loss_grad_nans: {_loss_grad_nans}")
         del Y
         del _loss_
         gc.collect()
@@ -462,7 +465,7 @@ class VariationalReDecoderLightning(Datablock):
                 mean = self.vred.means[k*i+j].squeeze()
                 variance = self.vred.variances[k*i+j].squeeze()
                 step = self.global_step
-                self.logger.experiment.add_embedding(mat=batch, global_step=step, tag='Features/{step=}')
+                self.logger.experiment.add_embedding(mat=features, global_step=step, tag='Features/{step=}')
                 for name, param in self.vred.named_parameters():
                     if param.grad is not None:
                         self.logger.experiment.add_histogram(f"{name}/grad/{step=}", param.grad, self.global_step)
