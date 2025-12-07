@@ -327,7 +327,7 @@ def gigapath_vred_evaluator(vred_dataset_name, log_images: bool = False, **datal
 
 
 # git commit -am 'gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', max_epochs=10, max_steps=10, batch_size=10, shuffle=False, log_images=True, learning_rate=1e-3).to('cuda').build()'
-# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=False, log_images=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-3).set(capture_output=True).build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=False, log_images=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-6).set(capture_output=True).build()'
 def gigapath_vred_still(vred_dataset_name, *, learning_rate: float = 0.03, max_epochs: int = 3, max_steps: int = 1, init_ckpt_path: str = None, n_devices: int = 1, batch_size: int = 1, shuffle: bool = False, log_images: bool = False, logs: str = None):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
