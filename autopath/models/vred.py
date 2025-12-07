@@ -245,7 +245,7 @@ class VariationalReDecoder(nn.Module):
                  use_batch_norm: bool = True,
                  variance_scale: float = 0.03,
                  class_batch_size: int = None,
-                 loss_capture_distribution: bool = False,
+                 log_images: bool = False,
                  log: dbx.Logger = None,
     ):
         super().__init__()
@@ -261,7 +261,7 @@ class VariationalReDecoder(nn.Module):
             variance_scale=variance_scale,
         )
         self.class_batch_size = class_batch_size
-        self.loss_capture_distribution = loss_capture_distribution
+        self.log_images = log_images
         self.log = log or dbx.Logger(self.__class__.__name__)
         self.device = 'cpu'
         self.means = None
@@ -312,7 +312,7 @@ class VariationalReDecoder(nn.Module):
         classes = torch.tensor(list(range(self.n_classes))).to(x.device)
         class_probabilities = self.classifier(x).reshape(1, -1)
         _losses = []
-        if self.loss_capture_distribution:
+        if self.log_images:
             self.means_list = []
             self.variances_list = []
         if self.class_batch_size is None:
@@ -327,7 +327,7 @@ class VariationalReDecoder(nn.Module):
         losses = torch.stack(_losses)
         self.log.detailed(f"loss: losses: -------------requires_grad ------------> {losses.requires_grad}")
         loss = torch.sum(losses, dim=0) #TODO: take .mean()?
-        if self.loss_capture_distribution:
+        if self.log_images:
             self.means = torch.cat(self.means_list, dim=0)
             self.variances = torch.cat(self.variances_list, dim=0)
             del self.means_list
@@ -356,7 +356,7 @@ class VariationalReDecoder(nn.Module):
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         Mhat, Vhat = self.decoder(multiscale_means)
         self.log.detailed(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} Mhat from {len(multiscale_means)} multiscale means")
-        if self.loss_capture_distribution:
+        if self.log_images:
             self.means_list.append(Mhat)
             self.variances_list.append(Vhat)
         del multiscale_means
@@ -452,13 +452,17 @@ class VariationalReDecoderLightning(Datablock):
             scheduler = self.lr_schedulers()
             lr = scheduler.get_last_lr()[0]
             self.logger.experiment.add_scalar(f"Learning Rate", lr, self.global_step)
-            if self.vred.loss_capture_distribution:
-                n = self.vred.means.shape[0]
-                j = np.random.randint(n)
-                meanj = self.vred.means[j].squeeze()
-                variancej = self.vred.variances[j].squeeze()
-                self.logger.experiment.add_image(f"Distribution Mean/{j}/{n}", meanj, self.global_step)
-                self.logger.experiment.add_image(f"Distribution Variance/{j}/{n}", variancej, self.global_step)
+            if self.vred.log_images:
+                b = features.shape[0]
+                k = self.vred.n_classes
+                n = k*b
+                i = np.random.randint(b)
+                j = np.random.randint(k)
+                mean = self.vred.means[k*i+j].squeeze()
+                variance = self.vred.variances[k*i+j].squeeze()
+                self.logger.experiment.add_image(f"Distribution Mean/{k*i+j}/{n}", mean, self.global_step)
+                self.logger.experiment.add_image(f"Distribution Variance/{k*i+j}/{n}", variance, self.global_step)
+                self.logger.experiment.add_image(f"Tile/{i}/{b}", tile[i], self.global_step)
             return loss
 
         def configure_optimizers(self):
