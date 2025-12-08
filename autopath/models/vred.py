@@ -459,8 +459,8 @@ class VariationalReDecoderLightning(Datablock):
                                          
         def training_step(self, batch, batch_idx):
             features, labels = batch
-            bag, tile = labels
-            loss = self.vred.loss(features, tile)
+            bag, tiles = labels
+            loss = self.vred.loss(features, tiles)
             self.logger.experiment.add_scalar(f"Loss", loss, self.global_step)
             scheduler = self.lr_schedulers()
             lr = scheduler.get_last_lr()[0]
@@ -473,6 +473,7 @@ class VariationalReDecoderLightning(Datablock):
                 j = np.random.randint(k)
                 mean = self.vred.means[k*i+j].squeeze()
                 variance = self.vred.variances[k*i+j].squeeze()
+                tile = tiles[i].squeeze()
                 feature = features[i].squeeze()
                 step = self.global_step
                 self.logger.experiment.add_embedding(mat=feature, global_step=step, label_img=tile, tag='Features/{step=}')
