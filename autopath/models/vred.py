@@ -473,8 +473,9 @@ class VariationalReDecoderLightning(Datablock):
                 j = np.random.randint(k)
                 mean = self.vred.means[k*i+j].squeeze()
                 variance = self.vred.variances[k*i+j].squeeze()
+                feature = features[i].squeeze()
                 step = self.global_step
-                self.logger.experiment.add_embedding(mat=features, global_step=step, tag='Features/{step=}')
+                self.logger.experiment.add_embedding(mat=feature, global_step=step, label_img=tile, tag='Features/{step=}')
                 self.logger.experiment.add_image(f"Distribution Mean/{step=}/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
                 self.logger.experiment.add_image(f"Distribution Variance/{step=}/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
                 self.logger.experiment.add_image(f"Tile/{step=}/{i}/{b}", tile[i], self.global_step)
