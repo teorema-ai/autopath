@@ -450,7 +450,7 @@ class VariationalReDecoderLightning(Datablock):
 
 
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, log: dbx.Logger = dbx.Logger(name="Lightning")):
+        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
