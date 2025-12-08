@@ -445,12 +445,8 @@ class VariationalReDecoderLightning(Datablock):
             step = module.global_step
             for name, param in module.vred.named_parameters():
                 if param.grad is not None:
-                    module.logger.experiment.add_histogram(f"{name}_grad/{step=}", param.grad, module.global_step)
-                if hasattr(param, 'weight'):
-                    module.logger.experiment.add_histogram(f"{name}_weight/{step=}", param.weight, module.global_step)
-                if hasattr(param, 'bias'):
-                    module.logger.experiment.add_histogram(f"{name}_bias/{step=}", param.bias, module.global_step)
-
+                    module.logger.experiment.add_histogram(f"{name}/grad/{step=}", param.grad, module.global_step)
+                    module.logger.experiment.add_histogram(f"{name}/{step=}", param, module.global_step)
     class Lightning(L.LightningModule):
         def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
