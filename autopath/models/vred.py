@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import functools
 import gc
 import os
+import traceback
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
@@ -441,12 +442,25 @@ class VariationalReDecoderLightning(Datablock):
     VERSION = VRED_VERSION
 
     class Callbacks(L.pytorch.callbacks.Callback):
+        def __init__(self, log: dbx.Logger = dbx.Logger(name="VariationalReDecoderLightning.Callbacks")):
+            super().__init__()
+            self.log = log
+
         def on_after_backward(self, trainer, module):
             step = module.global_step
             for name, param in module.vred.named_parameters():
                 if param.grad is not None:
-                    module.logger.experiment.add_histogram(f"{name}/grad/{step=}", param.grad, module.global_step)
-                    module.logger.experiment.add_histogram(f"{name}/{step=}", param, module.global_step)
+                    try:
+                        module.logger.experiment.add_histogram(f"{name}/grad/{step=}", param.grad, module.global_step)
+                    except Exception as e:
+                        tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
+                        self.log.info(f"on_after_backward: param: grad: {name}: {e}\n{tbstr}")
+                    try:
+                        module.logger.experiment.add_histogram(f"{name}/{step=}", param, module.global_step)
+                    except Exception as e:
+                        tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
+                        self.log.info(f"on_after_backward: param: {name}: {e}\n{tbstr}")
+
     class Lightning(L.LightningModule):
         def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
