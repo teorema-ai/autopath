@@ -441,7 +441,7 @@ class VariationalReDecoderEvaluator(Datablock):
 class VariationalReDecoderLightning(Datablock):
     VERSION = VRED_VERSION
 
-    class Callbacks(L.pytorch.callbacks):
+    class Callbacks(L.pytorch.callbacks.Callback):
         def on_after_backward(self, trainer, module):
             step = module.global_step
             for name, param in module.vred.named_parameters():
