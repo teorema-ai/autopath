@@ -478,7 +478,7 @@ class VariationalReDecoderLightning(Datablock):
                 self.logger.experiment.add_image(f"Distribution Mean/{step=}/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
                 self.logger.experiment.add_image(f"Distribution Variance/{step=}/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
                 self.logger.experiment.add_image(f"Tile/{step=}/{i}/{b}", tiles[i], self.global_step)
-                for i in len(feature_norms):
+                for i in range(len(feature_norms)):
                     self.logger.experiment.add_scalar(f"Feature Norm/{step=}/{i}", feature_norms[i], self.global_step)
             return loss
 
