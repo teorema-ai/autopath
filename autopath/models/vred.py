@@ -440,11 +440,21 @@ class VariationalReDecoderEvaluator(Datablock):
 
 class VariationalReDecoderLightning(Datablock):
     VERSION = VRED_VERSION
+
+    class Callbacks(L.pytorch.callbacks):
+        def on_after_backward(self, trainer, module):
+            step = module.global_step
+            for name, param in module.vred.named_parameters():
+                if param.grad is not None:
+                    module.logger.experiment.add_histogram(f"{name}/grad/{step=}", param.grad, module.global_step)
+
+
     class Lightning(L.LightningModule):
         def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
+            self.scheduler = "cosine"# "onecyclelr"
             self.save_hyperparameters(ignore=['vred'])
             self.log = log
                                          
@@ -466,10 +476,6 @@ class VariationalReDecoderLightning(Datablock):
                 variance = self.vred.variances[k*i+j].squeeze()
                 step = self.global_step
                 self.logger.experiment.add_embedding(mat=features, global_step=step, tag='Features/{step=}')
-                for name, param in self.vred.named_parameters():
-                    if param.grad is not None:
-                        self.logger.experiment.add_histogram(f"{name}/grad/{step=}", param.grad, self.global_step)
-                #
                 self.logger.experiment.add_image(f"Distribution Mean/{step=}/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
                 self.logger.experiment.add_image(f"Distribution Variance/{step=}/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
                 self.logger.experiment.add_image(f"Tile/{step=}/{i}/{b}", tile[i], self.global_step)
@@ -478,16 +484,19 @@ class VariationalReDecoderLightning(Datablock):
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.vred.parameters(), lr=self.learning_rate)
             stepping_batches = self.trainer.estimated_stepping_batches
-            """
-            scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.learning_rate, total_steps=stepping_batches)
-            """
-            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer,
-                #max_lr=self.learning_rate,
-                T_max=stepping_batches,
-                eta_min=1e-6
-            )
-            self.log.verbose(f"Using learning rate scheduler: {scheduler}")
+            if self.scheduler == "onecyclelr":
+                
+                scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.learning_rate, total_steps=stepping_batches)
+            elif self.scheduler == "cosine":
+                scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                    optimizer,
+                    #max_lr=self.learning_rate,
+                    T_max=stepping_batches,
+                    eta_min=1e-6
+                )
+            else: 
+                raise ValueError(f"Unknown scheduler: {self.scheduler}")
+            self.log.verbose(f"Using learning rate scheduler: {self.scheduler}")
             return {
                 "optimizer": optimizer,
                 "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
@@ -497,10 +506,11 @@ class VariationalReDecoderLightning(Datablock):
     class CONFIG:
         vred: VariationalReDecoder
         learning_rate: float = 1e-3
+        scheduler: str = "cosine"
 
     @functools.cached_property
     def lightning_module(self):
-        return self.Lightning(vred=self.cfg.vred, learning_rate=self.cfg.learning_rate)
+        return self.Lightning(vred=self.cfg.vred, learning_rate=self.cfg.learning_rate, scheduler=self.cfg.scheduler)
     
 
 class VariationalReDecoderStill(Datablock):
@@ -546,6 +556,7 @@ class VariationalReDecoderStill(Datablock):
             max_epochs=self.cfg.max_epochs, 
             limit_train_batches=self.cfg.max_steps,
             log_every_n_steps=self.cfg.log_interval,
+            callbacks = [VariationalReDecoderLightning.Callbacks()],
             devices=self.n_devices,
             logger=logger,
         )
@@ -553,5 +564,3 @@ class VariationalReDecoderStill(Datablock):
         self.log.debug(f"Launching training for {self.cfg.max_steps=}")
         trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
         return self
-
-  
