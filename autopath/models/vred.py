@@ -473,13 +473,13 @@ class VariationalReDecoderLightning(Datablock):
                 j = np.random.randint(k)
                 mean = self.vred.means[k*i+j].squeeze()
                 variance = self.vred.variances[k*i+j].squeeze()
-                tile = tiles[i]
-                feature = features[i]
+                feature_norms = [np.linalg.norm(features[i].numpy()) for i in range(len(features))]
                 step = self.global_step
-                self.logger.experiment.add_embedding(mat=feature, global_step=step, label_img=tile, tag='Features/{step=}')
                 self.logger.experiment.add_image(f"Distribution Mean/{step=}/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
                 self.logger.experiment.add_image(f"Distribution Variance/{step=}/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
-                self.logger.experiment.add_image(f"Tile/{step=}/{i}/{b}", tile[i], self.global_step)
+                self.logger.experiment.add_image(f"Tile/{step=}/{i}/{b}", tiles[i], self.global_step)
+                for i in len(feature_norms):
+                    self.logger.experiment.add_scalar(f"Feature Norm/{step=}/{i}", feature_norms[i], self.global_step)
             return loss
 
         def configure_optimizers(self):
