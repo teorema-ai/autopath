@@ -473,7 +473,7 @@ class VariationalReDecoderLightning(Datablock):
                 j = np.random.randint(k)
                 mean = self.vred.means[k*i+j].squeeze()
                 variance = self.vred.variances[k*i+j].squeeze()
-                feature_norms = [np.linalg.norm(features[i].numpy()) for i in range(len(features))]
+                feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
                 step = self.global_step
                 self.logger.experiment.add_image(f"Distribution Mean/{step=}/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
                 self.logger.experiment.add_image(f"Distribution Variance/{step=}/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
