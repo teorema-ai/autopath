@@ -383,8 +383,7 @@ class VariationalReDecoder(nn.Module):
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
         _loss_nans = torch.isnan(_loss).sum().item()
         _loss_nans_ = torch.isnan(_loss_).sum().item()
-        _loss_grad_nans = torch.isnan(_loss.grad).sum().item()
-        self.log.debug(f"_class_batch_loss: _loss_nans: {_loss_nans}, _loss_nans_: {_loss_nans_}, _loss_grad_nans: {_loss_grad_nans}")
+        self.log.debug(f"_class_batch_loss: _loss_nans: {_loss_nans}, _loss_nans_: {_loss_nans_}")
         del Y
         del _loss_
         gc.collect()
