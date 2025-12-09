@@ -466,7 +466,9 @@ class VariationalReDecoderLightning(Datablock):
                             tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
                             self.log.info(f"on_after_backward: param: grad: {name}: {e}\n{tbstr}")
                     try:
+                        self.log.debug(f"Logging weights for {name} ... ")
                         module.logger.experiment.add_histogram(f"{name}/{step=}", param, module.global_step)
+                        self.log.debug(f"Logging weights for {name} ... done")
                     except Exception as e:
                         tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
                         self.log.info(f"on_after_backward: param: {name}: {e}\n{tbstr}")
