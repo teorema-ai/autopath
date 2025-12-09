@@ -593,7 +593,7 @@ class VariationalReDecoderStill(Datablock):
         kwargs = {}
         if self.cfg.gradient_clip_val > 0.0:
             kwargs['gradient_clip_val'] = self.cfg.gradient_clip_val
-            self.log.info(f"Using gradient clipping with value {self.cfg.gradient_clip_val} and algorithm {self.cfg.gradient_clip_algorithm}")
+            self.log.info(f"----------> Using gradient clipping with value {self.cfg.gradient_clip_val} and algorithm {self.cfg.gradient_clip_algorithm} <----------")
 
         trainer = L.pytorch.Trainer(
             default_root_dir=default_root_dir, 
