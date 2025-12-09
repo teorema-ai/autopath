@@ -461,7 +461,7 @@ class VariationalReDecoderLightning(Datablock):
                 for name, param in module.vred.named_parameters():
                     if param.grad is not None:
                         try:
-                            module.logger.experiment.add_histogram(f"{name}/grad/{step=}", param.grad, module.global_step)
+                            module.logger.experiment.add_histogram(f"grad/{name}/{step=}", param.grad, module.global_step)
                         except Exception as e:
                             tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
                             self.log.info(f"on_after_backward: param: grad: {name}: {e}\n{tbstr}")
@@ -586,20 +586,18 @@ class VariationalReDecoderStill(Datablock):
             os.symlink(self.dirpath('logs', ensure=True), self.logs)
 
     def valid(self):
-        #TODO: check if max_steps has been run and a corresponding ckpt has been generated
+        #TODO: check if max_epochs has been run and a corresponding ckpt has been generated
         return False
 
     def __build__(self):
-        logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'))
+        logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'), default_hp_metric=False, name=self.anchor())
         default_root_dir = self.dirpath('ckpts')
         self.log.detailed(f"Built {logger=} for lightining {self.cfg.lightning}")
         self.log.debug(f"Building trainer using {default_root_dir=} to train for {self.cfg.max_steps=} using {self.cfg.lightning=} and {self.n_devices=}")
-        """
         kwargs = {}
         if self.cfg.gradient_clip_val > 0.0:
             kwargs['gradient_clip_val'] = self.cfg.gradient_clip_val
             self.log.info(f"----------> Using gradient clipping with value {self.cfg.gradient_clip_val} and algorithm {self.cfg.gradient_clip_algorithm} <----------")
-        """
         trainer = L.pytorch.Trainer(
             default_root_dir=default_root_dir, 
             max_epochs=self.cfg.max_epochs, 
@@ -608,7 +606,7 @@ class VariationalReDecoderStill(Datablock):
             callbacks = [VariationalReDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, log_weights=self.cfg.log_weights, skip_invalid_gradients=self.cfg.skip_invalid_gradients)],
             devices=self.n_devices,
             logger=logger,
-            #**kwargs,
+            **kwargs,
         )
         self.log.debug(f"Built {trainer=} for lightining {self.cfg.lightning}")
         self.log.debug(f"Launching training for {self.cfg.max_steps=}")
