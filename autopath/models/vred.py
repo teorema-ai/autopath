@@ -563,7 +563,7 @@ class VariationalReDecoderStill(Datablock):
         log_interval: int = 1
         log_gradients: bool = False
         log_weights: bool = False
-        skip_invalid_grads: bool = False
+        skip_invalid_grads: bool = True
 
     def __init__(self, *args, n_devices: int = 1, logs: str = None, **kwargs):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
