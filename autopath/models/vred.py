@@ -466,9 +466,9 @@ class VariationalReDecoderLightning(Datablock):
                             tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
                             self.log.info(f"on_after_backward: param: grad: {name}: {e}\n{tbstr}")
                     try:
-                        self.log.debug(f"Logging weights for {name} ... ")
+                        self.log.detailed(f"Logging weights for {name} ... ")
                         module.logger.experiment.add_histogram(f"{name}/{step=}", param, module.global_step)
-                        self.log.debug(f"Logging weights for {name} ... done")
+                        self.log.detailed(f"Logging weights for {name} ... done")
                     except Exception as e:
                         tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
                         self.log.info(f"on_after_backward: param: {name}: {e}\n{tbstr}")
@@ -476,8 +476,8 @@ class VariationalReDecoderLightning(Datablock):
                 gradients_valid = True
                 for name, param in module.vred.named_parameters():    
                     if param.grad is not None:
-                        self.log.debug(f"Checking gradients for {name} ... ")
-                        self.log.debug(f"Checking gradients for {name} ... done")
+                        self.log.detailed(f"Checking for invalid gradients in {name} ... ")
+                        self.log.detailed(f"Checking for invalid gradients in {name} ... done")
                         gradients_valid = not (torch.isnan(param.grad).any() or torch.isinf(param.grad).any())
                         if not gradients_valid:
                             break
