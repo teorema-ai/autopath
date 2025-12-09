@@ -479,7 +479,7 @@ class VariationalReDecoderLightning(Datablock):
                             break
                 if not gradients_valid:
                     self.log.info(f"on_after_backward: skipping invalid gradients for step {step}")
-                    self.zero_grad()                    
+                    module.zero_grad()                    
 
     class Lightning(L.LightningModule):
         def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
