@@ -564,6 +564,8 @@ class VariationalReDecoderStill(Datablock):
         log_gradients: bool = False
         log_weights: bool = False
         skip_invalid_gradients: bool = True
+        gradient_clip_val: float = 1.0
+        gradient_clip_algorithm: str = "norm"
 
     def __init__(self, *args, n_devices: int = 1, logs: str = None, **kwargs):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
@@ -593,6 +595,8 @@ class VariationalReDecoderStill(Datablock):
             max_epochs=self.cfg.max_epochs, 
             limit_train_batches=self.cfg.max_steps,
             log_every_n_steps=self.cfg.log_interval,
+            gradient_clip_val=self.cfg.gradient_clip_val,
+            gradient_clip_algorithm=self.cfg.gradient_clip_algorithm,
             callbacks = [VariationalReDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, log_weights=self.cfg.log_weights, skip_invalid_gradients=self.cfg.skip_invalid_gradients)],
             devices=self.n_devices,
             logger=logger,

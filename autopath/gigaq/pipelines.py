@@ -348,6 +348,8 @@ def gigapath_vred_still(vred_dataset_name,
                         capture_latents: bool = False, 
                         log_weights: bool = False, 
                         skip_invalid_gradients: bool = True,
+                        gradient_clip_val: float = 1.0,
+                        gradient_clip_algorithm: str = 'norm',
                         logs: str = None
     ):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
@@ -356,13 +358,15 @@ def gigapath_vred_still(vred_dataset_name,
     featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, batch_size=batch_size, shuffle=shuffle)
     lightning = dbx.quote(VariationalReDecoderLightning, spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
     still = VariationalReDecoderStill(spec=dict(
-            lightning=lightning, 
-            dataloader=featureloader,
-            max_epochs=max_epochs,
-            max_steps=max_steps,
-            skip_invalid_gradients=skip_invalid_gradients,
-            log_weights=log_weights,
-            init_ckpt_path=init_ckpt_path,
+                lightning=lightning, 
+                dataloader=featureloader,
+                max_epochs=max_epochs,
+                max_steps=max_steps,
+                skip_invalid_gradients=skip_invalid_gradients,
+                log_weights=log_weights,
+                init_ckpt_path=init_ckpt_path,
+                gradient_clip_val=gradient_clip_val,
+                gradient_clip_algorithm=gradient_clip_algorithm,
             ),
         n_devices=n_devices,
         logs=logs,
