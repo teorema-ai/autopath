@@ -20,7 +20,7 @@ from dbx import Datablock
 
 from .layers import UpLayer
 
-VRED_VERSION = 2
+VERSION = 3
 
 class Classifier(nn.Module):
     def __init__(self, 
@@ -439,7 +439,7 @@ class VariationalReDecoderEvaluator(Datablock):
 
 
 class VariationalReDecoderLightning(Datablock):
-    VERSION = VRED_VERSION
+    VERSION = globals().get('VERSION', None)
 
     class Callbacks(L.pytorch.callbacks.Callback):
         def __init__(self, 
@@ -548,7 +548,7 @@ class VariationalReDecoderLightning(Datablock):
     
 
 class VariationalReDecoderStill(Datablock):
-    VERSION = VRED_VERSION
+    VERSION = globals().get('VERSION', None)
     TOPICFILES = {'logs': None,
                   'ckpts': None,
     }
