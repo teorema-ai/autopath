@@ -476,6 +476,8 @@ class VariationalReDecoderLightning(Datablock):
                 gradients_valid = True
                 for name, param in module.vred.named_parameters():    
                     if param.grad is not None:
+                        self.log.debug(f"Checking gradients for {name} ... ")
+                        self.log.debug(f"Checking gradients for {name} ... done")
                         gradients_valid = not (torch.isnan(param.grad).any() or torch.isinf(param.grad).any())
                         if not gradients_valid:
                             break
