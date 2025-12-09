@@ -444,7 +444,7 @@ class VariationalReDecoderLightning(Datablock):
     class Callbacks(L.pytorch.callbacks.Callback):
         def __init__(self, 
                      *, 
-                     skip_invalid_grads: bool = True,
+                     skip_invalid_gradients: bool = True,
                      log_gradients: bool = False, 
                      log_weights: bool = False, 
                      log: dbx.Logger = dbx.Logger(name="VariationalReDecoderLightning.Callbacks")
@@ -452,7 +452,7 @@ class VariationalReDecoderLightning(Datablock):
             super().__init__()
             self.log_gradients = log_gradients
             self.log_weights = log_weights
-            self.skip_invalid_grads = skip_invalid_grads
+            self.skip_invalid_gradients = skip_invalid_gradients
             self.log = log
 
         def on_after_backward(self, trainer, module):
@@ -470,7 +470,7 @@ class VariationalReDecoderLightning(Datablock):
                     except Exception as e:
                         tbstr = '\n'.join(traceback.format_tb(e.__traceback__))
                         self.log.info(f"on_after_backward: param: {name}: {e}\n{tbstr}")
-            if self.skip_invalid_grads:
+            if self.skip_invalid_gradients:
                 gradients_valid = True
                 for name, param in module.vred.named_parameters():    
                     if param.grad is not None:
@@ -563,7 +563,7 @@ class VariationalReDecoderStill(Datablock):
         log_interval: int = 1
         log_gradients: bool = False
         log_weights: bool = False
-        skip_invalid_grads: bool = True
+        skip_invalid_gradients: bool = True
 
     def __init__(self, *args, n_devices: int = 1, logs: str = None, **kwargs):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
@@ -593,7 +593,7 @@ class VariationalReDecoderStill(Datablock):
             max_epochs=self.cfg.max_epochs, 
             limit_train_batches=self.cfg.max_steps,
             log_every_n_steps=self.cfg.log_interval,
-            callbacks = [VariationalReDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, log_weights=self.cfg.log_weights, skip_invalid_grads=self.cfg.skip_invalid_grads)],
+            callbacks = [VariationalReDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, log_weights=self.cfg.log_weights, skip_invalid_gradients=self.cfg.skip_invalid_gradients)],
             devices=self.n_devices,
             logger=logger,
         )
