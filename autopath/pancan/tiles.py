@@ -20,7 +20,7 @@ from dbx import Logger, Datablock
 
 from autopath.databits import Bag, ClipDataset
 from autopath.tiles import TileShard, TileBag, TileClip, TileSplit, TileFold
-from autopath.pancan.tools.tfrecord import TFRecordDataset, get_tfrecord_parser
+#from autopath.pancan.tools.tfrecord import TFRecordDataset, get_tfrecord_parser
 
 
 logger = Logger()
