@@ -13,8 +13,6 @@ import torch
 import torchvision
 
 
-#import slideflow as sf
-
 import dbx
 from dbx import Logger, Datablock
 
@@ -88,14 +86,6 @@ class PancanTileBag(PancanTileShard, TileBag):
 	
 	@property
 	def dataset(self):
-		""" 
-		parser = sf.io.get_tfrecord_parser(
-				self.path('tiles'),
-				('image_raw',),
-				to_numpy=True,
-				decode_images=True
-		)
-		"""
 		parser = get_tfrecord_parser(
 				self.path('tiles'),
 				('image_raw',),
