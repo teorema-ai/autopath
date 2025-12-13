@@ -25,7 +25,7 @@ from autopath.pancan.tools.tfrecord import TFRecordDataset, get_tfrecord_parser
 
 logger = Logger()
 
-"""	
+	
 class TFRecordDataset(sf.io.TFRecordDataset):
 		def __init__(self, tfrecords_path, index_path, transform):
 			self.index = np.load(index_path)['arr_0']
@@ -33,7 +33,6 @@ class TFRecordDataset(sf.io.TFRecordDataset):
 
 		def __len__(self):
 			return len(self.index)
-"""
 
 class PancanTileShard(TileShard):
 	...
@@ -88,7 +87,6 @@ class PancanTileBag(PancanTileShard, TileBag):
 	
 	@property
 	def dataset(self): 
-		"""
 		parser = sf.io.get_tfrecord_parser(
 				self.path('tiles'),
 				('image_raw',),
@@ -102,6 +100,7 @@ class PancanTileBag(PancanTileShard, TileBag):
 				to_numpy=True,
 				decode_images=True
 		)
+		"""
 		def transform(*args, **kwargs):
 			return parser(*args, **kwargs)[0]
 		dataset = TFRecordDataset(self.path('tiles'), self.path('index'), transform=transform)
