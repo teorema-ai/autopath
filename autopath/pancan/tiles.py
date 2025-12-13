@@ -34,6 +34,7 @@ class TFRecordDataset(sf.io.TFRecordDataset):
 		def __len__(self):
 			return len(self.index)
 
+
 class PancanTileShard(TileShard):
 	...
 
