@@ -347,6 +347,7 @@ def get_tfrecord_parser(
     tfrecord_path: str,
     features_to_return: Iterable[str] = None,
     decode_images: bool = True,
+    **kwargs,
 ) -> Callable:
 
     """Gets tfrecord parser using dareblopy reader.
