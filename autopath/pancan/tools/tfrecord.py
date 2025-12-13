@@ -1,4 +1,5 @@
 from functools import partial
+import io
 import os
 import struct
 from typing import Optional, Tuple, Iterable, Union, List, Dict, Callable, Any
