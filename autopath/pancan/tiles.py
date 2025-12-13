@@ -13,7 +13,7 @@ import torch
 import torchvision
 
 
-import slideflow as sf
+#import slideflow as sf
 
 import dbx
 from dbx import Logger, Datablock
