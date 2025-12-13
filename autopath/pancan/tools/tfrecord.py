@@ -665,6 +665,48 @@ class TFRecordIterator:
         return datum_bytes_view
     
 
+class ExampleIterator(TFRecordIterator):
+    def __init__(
+        self,
+        data_path: str,
+        index: Optional[np.ndarray] = None,
+        shard: Optional[Tuple[int, int]] = None,
+        clip: Optional[int] = None,
+        compression_type: Optional[str] = None,
+        random_start: bool = False,
+        datum_bytes: Optional[bytearray] = None,
+        description: Union[List[str], Dict[str, str], None] = None,
+    ):
+        """
+        description: list or dict of str, optional, default=None
+            List of keys or dict of (key, value) pairs to extract from each
+            record. The keys represent the name of the features and the
+            values ("byte", "float", or "int") correspond to the data type.
+            If dtypes are provided, then they are verified against the
+            inferred type for compatibility purposes. If None (default),
+            then all features contained in the file are extracted.
+        """
+        super().__init__(
+            data_path,
+            index,
+            shard,
+            clip,
+            compression_type,
+            random_start,
+            datum_bytes
+        )
+        self.description = description
+
+    def process(self, record):
+        example = example_pb2.Example()
+        example.ParseFromString(record)
+        return extract_feature_dict(
+            example.features,
+            self.description,
+            self.typename_mapping
+        )
+    
+
 def tfrecord_loader(
     data_path: str,
     index: Optional[np.ndarray] = None,
