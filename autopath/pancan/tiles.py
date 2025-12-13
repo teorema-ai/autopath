@@ -20,11 +20,12 @@ from dbx import Logger, Datablock
 
 from autopath.databits import Bag, ClipDataset
 from autopath.tiles import TileShard, TileBag, TileClip, TileSplit, TileFold
+from autopath.pancan.tools.tfrecord import TFRecordDataset
 
 
 logger = Logger()
 
-	
+"""	
 class TFRecordDataset(sf.io.TFRecordDataset):
 		def __init__(self, tfrecords_path, index_path, transform):
 			self.index = np.load(index_path)['arr_0']
@@ -32,7 +33,7 @@ class TFRecordDataset(sf.io.TFRecordDataset):
 
 		def __len__(self):
 			return len(self.index)
-
+"""
 
 class PancanTileShard(TileShard):
 	...
