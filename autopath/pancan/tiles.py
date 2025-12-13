@@ -26,7 +26,7 @@ from autopath.tiles import TileShard, TileBag, TileClip, TileSplit, TileFold
 logger = Logger()
 
 	
-class TFRecordDataset(sf.io.TFRecordDataset):
+class PancanTFRecordDataset(sf.io.TFRecordDataset):
 		def __init__(self, tfrecords_path, index_path, transform):
 			self.index = np.load(index_path)['arr_0']
 			super().__init__(tfrecords_path, self.index, transform=transform)
@@ -104,7 +104,7 @@ class PancanTileBag(PancanTileShard, TileBag):
 		"""
 		def transform(*args, **kwargs):
 			return parser(*args, **kwargs)[0]
-		dataset = TFRecordDataset(self.path('tiles'), self.path('index'), transform=transform)
+		dataset = PancanTFRecordDataset(self.path('tiles'), self.path('index'), transform=transform)
 		return dataset
 	
 	@functools.cached_property
