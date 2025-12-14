@@ -15,7 +15,7 @@ def get_requirements():
 
 setuptools.setup(
     name="autopath",
-    version="0.0.1",
+    version="0.1.1",
     author="Dmitry Karpeyev",
     author_email="dmitry.karpeyev@gmail.com",
     description="Automated Pathology inference models",
@@ -24,6 +24,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
     ],
     entry_points={'console_scripts': []},
-    python_requires='>=3.9',
+    python_requires='>=3.12',
     install_requires=get_requirements(),
 )

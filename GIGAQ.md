@@ -2,11 +2,6 @@
 conda env create -f autopath-env.yml
 conda activate autopath
 
-# slideflow
-cd ~/slideflow
-git checkout gigapath
-pip install -e .
-
 # dbx
 cd ~/dbx
 pip install -e .
