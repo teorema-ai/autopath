@@ -1,7 +1,10 @@
+lightning==2.6.0
 ray==2.44.1
+scipy==1.16.3
 tfrecord==1.14.6
 timm==1.0.3
 tensorboard==2.8.0
 torch==2.8.0
 torchvision==0.23.0
-lightning==2.6.0
+
+
