@@ -55,10 +55,10 @@ def pancan_tile_bag_split(name=None, train_fraction: Optional[float] = None) -> 
     else:
         raise ValueError(f"Unknown tile_split: {name}")
 
-# dbx "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_8020_TRAIN').build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_8020_TEST').build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_9802_TRAIN').build()"
-# dbx "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_9802_TEST').build()"
+# git commit -am 'gigaq: PancanTileBagFold: BUILD'; dbx.print "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_8020_TRAIN').build()"
+# git commit -am 'gigaq: PancanTileBagFold: BUILD'; dbx.print "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_8020_TEST').build()"
+# git commit -am 'gigaq: PancanTileBagFold: BUILD'; dbx.print "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_9802_TRAIN').build()"
+# git commit -am 'gigaq: PancanTileBagFold: BUILD'; dbx.print "autopath.pancan.pipelines.pancan_tile_bag_fold('CPTAC_9802_TEST').build()"
 def pancan_tile_bag_fold(name=None) -> PancanTileBagFold:
     if name is None:
         return PancanTileBagFold
