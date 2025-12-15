@@ -90,6 +90,16 @@ class Clip(Datablock):
             except:
                 pass
         return self
+
+    def UNSAFE_copy_from(self, anchorpath: str, shard_anchorpath: str, *, overwrite: bool = False):
+        super().UNSAFE_copy_from(anchorpath, overwrite=overwrite)
+        self.UNSAFE_copy_shards_from(shard_anchorpath, overwrite=overwrite)
+        return self
+
+    def UNSAFE_copy_shards_from(self, shard_anchorpath: str, *, overwrite: bool = False):
+        for shard in self.shards:
+            shard.UNSAFE_copy_from(shard_anchorpath, overwrite=overwrite)
+        return self
     
 
 class Split(Datablock):

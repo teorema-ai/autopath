@@ -28,29 +28,19 @@ class TileBag(TileShard, Bag):
     def __init__(self, *args, **kwargs):
         TileShard.__init__(self, *args, **kwargs)
 
-class TileClip(Clip):
-    ...
 
-class TileSplit(Split):
-    ...
-
-class TileFold(Fold):
-    ...
-
-
-def tileset(tileclip: Clip, 
+def tileset(tilebagclip: Clip, 
             transform: Optional[torchvision.transforms.Compose] = None,
             *,
             debug: bool = False,
             verbose: bool = False,
             log = None,
 ):
-    tileclip = dbx.eval_term(tileclip)
+    tilebagclip = dbx.eval_term(tilebagclip)
     transform = dbx.eval_term(transform)
-    return ClipDataset(
-                          clip=tileclip, 
-                          transform=transform, 
-                          debug=debug, 
-                          verbose=verbose,
-                          log=log,
+    return ClipDataset(clip=tilebagclip, 
+                       transform=transform, 
+                       debug=debug, 
+                       verbose=verbose,
+                       log=log,
     )

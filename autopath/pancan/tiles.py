@@ -16,8 +16,8 @@ import torchvision
 import dbx
 from dbx import Logger, Datablock
 
-from autopath.databits import Bag, ClipDataset
-from autopath.tiles import TileShard, TileBag, TileClip, TileSplit, TileFold
+from autopath.databits import Bag, Clip, Split, Fold, ClipDataset
+from autopath.tiles import TileBag
 from autopath.pancan.tools.tfrecord import TFRecordDataset, get_tfrecord_parser
 
 
@@ -33,11 +33,7 @@ class PancanTFRecordDataset(TFRecordDataset):
 			return len(self.index)
 
 
-class PancanTileShard(TileShard):
-	...
-
-
-class PancanTileBag(PancanTileShard, TileBag):
+class PancanTileBag(TileBag):
 	@dataclass
 	class CONFIG(Datablock.CONFIG):
 		source: str
@@ -114,7 +110,7 @@ class PancanTileBag(PancanTileShard, TileBag):
 		return self.read('labels')
 
 
-class PancanTileClip(TileClip):
+class PancanTileBagClip(Clip):
 	TOPICFILE = "bag_lens.npz"
 	@dataclass
 	class CONFIG:
@@ -145,7 +141,6 @@ class PancanTileClip(TileClip):
 
 	@functools.cached_property
 	def bags(self):
-
 		return [
 			PancanTileBag(
 				spec=dict(source=bagpath,),
@@ -191,15 +186,15 @@ class PancanTileClip(TileClip):
 		return self.bag_lens
 
 
-class PancanTileSplit(TileSplit):
+class PancanTileBagSplit(Split):
 	...
 
 
-class PancanTileFold(TileFold):
+class PancanTileBagFold(Fold):
 	...
 
 
-def pancan_tileset(tileclip: PancanTileClip,
+def pancan_tilebagset(tileclip: PancanTileBagClip,
 				   transform: Optional[torchvision.transforms.Compose] = None,
 				   *,
 				   debug: bool = False,
