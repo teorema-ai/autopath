@@ -37,8 +37,8 @@ def pancan_tile_bag_clip(name=None) -> PancanTileBagClip:
     else:
         raise ValueError(f"Unknown tile clip: {name}")
 
-# git commit -am 'gigaq: PancanTileSplit: BUILD'; dbx 'autopath.pancan.pipelines.pancan_tile_bag_split("CPTAC_8020").build_tree()'
-# git commit -am 'gigaq: PancanTileSplit: BUILD'; dbx 'autopath.pancan.pipelines.pancan_tile_bag_split("CPTAC_9802").build_tree()'
+# git commit -am 'gigaq: PancanTileBagSplit: BUILD'; dbx.print 'autopath.pancan.pipelines.pancan_tile_bag_split("CPTAC_8020").build_tree()'
+# git commit -am 'gigaq: PancanTileBagSplit: BUILD'; dbx.print 'autopath.pancan.pipelines.pancan_tile_bag_split("CPTAC_9802").build_tree()'
 def pancan_tile_bag_split(name=None, train_fraction: Optional[float] = None) -> PancanTileBagSplit:
     if name is None:
         return PancanTileBagSplit
