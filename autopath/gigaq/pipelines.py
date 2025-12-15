@@ -45,6 +45,12 @@ from autopath.models.vred import (
 
 mp.set_start_method("spawn", force=True)
 
+def quote_extractor(name, sideband: bool = False, capture_blocks: Optional[List[int]] = None):
+        if sideband: 
+            return dbx.quote(gigapath_backbone_evaluator, name, sideband=True, capture_blocks=capture_blocks)
+        else:
+            return dbx.quote(gigapath_backbone_evaluator, name)
+        
 
 def gigapath_backbone_evaluator(name, *, device: str = 'cuda',):
     def select_capture_blocks(n_blocks: int = 1):
@@ -65,33 +71,30 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda',):
 # git commit -am "gigaq: FeatureBag: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag('GIGAPATH_BASELINE_CPTAC_SAMPLE').set(device='cuda', gpu_batch_size=1024).build()"
 def gigapath_feature_bag(name) -> FeatureBag:
     if name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
-        return FeatureBag(spec=dict(tilebag=dbx.quote(pancan_tile_bag, 'CPTAC_SAMPLE'),))
+        return FeatureBag(spec=dict(
+            tilebag=dbx.quote(pancan_tile_bag, 'CPTAC_SAMPLE'),
+            extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR'),
+        ))
     else:
         raise ValueError(f"Unknown feature shard: {name}")
 
 
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
 def gigapath_feature_bag_clip(name) -> FeatureBagClip:
-    def get_extractor(name, sideband: bool = False, capture_blocks: Optional[List[int]] = None):
-        if sideband: 
-            return dbx.quote(gigapath_backbone_evaluator, name, sideband=True, capture_blocks=capture_blocks)
-        else:
-            return dbx.quote(gigapath_backbone_evaluator, name)
-
     if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_9802_TEST')
     elif name == "GIGAPATH_BASELINE_CPTAC_9802_TRAIN":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_9802_TRAIN')
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TRAIN":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TRAIN')
     elif name == "GIGAPATH_BASELINE_5B_CPTAC_8020_TEST":
-        extractor=get_extractor('GIGAPATH_BASELINE_BACKBONE_5B_EVALUATOR')
+        extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_5B_EVALUATOR')
         tileclip = dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
     else:
         raise ValueError(f"Unknown gigapath_feature_clip: {repr(name)}")

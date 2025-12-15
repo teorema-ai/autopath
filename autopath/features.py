@@ -45,7 +45,6 @@ class FeatureBag(Bag):
         Datablock.__init__(self, *args, gpu_batch_size=gpu_batch_size, **kwargs)
         Bag.__init__(self.cfg.tilebag.name)
 
-
     def __post_init__(self):
         self.TOPICFILES = {
             'features': 'features.npy',
