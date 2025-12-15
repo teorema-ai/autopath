@@ -87,25 +87,25 @@ def gigapath_feature_bag_clip(name=None) -> FeatureBagClip:
         return FeatureBagClip
     if name == "GIGAPATH_BASELINE_CPTAC":
         extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tileclip=dbx.quote(pancan_tile_bag_clip, 'CPTAC')
+        tilebagclip=dbx.quote(pancan_tile_bag_clip, 'CPTAC')
     elif name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_9802_TEST')
+        tilebagclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_9802_TEST')
     elif name == "GIGAPATH_BASELINE_CPTAC_9802_TRAIN":
         extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_9802_TRAIN')
+        tilebagclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_9802_TRAIN')
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
+        tilebagclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TRAIN":
         extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
-        tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TRAIN')
+        tilebagclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TRAIN')
     elif name == "GIGAPATH_BASELINE_5B_CPTAC_8020_TEST":
         extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_5B_EVALUATOR')
-        tileclip = dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
+        tilebagclip = dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
     else:
         raise ValueError(f"Unknown gigapath_feature_clip: {repr(name)}")
-    return FeatureBagClip(spec=dict(extractor=extractor, tileclip=tileclip))
+    return FeatureBagClip(spec=dict(extractor=extractor, tilebagclip=tilebagclip))
 
 
 # git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
