@@ -43,7 +43,7 @@ class FeatureBag(Bag):
 
     def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
         Datablock.__init__(self, *args, gpu_batch_size=gpu_batch_size, **kwargs)
-        Bag.__init__(self.cfg.tilebag.name)
+        Bag.__init__(self, self.cfg.tilebag.name)
 
     def __post_init__(self):
         self.TOPICFILES = {
