@@ -15,8 +15,8 @@ import torch
 import dbx
 from dbx import Datablock
 
-from autopath.databits import Shard, Clip, ClipDataset
-from .tiles import TileShard, TileClip
+from autopath.databits import Bag, Clip, ClipDataset
+from .tiles import TileBag, TileBagClip
 
 
 def tensors_to_device(tensors, device, *, detach: bool = False):
@@ -34,11 +34,11 @@ def cat_tensor_dicts(tensor_dicts):
     _tensors = {k: torch.cat(v) for k, v in tensors.items()}
     return _tensors
 
-class FeatureShard(Shard):
+class FeatureBag(Bag):
     VERSION = 1
     @dataclass
     class CONFIG(Datablock.CONFIG):
-        tileshard: TileShard
+        tilebag: TileBag
         extractor: Callable
 
     def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
@@ -65,14 +65,14 @@ class FeatureShard(Shard):
         return hasattr(self.cfg.extractor, 'sideband_layers')
 
     def __build__(self, extractor):
-        tileshard = self.cfg.tileshard
+        tilebag = self.cfg.tilebag
         feature_list = []
         sideband_list = []
-        n_tiles = len(tileshard.tiles)
-        for k in range(math.ceil(len(tileshard.tiles)/self.gpu_batch_size)):
+        n_tiles = len(tilebag.tiles)
+        for k in range(math.ceil(len(tilebag.tiles)/self.gpu_batch_size)):
             m = k*self.gpu_batch_size
             n = min((k+1)*self.gpu_batch_size, n_tiles)
-            batch = tileshard.tiles[m:n].to(self.device)
+            batch = tilebag.tiles[m:n].to(self.device)
             self.log.verbose(f"Evaluating batch {k}: {m}:{n} out of {n_tiles} on device: {self.device}")
             feature = extractor(batch)
             feature_list.append(feature.to('cpu'))
@@ -141,15 +141,15 @@ class FeatureShard(Shard):
     
     @functools.cached_property
     def labels(self):
-        return list(zip(self.cfg.tileshard.labels, self.cfg.tileshard.tiles))
+        return list(zip(self.cfg.tilebag.labels, self.cfg.tilebag.tiles))
 
 
-class FeatureClip(Clip):
+class FeatureBagClip(Clip):
     VERSION = 1
-    TOPICFILES = {"shard_lens": "shard_lens.npy"}
+    TOPICFILES = {"bag_lens": "bag_lens.npy"}
     @dataclass
     class CONFIG:
-        tileclip: TileClip
+        tilebagclip: TileBagClip
         extractor: Callable
 
     def __init__(self, *args, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
@@ -157,34 +157,34 @@ class FeatureClip(Clip):
         self.log.debug(f"devices={self.devices}, gpu_batch_size={self.gpu_batch_size}, skip_unreadable={self.skip_unreadable}")
 
     def __build__(self):
-        shards = self.shards
-        self.log.debug(f"Formed {len(shards)} FeatureShards.  Looking for missing shards")
-        missing_shards = [shard for shard in shards if not shard.valid()]
-        self.log.debug(f"Found {len(missing_shards)} missing shards")
-        self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
-        built_shards = dbx.TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_shards, self.cfg.extractor)
-        self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
-        self.log.verbose(f"Building shard_lens: BEGIN")
+        bags = self.bags
+        self.log.debug(f"Formed {len(bags)} FeatureBags.  Looking for missing bags.")
+        missing_bags = [bag for bag in bags if not bag.valid()]
+        self.log.debug(f"Found {len(missing_bags)} missing bags")
+        self.log.debug(f"Building all missing features bags using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
+        built_bags = dbx.TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_bags, self.cfg.extractor)
+        self.log.verbose(f"Built all missing features shards: {len(built_bags)}")
+        self.log.verbose(f"Building bag_lens: BEGIN")
         if self.verbose:
-            shards = tqdm.tqdm(shards)
-        shard_lens = torch.tensor([len(shard) for shard in shards])
-        self.log.verbose(f"Building shard_lens: BEGIN")
-        dbx.write_tensor(shard_lens, self.path("shard_lens", ensure_dirpath=True))
+            bags = tqdm.tqdm(bags)
+        bag_lens = torch.tensor([len(bag) for bag in bags])
+        self.log.verbose(f"Building bag_lens: END")
+        dbx.write_tensor(bag_lens, self.path("bag_lens", ensure_dirpath=True))
         return self
     
     def __read__(self, topic):
-        if topic == "shard_lens":
-            result = dbx.read_tensor(self.path("shard_lens"))
+        if topic == "bag_lens":
+            result = dbx.read_tensor(self.path("bag_lens"))
         else:
             raise ValueError(f"Unknown {topic=}")
         return result
     
     def features(self):
-        self.log.debug(f"Reading features from {len(self.n_shards)} feature shards")
+        self.log.debug(f"Reading features from {len(self.n_bags)} feature bags")
         feature_list = []
-        for featureshard in self.shards:
+        for featurebag in self.bags:
             try:
-                feature_list.append(featureshard.features)
+                feature_list.append(featurebag.features)
             except Exception as e:
                 if self.skip_unreadable:
                     continue
@@ -195,18 +195,18 @@ class FeatureClip(Clip):
         return features
     
     def tiles(self):
-        self.log.debug(f"Reading tiles from {len(self.n_shards)} feature shards")
+        self.log.debug(f"Reading tiles from {len(self.n_bags)} feature bags")
         tile_list = []
-        for featureshard in self.shards:
+        for featurebag in self.bags:
             try:
-                _tileshard_tiles = featureshard.cfg.tileshard.tiles
-                tileshard_tiles = (
-                    self.cfg.extractor.transform(_tileshard_tiles) 
+                _tilebag_tiles = featurebag.cfg.tilebag.tiles
+                tilebag_tiles = (
+                    self.cfg.extractor.transform(_tilebag_tiles) 
                     if self.cfg.extractor.transform is not None 
-                    else _tileshard_tiles
+                    else _tilebag_tiles
                 )
-                del _tileshard_tiles
-                tile_list.append(tileshard_tiles)
+                del _tilebag_tiles
+                tile_list.append(tilebag_tiles)
             except Exception as e:
                 if self.skip_unreadable:
                     continue
@@ -218,9 +218,9 @@ class FeatureClip(Clip):
     
     def sideband(self, layer):
         sideband_list = []
-        for featureshard in self.shards:
+        for featurebag in self.bags:
             try:
-                sideband_list.append(featureshard.sideband(layer))
+                sideband_list.append(featurebag.sideband(layer))
             except Exception as e:
                 if self.skip_unreadable:
                     continue
@@ -233,26 +233,38 @@ class FeatureClip(Clip):
         return self.sideband(layer) if layer is not None else self.features()
     
     @functools.cached_property
-    def shards(self):
+    def bags(self):
         return [
-            FeatureShard(spec=dict(tileshard=dbx.quote(tileshard), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
-            for tileshard in self.cfg.tileclip.shards
+            FeatureBag(spec=dict(tilebag=dbx.quote(tilebag), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
+            for tilebag in self.cfg.tilebagclip.shards
         ]
     
     @property
+    def shards(self):
+        return self.bags
+    
+    @property
+    def n_bags(self):
+        return len(self.bags)
+    
+    @property
     def n_shards(self):
-        return len(self.shards)
+        return self.n_bags
+    
+    @property
+    def bag_lens(self):
+        return self.read("bag_lens")
     
     @property
     def shard_lens(self):
-        return self.read("shard_lens")
+        return self.bag_lens
     
     def labels(self):
-        self.log.debug(f"Reading labels from {len(self.n_shards)} feature shards")
+        self.log.debug(f"Reading labels from {len(self.n_bags)} feature bags")
         label_list = []
-        for featureshard in self.shards:
+        for featurebag in self.bags:
             try:
-                label_list.append(featureshard.labels)  
+                label_list.append(featurebag.labels)  
             except Exception as e:
                 if self.skip_unreadable:
                     continue
@@ -263,5 +275,5 @@ class FeatureClip(Clip):
         return labels
      
 
-def featureset(featureclip: FeatureClip, transform=None):
-    return ClipDataset(spec=dict(clip=featureclip, transform=transform))
+def featurebagset(featurebagclip: FeatureBagClip, transform=None):
+    return ClipDataset(spec=dict(clip=featurebagclip, transform=transform))

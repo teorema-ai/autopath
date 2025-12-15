@@ -12,9 +12,9 @@ from autopath.pancan.pipelines import (
 )
 
 from autopath.features import (
-    FeatureShard, 
-    FeatureClip,
-    featureset,
+    FeatureBag, 
+    FeatureBagClip,
+    featurebagset,
 )
 
 from autopath.pancan.probes import (
@@ -62,10 +62,10 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda',):
         raise ValueError(f"Unknown backbone evaluator: {name}")
 
 
-# git commit -am "gigaq: FeatureShard: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard('GIGAPATH_BASELINE_CPTAC_SAMPLE').set(device='cuda', gpu_batch_size=1024).build()"
-def gigapath_feature_shard(name) -> FeatureShard:
+# git commit -am "gigaq: FeatureBag: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag('GIGAPATH_BASELINE_CPTAC_SAMPLE').set(device='cuda', gpu_batch_size=1024).build()"
+def gigapath_feature_bag(name) -> FeatureBag:
     if name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
-        return FeatureShard(spec=dict(tilebag=dbx.quote(pancan_tile_bag, 'CPTAC_SAMPLE'),))
+        return FeatureBag(spec=dict(tilebag=dbx.quote(pancan_tile_bag, 'CPTAC_SAMPLE'),))
     else:
         raise ValueError(f"Unknown feature shard: {name}")
 
