@@ -8,6 +8,7 @@ import dbx
 
 from autopath.pancan.pipelines import (
     pancan_tile_bag,
+    pancan_tile_bag_clip,
     pancan_tile_bag_fold,
 )
 
@@ -67,10 +68,11 @@ def gigapath_backbone_evaluator(name, *, device: str = 'cuda',):
     else:
         raise ValueError(f"Unknown backbone evaluator: {name}")
 
-
 # git commit -am "gigaq: FeatureBag: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag('GIGAPATH_BASELINE_CPTAC_SAMPLE').set(device='cuda', gpu_batch_size=1024).build()"
-def gigapath_feature_bag(name) -> FeatureBag:
-    if name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
+def gigapath_feature_bag(name=None) -> FeatureBag:
+    if name is None:
+        return FeatureBag
+    elif name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
         return FeatureBag(spec=dict(
             tilebag=dbx.quote(pancan_tile_bag, 'CPTAC_SAMPLE'),
             extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR'),
@@ -78,10 +80,15 @@ def gigapath_feature_bag(name) -> FeatureBag:
     else:
         raise ValueError(f"Unknown feature shard: {name}")
 
-
+# git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC').build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
-def gigapath_feature_bag_clip(name) -> FeatureBagClip:
-    if name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
+def gigapath_feature_bag_clip(name=None) -> FeatureBagClip:
+    if name is None:
+        return FeatureBagClip
+    if name == "GIGAPATH_BASELINE_CPTAC":
+        extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
+        tileclip=dbx.quote(pancan_tile_bag_clip, 'CPTAC')
+    elif name == "GIGAPATH_BASELINE_CPTAC_9802_TEST":
         extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR')
         tileclip=dbx.quote(pancan_tile_bag_fold, 'CPTAC_9802_TEST')
     elif name == "GIGAPATH_BASELINE_CPTAC_9802_TRAIN":
