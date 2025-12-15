@@ -42,7 +42,9 @@ class FeatureBag(Bag):
         extractor: Callable
 
     def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
-        super().__init__(*args, gpu_batch_size=gpu_batch_size, **kwargs)
+        Datablock.__init__(self, *args, gpu_batch_size=gpu_batch_size, **kwargs)
+        Bag.__init__(self.cfg.tilebag.name)
+
 
     def __post_init__(self):
         self.TOPICFILES = {
