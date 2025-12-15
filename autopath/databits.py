@@ -47,8 +47,9 @@ class Shard(Datablock):
     
 
 class Bag(Shard):
-    def __init__(self, name):
+    def __init__(self, name, *args, **kwargs):
         self.name = name
+        Datablock.__init__(self, *args, **kwargs)
     
     @functools.cached_property
     def labels(self):
