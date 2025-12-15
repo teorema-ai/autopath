@@ -100,11 +100,11 @@ def gigapath_feature_bag_clip(name) -> FeatureBagClip:
 
 # git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
 # git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
-def gigapath_featureset(name) -> torch.utils.data.Dataset:
-    featureclip = gigapath_feature_clip(name)
+def gigapath_featurebagset(name) -> torch.utils.data.Dataset:
+    featureclip = gigapath_feature_bag_clip(name)
     quoted_featureclip = dbx.quote(featureclip)
     dbx.Logger().debug(f"===================> {featureclip=}\n{quoted_featureclip=}")
-    return featureset(quoted_featureclip)
+    return featurebagset(quoted_featureclip)
 
 
 # git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_logisticfeature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"

@@ -16,7 +16,7 @@ import dbx
 from dbx import Datablock
 
 from autopath.databits import Bag, Clip, ClipDataset
-from .tiles import TileBag, TileBagClip
+from .tiles import TileBag
 
 
 def tensors_to_device(tensors, device, *, detach: bool = False):
@@ -149,7 +149,7 @@ class FeatureBagClip(Clip):
     TOPICFILES = {"bag_lens": "bag_lens.npy"}
     @dataclass
     class CONFIG:
-        tilebagclip: TileBagClip
+        tilebagclip: Clip
         extractor: Callable
 
     def __init__(self, *args, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
