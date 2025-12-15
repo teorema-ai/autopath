@@ -67,8 +67,10 @@ class FeatureBag(Bag):
 
     def __build__(self, extractor=None):
         if extractor is None:
-            assert extractor.hash == self.cfg.extractor.hash, f"Extractor hash mismatch: {extractor.hash=} != {self.cfg.extractor.hash=}"
             extractor = self.cfg.extractor
+        else:
+            assert extractor.hash == self.cfg.extractor.hash, f"Extractor hash mismatch: {extractor.hash=} != {self.cfg.extractor.hash=}"
+            
         tilebag = self.cfg.tilebag
         feature_list = []
         sideband_list = []
