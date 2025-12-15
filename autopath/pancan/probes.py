@@ -30,7 +30,7 @@ from dbx import (
 )
 
 from autopath.tiles import TileBag
-from autopath.features import FeatureClip
+from autopath.features import FeatureBagClip
 
 
 class LogisticFeatureBagProber:
@@ -160,7 +160,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
     }
     @dataclass
     class CONFIG:
-        featureclip: FeatureClip
+        featurebagclip: FeatureBagClip
         n_bins: int = 2
         evaluation_fraction: float = 0.8
         umap_fraction: float = 0.01
@@ -173,7 +173,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
     def __build__(self):
         bag_labels = []
         bag_feature_list = []
-        for featureshard in self.cfg.featureclip.shards:
+        for featureshard in self.cfg.featurebagclip.shards:
             if isinstance(featureshard.cfg.tileshard, TileBag):
                 bag_labels.append(featureshard.cfg.tileshard.name)
                 bag_feature_list.append(torch.mean(featureshard.features, dim=0))
@@ -230,7 +230,7 @@ class FeaturePairwiseDistancesShard(Datablock):
 
     @dataclass
     class CONFIG:
-        features: FeatureClip
+        features: FeatureBagClip
         shard_idx: int
         row_shard_size: int
         col_shard_size: int
@@ -292,7 +292,7 @@ class FeaturePairwiseDistances(Datablock):
     }
     @dataclass
     class CONFIG:
-        featureclip: FeatureClip
+        featurebagclip: FeatureBagClip
         n_shards: int
         row_shard_size: int
         col_shard_size: int
@@ -304,17 +304,17 @@ class FeaturePairwiseDistances(Datablock):
 
     def __post_init__(self):
         self.devices = [f"cuda:{i}" for i in range(self.n_devices)]
-        self.cfg.featureclip = self.cfg.featureclip.set(devices=self.devices, gpu_batch_size=self.gpu_batch_size)
+        self.cfg.featurebagclip = self.cfg.featurebagclip.set(devices=self.devices, gpu_batch_size=self.gpu_batch_size)
         return self
     
     def build_tree(self):
-        self.cfg.featureclip.set(devices=self.devices).build()
+        self.cfg.featurebagclip.set(devices=self.devices).build()
         return self.build()
         
     def features(self):
-        self.log.debug(f"Reading features from layer {self.cfg.layer} of {len(self.cfg.featureclip.shards)} feature shards")
+        self.log.debug(f"Reading features from layer {self.cfg.layer} of {len(self.cfg.featurebagclip.shards)} feature shards")
         feature_list = []
-        for featureshard in self.cfg.featureclip.shards:
+        for featureshard in self.cfg.featurebagclip.shards:
             feature_list.extend(featureshard.layer(self.cfg.layer))
         features = torch.stack(feature_list)
         self.log.debug(f"Combined features: shape: {features.shape}")
