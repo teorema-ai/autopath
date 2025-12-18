@@ -51,7 +51,6 @@ class PancanTileBag(TileBag):
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
 		self.TOPICFILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}
 		self._dirpath = os.path.dirname(self.config.source)
-		self._tensor = None
 
 	def dirpath(self, topic, *, ensure: bool = False): 
 		return self._dirpath
@@ -96,10 +95,9 @@ class PancanTileBag(TileBag):
 	
 	@property
 	def tensor(self):
-		if self._tensor is None:
-			tensors = list(self.dataset)
-			self._tensor = torch.stack(tensors).permute(0, 3, 1, 2)
-		return self._tensor
+		tensors = list(self.dataset)
+		tensor = torch.stack(tensors).permute(0, 3, 1, 2)
+		return tensor
 
 	@property
 	def tiles(self):
