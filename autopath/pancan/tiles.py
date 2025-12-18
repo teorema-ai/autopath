@@ -94,7 +94,7 @@ class PancanTileBag(TileBag):
 		dataset = PancanTFRecordDataset(self.path('tiles'), self.path('index'), transform=transform)
 		return dataset
 	
-	@functools.cached_property
+	@property
 	def tensor(self):
 		if self._tensor is None:
 			tensors = list(self.dataset)
@@ -105,7 +105,7 @@ class PancanTileBag(TileBag):
 	def tiles(self):
 		return self.tensor
 
-	@functools.cached_property
+	@property
 	def labels(self):
 		return self.read('labels')
 

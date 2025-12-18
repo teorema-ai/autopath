@@ -129,7 +129,7 @@ class FeatureBag(Bag):
     def read(self, topic):
         return dbx.read_tensor(self.path(topic))
 
-    @functools.cached_property
+    @property
     def features(self):
         return self.read('features')
     
@@ -139,11 +139,11 @@ class FeatureBag(Bag):
     def layer(self, layer):
         return self.sideband(layer) if layer is not None else self.features
         
-    @functools.cached_property
+    @property
     def tensor(self):
         return self.features
     
-    @functools.cached_property
+    @property
     def labels(self):
         return list(zip(self.cfg.tilebag.labels, self.cfg.tilebag.tiles))
 
