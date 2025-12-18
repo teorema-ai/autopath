@@ -80,9 +80,9 @@ def gigapath_feature_bag(name=None) -> FeatureBag:
     else:
         raise ValueError(f"Unknown feature shard: {name}")
 
-# git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC', n_devices=3).set(gpu_batch_size=1024).build()"
+# git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC', n_devices=3, n_threads=3).set(gpu_batch_size=1024).build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
-def gigapath_feature_bag_clip(name=None, n_devices: int = 1) -> FeatureBagClip:
+def gigapath_feature_bag_clip(name=None, n_devices: int = 1, n_threads: int = 1) -> FeatureBagClip:
     devices = [f'cuda:{i}' for i in range(n_devices)]
     if name is None:
         return FeatureBagClip
@@ -106,7 +106,7 @@ def gigapath_feature_bag_clip(name=None, n_devices: int = 1) -> FeatureBagClip:
         tilebagclip = dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
     else:
         raise ValueError(f"Unknown gigapath_feature_clip: {repr(name)}")
-    return FeatureBagClip(spec=dict(extractor=extractor, tilebagclip=tilebagclip), devices=devices)
+    return FeatureBagClip(spec=dict(extractor=extractor, tilebagclip=tilebagclip), devices=devices, n_threads=n_threads)
 
 
 # git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
