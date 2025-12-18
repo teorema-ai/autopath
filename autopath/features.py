@@ -169,7 +169,7 @@ class FeatureBagClip(Clip):
         self.log.verbose(f"Building bag_lens: BEGIN")
         self.log.detailed(f"Building bag_lens for bags with hashe paths {[bag.hashpath() for bag in bags]}")
         executor = MultithreadingCallableExecutor(n_threads=self.n_threads)
-        _bag_lens = executor.exec_callables([lambda: len(bag) for bag in bags])
+        _bag_lens = executor.exec_callables([(lambda: len(bag)) for bag in bags])
         bag_lens = torch.tensor(_bag_lens)
         self.log.debug(f"bag_lens: {bag_lens}")
         self.log.verbose(f"Building bag_lens: END")
