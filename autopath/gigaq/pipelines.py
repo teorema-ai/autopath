@@ -108,9 +108,9 @@ def gigapath_feature_bag_clip(name=None, n_devices: int = 1, n_threads: int = 1)
         raise ValueError(f"Unknown gigapath_feature_clip: {repr(name)}")
     return FeatureBagClip(spec=dict(extractor=extractor, tilebagclip=tilebagclip), devices=devices, n_threads=n_threads)
 
-
-# git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
-# git commit -am "gigaq: Featureset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
+# git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC')[0]"
+# git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
+# git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
 def gigapath_featurebagset(name) -> torch.utils.data.Dataset:
     featureclip = gigapath_feature_bag_clip(name)
     quoted_featureclip = dbx.quote(featureclip)
