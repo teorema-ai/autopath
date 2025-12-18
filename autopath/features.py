@@ -167,6 +167,7 @@ class FeatureBagClip(Clip):
         built_bags = dbx.TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_bags, self.cfg.extractor)
         self.log.verbose(f"Built all missing features shards: {len(built_bags)}")
         self.log.verbose(f"Building bag_lens: BEGIN")
+        self.log.detailed(f"Building bag_lens for {bags=}")
         executor = MultithreadingCallableExecutor(n_threads=self.n_threads)
         _bag_lens = executor.exec_callables([lambda: len(bag) for bag in bags])
         bag_lens = torch.tensor(_bag_lens)
