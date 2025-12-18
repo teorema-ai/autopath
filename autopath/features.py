@@ -13,7 +13,7 @@ import numpy as np
 import torch
 
 import dbx
-from dbx import Datablock
+from dbx import Datablock, MultithreadingCallableExecutor
 
 from autopath.databits import Bag, Clip, ClipDataset
 from .tiles import TileBag
@@ -156,8 +156,8 @@ class FeatureBagClip(Clip):
         tilebagclip: Clip
         extractor: Callable
 
-    def __init__(self, *args, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
-        super().__init__(*args, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
+    def __init__(self, *args, n_threads: int = 1, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
+        super().__init__(*args, n_threads=n_threads, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
         self.log.debug(f"devices={self.devices}, gpu_batch_size={self.gpu_batch_size}, skip_unreadable={self.skip_unreadable}")
 
     def __build__(self):
@@ -169,9 +169,9 @@ class FeatureBagClip(Clip):
         built_bags = dbx.TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_bags, self.cfg.extractor)
         self.log.verbose(f"Built all missing features shards: {len(built_bags)}")
         self.log.verbose(f"Building bag_lens: BEGIN")
-        if self.verbose:
-            bags = tqdm.tqdm(bags)
-        bag_lens = torch.tensor([len(bag) for bag in bags])
+        executor = MultithreadingCallableExecutor(n_threads=self.n_threads)
+        _bag_lens = executor.exec_callables([lambda: len(bag) for bag in bags])
+        bag_lens = torch.tensor(_bag_lens)
         self.log.verbose(f"Building bag_lens: END")
         dbx.write_tensor(bag_lens, self.path("bag_lens", ensure_dirpath=True))
         return self
