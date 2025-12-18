@@ -154,6 +154,14 @@ class FeatureBagClip(Clip):
         tilebagclip: Clip
         extractor: Callable
 
+    class FeatureBagLengthComputer:
+        def __init__(self, featurebag):
+            self.featurebag = featurebag
+        def __call__(self):
+            return len(self.featurebag)
+        def __repr__(self):
+            return f"FeatureBagLengthComputer({self.featurebag})"
+    
     def __init__(self, *args, n_threads: int = 1, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
         super().__init__(*args, n_threads=n_threads, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
         self.log.debug(f"devices={self.devices}, gpu_batch_size={self.gpu_batch_size}, skip_unreadable={self.skip_unreadable}")
@@ -169,7 +177,8 @@ class FeatureBagClip(Clip):
         self.log.verbose(f"Building bag_lens: BEGIN")
         self.log.detailed(f"Building bag_lens for bags with hashe paths {[bag.hashpath() for bag in bags]}")
         executor = MultithreadingCallableExecutor(n_threads=self.n_threads)
-        _bag_lens = executor.exec_callables([(lambda: len(bag)) for bag in bags])
+        executables = [FeatureBagClip.FeatureBagLengthComputer(bag) for bag in bags]
+        _bag_lens = executor.exec_callables(executables)
         bag_lens = torch.tensor(_bag_lens)
         self.log.debug(f"bag_lens: {bag_lens}")
         self.log.verbose(f"Building bag_lens: END")
