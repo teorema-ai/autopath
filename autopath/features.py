@@ -53,13 +53,10 @@ class FeatureBag(Bag):
             for layer in self.cfg.extractor.sideband_layers:
                 self.TOPICFILES[f'sideband_{layer}' ] = \
                     f'sideband_{layer}.npy'
-        self._len = None
         return self
 
     def __len__(self):
-        if self._len is None:
-            self._len = len(self.labels)
-        return self._len
+        return len(self.labels)
     
     @property
     def has_sideband(self):
@@ -145,6 +142,7 @@ class FeatureBag(Bag):
     
     @property
     def labels(self):
+        self.log.detailed(f"Assemblying labels from {self.cfg.tilebag}")
         return list(zip(self.cfg.tilebag.labels, self.cfg.tilebag.tiles))
 
 
