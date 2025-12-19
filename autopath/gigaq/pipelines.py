@@ -16,6 +16,9 @@ from autopath.features import (
     FeatureBag, 
     FeatureBagClip,
     featurebagset,
+    FeatureShard,
+    FeatureShardClip,
+    featureshardset,
 )
 
 from autopath.pancan.probes import (
@@ -108,6 +111,7 @@ def gigapath_feature_bag_clip(name=None, n_devices: int = 1, n_threads: int = 1)
         raise ValueError(f"Unknown gigapath_feature_clip: {repr(name)}")
     return FeatureBagClip(spec=dict(extractor=extractor, tilebagclip=tilebagclip), devices=devices, n_threads=n_threads)
 
+
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
@@ -116,6 +120,35 @@ def gigapath_featurebagset(name) -> torch.utils.data.Dataset:
     quoted_featureclip = dbx.quote(featureclip)
     dbx.Logger().debug(f"===================> {featureclip=}\n{quoted_featureclip=}")
     return featurebagset(quoted_featureclip)
+
+
+# git commit -am "gigaq: FeatureSjard: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard('GIGAPATH_BASELINE_CPTAC', shard_size=32).build()"
+def gigapath_feature_shard(name=None, shard_size: int = 32) -> FeatureShard:
+    if name is None:
+        return FeatureShard
+    elif name == "GIGAPATH_BASELINE_CPTAC":
+        return FeatureShard(spec=dict(featureset=dbx.quote(gigapath_featurebagset, name), shard_size=shard_size))
+    else:
+        raise ValueError(f"Unknown feature shard: {name}")
+    
+
+# git commit -am "gigaq: FeatureShardClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard_clip('GIGAPATH_BASELINE_CPTAC', shard_size=32, n_threads=16).build()"
+def gigapath_feature_shard_clip(name=None, *, shard_size: int = 32, n_threads: int = 1) -> FeatureShardClip:
+    if name is None:
+        return FeatureShardClip
+    if name == "GIGAPATH_BASELINE_CPTAC":
+        featurebagset=dbx.quote(gigapath_featurebagset, 'GIGAPATH_BASELINE_CPTAC')
+    else:
+        raise ValueError(f"Unknown gigapath_feature_shard_clip: {repr(name)}")
+    return FeatureShardClip(spec=dict(featureset=featurebagset, shard_size=shard_size), n_threads=n_threads)
+
+
+# git commit -am "gigaq: Featureshardset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureshardset('GIGAPATH_BASELINE_CPTAC_32')[0]"
+def gigapath_featureshardset(name) -> torch.utils.data.Dataset:
+    featureshardclip = gigapath_feature_shard_clip(name)
+    quoted_featureshardclip = dbx.quote(featureshardclip)
+    dbx.Logger().debug(f"===================> {featureshardclip=}\n{quoted_featureshardclip=}")
+    return featureshardset(quoted_featureshardclip)
 
 
 # git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx "autopath.gigaq.pipelines.gigapath_logisticfeature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"

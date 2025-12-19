@@ -5,7 +5,6 @@ import gc
 import math
 from typing import Callable
 
-import tqdm
 
 import numpy as np
 
@@ -15,7 +14,7 @@ import torch
 import dbx
 from dbx import Datablock, MultithreadingCallableExecutor
 
-from autopath.databits import Bag, Clip, ClipDataset
+from autopath.databits import Shard, Bag, Clip, ClipDataset
 from .tiles import TileBag
 
 
@@ -36,6 +35,7 @@ def cat_tensor_dicts(tensor_dicts):
 
 class FeatureBag(Bag):
     VERSION = 1
+
     @dataclass
     class CONFIG(Datablock.CONFIG):
         tilebag: TileBag
@@ -290,3 +290,114 @@ class FeatureBagClip(Clip):
 
 def featurebagset(featurebagclip: FeatureBagClip, transform=None):
     return ClipDataset(spec=dict(clip=featurebagclip, transform=transform))
+
+
+class FeatureShard(Shard):
+    VERSION = 1
+    TOPICFILES = {'features': 'features.npy', 'labels': 'labels.npy', 'tiles': 'tiles.npy'}
+    
+    @dataclass
+    class CONFIG(Datablock.CONFIG):
+        featureset: torch.utils.data.Dataset 
+        shard_size: int
+        index: int = 0
+        seed: int = 42
+
+    def __build__(self, featureset=None):
+        if featureset is None:
+            featureset = self.cfg.featureset
+        dataset_len = len(self.cfg.featureset)
+        rng = np.random.default_rng(self.cfg.seed)
+        permutation = rng.permutation(dataset_len)
+        offset = self.cfg.index * self.cfg.shard_size
+        indices = permutation[offset:offset+self.cfg.shard_size]
+        _tensor_list, labels = zip(*[self.cfg.featureset[i] for i in indices])
+        _labels_list, _tiles_list = zip(*labels)
+        tensor = torch.stack(_tensor_list).numpy()
+        labels = np.stack(_labels_list)
+        tiles = np.stack(_tiles_list)
+        dbx.write_tensor(tensor, self.path('features', ensure_dirpath=True))
+        dbx.write_tensor(labels, self.path('labels', ensure_dirpath=True))
+        dbx.write_tensor(tiles, self.path('tiles', ensure_dirpath=True))
+        return self
+    
+    def __read__(self, topic):
+        return dbx.read_tensor(self.path(topic))
+    
+    @property
+    def tensor(self):
+        return self.read('features')
+    
+    @property
+    def features(self):
+        return self.read('features')
+    
+    @property
+    def labels(self):
+        return self.read('labels')
+    
+    @property
+    def tiles(self):
+        return self.read('tiles')
+    
+
+class FeatureShardClip(Clip):
+    VERSION = 1
+    TOPICFILES = {'shard_lens': 'shard_lens.npy'}
+
+    @dataclass
+    class CONFIG(Datablock.CONFIG):
+        featureset: torch.utils.data.Dataset 
+        shard_size: int
+        seed: int = 42
+
+    class FeatureShardLengthComputer:
+        def __init__(self, featureshard):
+            self.featureshard = featureshard
+        def __call__(self):
+            return len(self.featureshard)
+        def __repr__(self):
+            return f"FeatureShardLengthComputer({self.featureshard})"
+
+    def __init__(self, *args, n_threads: int = 1, **kwargs):
+        super().__init__(*args, n_threads=n_threads, **kwargs)
+
+    @functools.cached_property
+    def shards(self):
+        return [
+            FeatureShard(spec=dict(featureset=self.spec['featureset'], shard_size=self.spec['shard_size'], seed=self.spec['seed'], index=i),)
+            for i in range(int(math.ceil(len(self.spec['featureset'])/self.spec['shard_size'])))
+        ]
+
+    def __build__(self):
+        shards = self.shards
+        self.log.debug(f"Formed {len(shards)} FeatureShards.  Looking for missing shards.")
+        missing_shards = [shard for shard in shards if not shard.valid()]
+        self.log.debug(f"Found {len(missing_shards)} missing shards")
+        self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
+        built_shards = dbx.TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_shards, self.cfg.featureset)
+        self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
+        self.log.verbose(f"Building shard_lens: BEGIN")
+        self.log.detailed(f"Building shard_lens for shards with hashe paths {[shard.hashpath() for shard in shards]}")
+        executor = MultithreadingCallableExecutor(n_threads=self.n_threads)
+        executables = [FeatureShardClip.FeatureShardLengthComputer(shard) for shard in shards]
+        _shard_lens = executor.exec_callables(executables)
+        shard_lens = torch.tensor(_shard_lens)
+        self.log.debug(f"shard_lens: {shard_lens}")
+        self.log.verbose(f"Building shard_lens: END")
+        dbx.write_tensor(shard_lens, self.path("shard_lens", ensure_dirpath=True))
+        return self
+    
+
+def featureshardset(featureshardclip: FeatureShardClip, transform=None):
+    return ClipDataset(spec=dict(clip=featureshardclip, transform=transform))
+
+
+
+        
+
+
+
+
+        
+
