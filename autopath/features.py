@@ -310,7 +310,10 @@ class FeatureShard(Shard):
         rng = np.random.default_rng(self.cfg.seed)
         permutation = rng.permutation(dataset_len)
         offset = self.cfg.index * self.cfg.shard_size
-        indices = permutation[offset:offset+self.cfg.shard_size]
+        lo, hi = offset, offset+self.cfg.shard_size
+        indices = permutation[lo:hi]
+        self.log.debug(f"Building a shard of size {self.cfg.shard_size} with index {self.cfg.index} from a dataset of len {dataset_len}")
+        self.log.detailed(f"Shard indices:{lo=}:{hi=}, {indices=}")
         _tensor_list, labels = zip(*[self.cfg.featureset[i] for i in indices])
         _labels_list, _tiles_list = zip(*labels)
         tensor = torch.stack(_tensor_list).numpy()
