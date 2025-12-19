@@ -2,6 +2,7 @@ import copy
 from dataclasses import dataclass
 import functools
 import gc
+import itertools
 import math
 from typing import Callable
 
@@ -179,7 +180,7 @@ class FeatureBagClip(Clip):
         executor = MultithreadingCallableExecutor(n_threads=self.n_threads)
         executables = [FeatureBagClip.FeatureBagLengthComputer(bag) for bag in bags]
         _bag_lens = executor.exec_callables(executables)
-        bag_lens = torch.tensor(_bag_lens)
+        bag_lens = torch.tensor(itertools.chain.from_iterable(_bag_lens.values()))
         self.log.debug(f"bag_lens: {bag_lens}")
         self.log.verbose(f"Building bag_lens: END")
         dbx.write_tensor(bag_lens, self.path("bag_lens", ensure_dirpath=True))
