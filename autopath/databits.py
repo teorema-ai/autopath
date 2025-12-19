@@ -211,7 +211,7 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
         shard_hi = self.shard_bounds[shard_idx]
         shard_len = self.shard_lens[shard_idx]
         idx = index - shard_lo
-        self.log.detailed(f"{index=}, {shard_idx=}, {shard_lo=}, {shard_len=}, {shard_hi=}, {idx=}")
+        self.log.detailed(f"----------------------> {index=}, {shard_idx=}, {shard_lo=}, {shard_len=}, {shard_hi=}, {idx=}")
         tensor = self.shard(shard_idx).tensor
         sample = tensor[idx]
         if self.cfg.transform is not None:
