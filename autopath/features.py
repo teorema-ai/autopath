@@ -323,6 +323,7 @@ class FeatureShard(Shard):
         dbx.write_tensor(tensor, self.path('features', ensure_dirpath=True))
         dbx.write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
         dbx.write_npz(self.path('tiles', ensure_dirpath=True), tiles=tiles)
+        self.log.debug(f"BUILT ------------> shard of size {self.cfg.shard_size} with index {self.cfg.index} from a dataset of len {dataset_len}")
         return self
     
     def __read__(self, topic):
