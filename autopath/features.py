@@ -381,7 +381,7 @@ class FeatureShardClip(Clip):
         seed = self.cfg.seed
         n_shards = math.ceil(featuresetlen / shard_size)
         self.log.debug(f"Forming FeatureShards from featureset of len {featuresetlen} with shard_size {shard_size} and seed {seed}: {n_shards} shards")
-        return [
+        shards = [
             FeatureShard(
                 spec=dict(
                     featureset=featureset,
@@ -392,7 +392,8 @@ class FeatureShardClip(Clip):
             )
             for i in range(n_shards)
         ]
-
+        return shards
+    
     def __build__(self):
         shards = self.shards
         self.log.debug(f"Formed {len(shards)} FeatureShards.  Looking for missing shards.")
