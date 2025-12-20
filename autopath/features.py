@@ -335,9 +335,6 @@ class FeatureShard(Shard):
         else:
             raise ValueError(f"Unknown {topic=}")
     
-    def read(self, topic):
-        return dbx.read_tensor(self.path(topic))
-    
     @property
     def tensor(self):
         return self.read('features')
