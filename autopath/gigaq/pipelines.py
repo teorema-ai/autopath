@@ -138,12 +138,14 @@ def gigapath_feature_shard(name=None, shard_size: int = 4) -> FeatureShard:
 # git commit -am "gigaq: FeatureShardClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard_clip('GIGAPATH_BASELINE_CPTAC', shard_size=32, n_threads=16).build()"
 def gigapath_feature_shard_clip(name=None, *, shard_size: int = 32, n_threads: int = 1) -> FeatureShardClip:
     if name is None:
-        return FeatureShardClip
-    if name == "GIGAPATH_BASELINE_CPTAC":
-        featurebagset=dbx.quote(gigapath_featurebagset, 'GIGAPATH_BASELINE_CPTAC')
+        clip = FeatureShardClip
     else:
-        raise ValueError(f"Unknown gigapath_feature_shard_clip: {repr(name)}")
-    return FeatureShardClip(spec=dict(featureset=featurebagset, shard_size=shard_size), n_threads=n_threads)
+        try:
+            featurebagset=dbx.quote(gigapath_featurebagset, name)
+            clip = FeatureShardClip(spec=dict(featureset=featurebagset, shard_size=shard_size), n_threads=n_threads)
+        except Exception as e:
+            raise ValueError(f"Failed to instantiate gigapath_feature_shard_clip: {repr(name)}") from e
+    return clip
 
 
 # git commit -am "gigaq: Featureshardset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featureshardset('GIGAPATH_BASELINE_CPTAC_32')[0]"
