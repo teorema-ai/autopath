@@ -375,9 +375,22 @@ class FeatureShardClip(Clip):
 
     @functools.cached_property
     def shards(self):
+        featureset = self.cfg.featureset
+        featuresetlen = len(featureset)
+        shard_size = self.cfg.shard_size
+        seed = self.cfg.seed
+        n_shards = math.ceil(featuresetlen / shard_size)
+        self.log.debug(f"Forming FeatureShards from featureset of len {featuresetlen} with shard_size {shard_size} and seed {seed}: {n_shards} shards")
         return [
-            FeatureShard(spec=dict(featureset=self.spec['featureset'], shard_size=self.spec['shard_size'], seed=self.cfg.seed, index=i),)
-            for i in range(int(math.ceil(len(self.spec['featureset'])/self.spec['shard_size'])))
+            FeatureShard(
+                spec=dict(
+                    featureset=featureset,
+                    shard_size=shard_size,
+                    seed=seed,
+                    index=i,
+                )
+            )
+            for i in range(n_shards)
         ]
 
     def __build__(self):
@@ -411,4 +424,3 @@ def featureshardset(featureshardclip: FeatureShardClip, transform=None):
 
 
         
-
