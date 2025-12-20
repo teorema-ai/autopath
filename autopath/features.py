@@ -376,7 +376,7 @@ class FeatureShardClip(Clip):
     @functools.cached_property
     def shards(self):
         return [
-            FeatureShard(spec=dict(featureset=self.spec['featureset'], shard_size=self.spec['shard_size'], seed=self.spec['seed'], index=i),)
+            FeatureShard(spec=dict(featureset=self.spec['featureset'], shard_size=self.spec['shard_size'], seed=self.cfg.seed, index=i),)
             for i in range(int(math.ceil(len(self.spec['featureset'])/self.spec['shard_size'])))
         ]
 
