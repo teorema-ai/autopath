@@ -385,7 +385,7 @@ class FeatureShardClip(Clip):
         self.log.debug(f"Formed {len(shards)} FeatureShards.  Looking for missing shards.")
         missing_shards = [shard for shard in shards if not shard.valid()]
         self.log.debug(f"Found {len(missing_shards)} missing shards")
-        self.log.debug(f"Building all missing features shards using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
+        self.log.debug(f"Building all missing features shards using  {self.n_threads} threads")
         built_shards = dbx.MultithreadingDatablocksBuilder(n_threads=self.n_threads, log=self.log).build_blocks(missing_shards, self.cfg.featureset)
         self.log.verbose(f"Built all missing features shards: {len(built_shards)}")
         self.log.verbose(f"Building shard_lens: BEGIN")
