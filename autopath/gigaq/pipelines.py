@@ -85,7 +85,9 @@ def gigapath_feature_bag(name=None) -> FeatureBag:
 
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC', n_devices=3, n_threads=16).set(gpu_batch_size=1024).build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_9802_TEST', n_threads=16).build()"
+# git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_9802_TRAIN', n_threads=16).build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_threads=16).build()"
+# git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', n_threads=16).build()"
 def gigapath_feature_bag_clip(name=None, n_devices: int = 1, n_threads: int = 1) -> FeatureBagClip:
     devices = [f'cuda:{i}' for i in range(n_devices)]
     if name is None:
