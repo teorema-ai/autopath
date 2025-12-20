@@ -126,7 +126,7 @@ def gigapath_featurebagset(name) -> torch.utils.data.Dataset:
 
 
 # git commit -am "gigaq: FeatureShard: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard('GIGAPATH_BASELINE_CPTAC', shard_size=32).build()"
-def gigapath_feature_shard(name=None, shard_size: int = 32) -> FeatureShard:
+def gigapath_feature_shard(name=None, shard_size: int = 4) -> FeatureShard:
     if name is None:
         return FeatureShard
     elif name == "GIGAPATH_BASELINE_CPTAC":

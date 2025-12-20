@@ -318,14 +318,24 @@ class FeatureShard(Shard):
         _tensor_list, labels = zip(*[self.cfg.featureset[i] for i in indices])
         _labels_list, _tiles_list = zip(*labels)
         tensor = torch.stack(_tensor_list)
-        labels = torch.tensor(np.stack(_labels_list))
-        tiles = torch.tensor(np.stack(_tiles_list))
+        labels = np.stack(_labels_list)
+        tiles = np.stack(_tiles_list)
         dbx.write_tensor(tensor, self.path('features', ensure_dirpath=True))
-        dbx.write_tensor(labels, self.path('labels', ensure_dirpath=True))
-        dbx.write_tensor(tiles, self.path('tiles', ensure_dirpath=True))
+        dbx.write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
+        dbx.write_npz(self.path('tiles', ensure_dirpath=True), tiles=tiles)
         return self
     
     def __read__(self, topic):
+        if topic == 'features':
+            return dbx.read_tensor(self.path('features'))   
+        elif topic == 'labels':
+            return dbx.read_npz(self.path('labels'), 'labels')['labels']
+        elif topic == 'tiles':
+            return dbx.read_npz(self.path('tiles'), 'tiles')['tiles']
+        else:
+            raise ValueError(f"Unknown {topic=}")
+    
+    def read(self, topic):
         return dbx.read_tensor(self.path(topic))
     
     @property
