@@ -331,7 +331,7 @@ class FeatureShard(Shard):
         elif topic == 'labels':
             return dbx.read_npz(self.path('labels'), 'labels')['labels']
         elif topic == 'tiles':
-            return dbx.read_npz(self.path('tiles'), 'tiles')['tiles']
+            return torch.tensor(dbx.read_npz(self.path('tiles'), 'tiles')['tiles'])
         else:
             raise ValueError(f"Unknown {topic=}")
     
