@@ -181,11 +181,17 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
         clip: Clip
         transform: Optional[torchvision.transforms.Compose] = None
         target_transform: Optional[torchvision.transforms.Compose] = None
+        shuffle_seed: Optional[int] = None
 
     def __post_init__(self):
         self.n_shards = len(self.cfg.clip.shards)
         self.log.debug(f"Building dataset out of {self.n_shards} shards")
-        self.shard_lens = self.cfg.clip.shard_lens
+        self._shard_indices = np.arange(self.n_shards)
+        if self.cfg.seed is not None:
+            self.log.verbose(f"Shuffling shard indices with seed {self.cfg.seed}")
+            rng = np.random.default_rng(self.cfg.shuffle_seed)
+            rng.shuffle(self._shard_indices)
+        self.shard_lens = [self.cfg.clip.shard_lens[i] for i in self.shard_indices]
         self.log.debug(f"Computing shard_bounds")
         self.shard_bounds = np.cumsum(self.shard_lens)
         self.log.detailed(f"{self.n_shards=}, {self.shard_bounds=}")
@@ -198,7 +204,7 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
     def shard(self, shard_idx):
         if shard_idx != self._shard_idx:
             self._shard_idx = shard_idx
-            self._shard = self.cfg.clip.shards[self._shard_idx]
+            self._shard = self.cfg.clip.shards[self._shard_indices[self._shard_idx]]
         return self._shard
 
     def __len__(self):

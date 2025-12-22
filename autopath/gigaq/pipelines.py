@@ -118,22 +118,12 @@ def gigapath_feature_bag_clip(name=None, n_devices: int = 1, n_threads: int = 1)
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
-def gigapath_featurebagset(name) -> torch.utils.data.Dataset:
+def gigapath_featurebagset(name, *, shuffle: bool = False) -> torch.utils.data.Dataset:
     featureclip = gigapath_feature_bag_clip(name)
     quoted_featureclip = dbx.quote(featureclip)
     dbx.Logger().debug(f"===================> {featureclip=}\n{quoted_featureclip=}")
-    return featurebagset(quoted_featureclip)
+    return featurebagset(quoted_featureclip, bags_shuffle_seed=42 if shuffle else None)
 
-
-# git commit -am "gigaq: FeatureShard: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard('GIGAPATH_BASELINE_CPTAC', shard_size=32).build()"
-def gigapath_feature_shard(name=None, shard_size: int = 4) -> FeatureShard:
-    if name is None:
-        return FeatureShard
-    elif name == "GIGAPATH_BASELINE_CPTAC":
-        return FeatureShard(spec=dict(featureset=dbx.quote(gigapath_featurebagset, name), shard_size=shard_size))
-    else:
-        raise ValueError(f"Unknown feature shard: {name}")
-    
 
 # git commit -am "gigaq: FeatureShardClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard_clip('GIGAPATH_BASELINE_CPTAC', shard_size=32, n_threads=16).build()"
 def gigapath_feature_shard_clip(name=None, *, shard_size: int = 32, n_threads: int = 1) -> FeatureShardClip:
@@ -160,7 +150,7 @@ def gigapath_featureshardset(name) -> torch.utils.data.Dataset:
 def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2) -> LogisticFeatureBagProbe:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
         return LogisticFeatureBagProbe(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'), n_bins=n_bins,))
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'), n_bins=n_bins,))
     else:
         raise ValueError(f"Unknown feature bags probe: {name}")
 
@@ -170,7 +160,7 @@ def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2) -> LogisticFeatu
 def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
     if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=10,
                               row_chunk_size=4000,
                               col_chunk_size=4000,
@@ -178,7 +168,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=10,
                               row_chunk_size=4000,
                               col_chunk_size=20000,
@@ -186,7 +176,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_20_4000_20000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=20,
                               row_chunk_size=4000,
                               col_chunk_size=20000,
@@ -194,7 +184,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_4000_20000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=4000,
                               col_chunk_size=20000,
@@ -202,7 +192,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_4000_4000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=4000,
                               col_chunk_size=4000,
@@ -210,7 +200,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_20000_4000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=20000,
                               col_chunk_size=4000,
@@ -218,7 +208,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_5000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=5000,
@@ -226,7 +216,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_10000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=10000,
@@ -234,7 +224,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_20000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=20000,
@@ -242,7 +232,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_50000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=50000,
@@ -250,7 +240,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_100000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=100000,
@@ -258,7 +248,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_200000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=200000,
@@ -266,7 +256,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_400000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=400000,
@@ -274,7 +264,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_50_100_800000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=50,
                               row_chunk_size=100,
                               col_chunk_size=800000,
@@ -282,7 +272,7 @@ def gigapath_feature_pairwise_distances(name) -> FeaturePairwiseDistances:
         )
     elif name == "GIGAPATH_BASELINE_CPTAC_8020_TEST_5_1000_150000":
         return FeaturePairwiseDistances(
-                    spec=dict(featurebags=dbx.quote(gigapath_feature_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
+                    spec=dict(featurebags=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'),
                               n_chunks=5,
                               row_chunk_size=1000,
                               col_chunk_size=150000,
@@ -316,13 +306,16 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
         )
 
 
-def gigapath_featureset_dataloader(name, *args, **kwargs):
-    featureset = gigapath_featureset(name)
+def gigapath_featureset_dataloader(name, *args, use_bags: bool = False, **kwargs):
+    if use_bags:
+        featureset = gigapath_featurebagset(name)
+    else:
+        featureset = gigapath_featureshardset(name)
     return torch.utils.data.DataLoader(featureset, *args, **kwargs)
 
 
-def gigapath_featureset_dataloader_sample(name, *args, **kwargs):
-    featureset = gigapath_featureset(name)
+def gigapath_featurebagset_dataloader_sample(name, *args, shuffle_bags: bool = False, **kwargs):
+    featureset = gigapath_featurebagset(name, shuffle=shuffle_bags)
     dataloader = torch.utils.data.DataLoader(featureset, *args, **kwargs)
     return next(iter(dataloader))
 
@@ -366,11 +359,13 @@ def gigapath_vred(name, capture_latents: bool = False):
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
-def gigapath_vred_evaluator(vred_dataset_name, capture_latents: bool = False, **dataloader_kwargs):
+def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle_bags: bool = True, capture_latents: bool = False, **dataloader_kwargs):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
     vred = dbx.quote(gigapath_vred, vredname, capture_latents=capture_latents)
-    featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, **dataloader_kwargs)
+    featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, use_bags=not use_shards, **dataloader_kwargs)
+    else:
+        featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
     return vred_evaluator
 
@@ -406,7 +401,7 @@ def gigapath_vred_still(vred_dataset_name = None,
         vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
         vred = dbx.quote(gigapath_vred, vredname, capture_latents=log_latents)
-        featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, batch_size=batch_size, shuffle=shuffle)
+        featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle=shuffle)
         lightning = dbx.quote(VariationalReDecoderLightning, spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
         still = VariationalReDecoderStill(spec=dict(
                     lightning=lightning, 

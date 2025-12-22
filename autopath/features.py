@@ -289,8 +289,8 @@ class FeatureBagClip(Clip):
         return labels
      
 
-def featurebagset(featurebagclip: FeatureBagClip, transform=None):
-    return ClipDataset(spec=dict(clip=featurebagclip, transform=transform))
+def featurebagset(featurebagclip: FeatureBagClip, *, transform=None, bags_shuffle_seed: int = None):
+    return ClipDataset(spec=dict(clip=featurebagclip, transform=transform, shuffle_seed=bags_shuffle_seed))
 
 
 class FeatureShard(Shard):
@@ -415,7 +415,7 @@ class FeatureShardClip(Clip):
         return self
     
 
-def featureshardset(featureshardclip: FeatureShardClip, transform=None):
+def featureshardset(featureshardclip: FeatureShardClip, *, transform=None):
     return ClipDataset(spec=dict(clip=featureshardclip, transform=transform))
 
 
