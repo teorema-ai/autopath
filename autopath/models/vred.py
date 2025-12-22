@@ -237,7 +237,7 @@ class Loss(nn.Module):
         return loss
     
 
-class VariationalReDecoder(nn.Module):
+class VariationalReEncoderDecoder(nn.Module):
     def __init__(self, 
                  *, 
                  classifier: Classifier, 
@@ -399,10 +399,10 @@ class VariationalReDecoder(nn.Module):
         return loss
     
 
-class VariationalReDecoderEvaluator(Datablock):
+class VariationalReEncoderDecoderEvaluator(Datablock):
     @dataclass
     class CONFIG:
-        vred: VariationalReDecoder
+        vred: VariationalReEncoderDecoder
         dataloader: torch.utils.data.DataLoader
 
     def __post_init__(self):
@@ -438,7 +438,7 @@ class VariationalReDecoderEvaluator(Datablock):
         return loss_list
 
 
-class VariationalReDecoderLightning(Datablock):
+class VariationalReEncoderDecoderLightning(Datablock):
     VERSION = globals().get('VERSION', None)
 
     class Callbacks(L.pytorch.callbacks.Callback):
@@ -447,7 +447,7 @@ class VariationalReDecoderLightning(Datablock):
                      skip_invalid_gradients: bool = True,
                      log_gradients: bool = False, 
                      log_weights: bool = False, 
-                     log: dbx.Logger = dbx.Logger(name="VariationalReDecoderLightning.Callbacks")
+                     log: dbx.Logger = dbx.Logger(name="VariationalReEncoderDecoderLightning.Callbacks")
         ):
             super().__init__()
             self.log_gradients = log_gradients
@@ -486,7 +486,7 @@ class VariationalReDecoderLightning(Datablock):
                     module.zero_grad()                    
 
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
+        def __init__(self, vred: VariationalReEncoderDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
@@ -542,7 +542,7 @@ class VariationalReDecoderLightning(Datablock):
 
     @dataclass
     class CONFIG:
-        vred: VariationalReDecoder
+        vred: VariationalReEncoderDecoder
         learning_rate: float = 1e-3
         scheduler: str = "cosine"
 
@@ -551,7 +551,7 @@ class VariationalReDecoderLightning(Datablock):
         return self.Lightning(vred=self.cfg.vred, learning_rate=self.cfg.learning_rate, scheduler=self.cfg.scheduler)
     
 
-class VariationalReDecoderStill(Datablock):
+class VariationalReEncoderDecoderStill(Datablock):
     VERSION = globals().get('VERSION', None)
     TOPICFILES = {'logs': None,
                   'ckpts': None,
@@ -559,7 +559,7 @@ class VariationalReDecoderStill(Datablock):
     
     @dataclass 
     class CONFIG:
-        lightning: VariationalReDecoderLightning
+        lightning: VariationalReEncoderDecoderLightning
         dataloader: torch.utils.data.DataLoader
         init_ckpt_path: str = None
         max_epochs: int = 1
@@ -608,7 +608,7 @@ class VariationalReDecoderStill(Datablock):
             max_epochs=self.cfg.max_epochs, 
             limit_train_batches=self.cfg.max_steps,
             log_every_n_steps=self.cfg.log_interval,
-            callbacks = [VariationalReDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, log_weights=self.cfg.log_weights, skip_invalid_gradients=self.cfg.skip_invalid_gradients)],
+            callbacks = [VariationalReEncoderDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, log_weights=self.cfg.log_weights, skip_invalid_gradients=self.cfg.skip_invalid_gradients)],
             devices=self.n_devices,
             logger=logger,
             **kwargs,

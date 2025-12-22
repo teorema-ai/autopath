@@ -40,10 +40,10 @@ from autopath.gigaq.dinov2.backbone import (
 from autopath.models.vred import (
     Classifier, 
     ClassMultiscaleLatentGaussians2D,
-    VariationalReDecoder,
-    VariationalReDecoderEvaluator,
-    VariationalReDecoderLightning,
-    VariationalReDecoderStill,
+    VariationalReEncoderDecoder,
+    VariationalReEncoderDecoderEvaluator,
+    VariationalReEncoderDecoderLightning,
+    VariationalReEncoderDecoderStill,
 )
 
 
@@ -311,9 +311,9 @@ def gigapath_featurebagset_dataloader(name, *args, shuffle_bags: bool = False, *
     return torch.utils.data.DataLoader(featureset, *args, **kwargs)
 
 
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLE"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_sample('GIGAPATH_BASELINE_CPTAC_8020_TRAIN')"
 def gigapath_featurebagset_dataloader_sample(name, *args, shuffle_bags: bool = False, **kwargs):
-    featureset = gigapath_featurebagset(name, shuffle=shuffle_bags)
-    dataloader = torch.utils.data.DataLoader(featureset, *args, **kwargs)
+    dataloader = gigapath_featurebagset_dataloader(name, shuffle=shuffle_bags)
     return next(iter(dataloader))
 
 
@@ -323,8 +323,7 @@ def gigapath_featureshardset_dataloader(name, *args, **kwargs):
 
 
 def gigapath_featurebagset_dataloader_sample(name, *args, **kwargs):
-    featureset = gigapath_featureshardset(name)
-    dataloader = torch.utils.data.DataLoader(featureset, *args, **kwargs)
+    dataloader = gigapath_featureshardset_dataloader(name)
     return next(iter(dataloader))
 
 
@@ -357,7 +356,7 @@ def gigapath_vred(name, capture_latents: bool = False):
         fine_scale=256,
         n_scales=4,
     )
-    vred = VariationalReDecoder(
+    vred = VariationalReEncoderDecoder(
         classifier=classifier,
         latent_gaussians=latent_gaussians,
         capture_latents=capture_latents,
@@ -381,7 +380,7 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
         featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, shuffle_bags=shuffle_bags, **dataloader_kwargs)
     else:
         featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, **dataloader_kwargs)
-    vred_evaluator = VariationalReDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
+    vred_evaluator = VariationalReEncoderDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
     return vred_evaluator
 
 
@@ -391,12 +390,13 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_latents=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=False, log_latents=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
 #
-# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=False, log_latents=True, log_weights=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-1, gradient_clip_algorithm="norm", gradient_clip_val=1.0,).set(capture_output=True).build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle_bags=False, log_latents=True, log_weights=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-5, gradient_clip_algorithm="norm", gradient_clip_val=1.0,).set(capture_output=True).build()'
 
 def gigapath_vred_still(vred_dataset_name = None, 
                         *, 
                         use_bags: bool = True,
                         shuffle_bags: bool = True,
+                        shuffle_dataset: bool = False,
                         learning_rate: float = 0.03, 
                         scheduler: str = 'cosine', 
                         max_epochs: int = 3, 
@@ -404,7 +404,6 @@ def gigapath_vred_still(vred_dataset_name = None,
                         init_ckpt_path: str = None, 
                         n_devices: int = 1, 
                         batch_size: int = 1, 
-                        shuffle: bool = False, 
                         log_latents: bool = False, 
                         log_weights: bool = False, 
                         skip_invalid_gradients: bool = True,
@@ -413,17 +412,17 @@ def gigapath_vred_still(vred_dataset_name = None,
                         logs: str = None
     ):
     if vred_dataset_name is None:
-        still = VariationalReDecoderStill
+        still = VariationalReEncoderDecoderStill
     else:
         vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
         vred = dbx.quote(gigapath_vred, vredname, capture_latents=log_latents)
         if use_bags:
-            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle_bags=shuffle_bags)
+            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle_bags=shuffle_bags, shuffle=shuffle_dataset)
         else:
-            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, batch_size=batch_siz)
-        lightning = dbx.quote(VariationalReDecoderLightning, spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
-        still = VariationalReDecoderStill(spec=dict(
+            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, batch_size=batch_size, shuffle=shuffle_dataset)
+        lightning = dbx.quote(VariationalReEncoderDecoderLightning, spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
+        still = VariationalReEncoderDecoderStill(spec=dict(
                     lightning=lightning, 
                     dataloader=featureloader,
                     max_epochs=max_epochs,
