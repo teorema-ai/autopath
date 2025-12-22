@@ -131,8 +131,8 @@ def gigapath_feature_shard_clip(name=None, *, shard_size: int = 32, n_threads: i
         clip = FeatureShardClip
     else:
         try:
-            featurebagset=dbx.quote(gigapath_featurebagset, name)
-            clip = FeatureShardClip(spec=dict(featureset=featurebagset, shard_size=shard_size), n_threads=n_threads)
+            featureshardset=dbx.quote(gigapath_featureshardset, name)
+            clip = FeatureShardClip(spec=dict(featureset=featureshardset, shard_size=shard_size), n_threads=n_threads)
         except Exception as e:
             raise ValueError(f"Failed to instantiate gigapath_feature_shard_clip: {repr(name)}") from e
     return clip
@@ -322,7 +322,7 @@ def gigapath_featureshardset_dataloader(name, *args, **kwargs):
     return torch.utils.data.DataLoader(featureset, *args, **kwargs)
 
 
-def gigapath_featurebagset_dataloader_sample(name, *args, **kwargs):
+def gigapath_featureshardset_dataloader_sample(name, *args, **kwargs):
     dataloader = gigapath_featureshardset_dataloader(name)
     return next(iter(dataloader))
 
