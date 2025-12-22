@@ -312,7 +312,9 @@ def gigapath_featurebagset_dataloader(name, *dataloader_args, shuffle_bags: bool
     return torch.utils.data.DataLoader(featureset, *dataloader_args, **dataloader_kwargs)
 
 
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLE"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 10)"
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLE"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 10, num_workers=1)"
+#
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLE"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 20, num_workers=2)"
 def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     dataloader = gigapath_featurebagset_dataloader(name, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
     itor = tqdm(iter(dataloader), total=n)
