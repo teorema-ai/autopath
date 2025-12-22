@@ -307,14 +307,14 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
         )
 
 
-def gigapath_featurebagset_dataloader(name, *args, shuffle_bags: bool = False, **kwargs):
+def gigapath_featurebagset_dataloader(name, *dataloader_args, shuffle_bags: bool = False, **dataloader_kwargs):
     featureset = gigapath_featurebagset(name, shuffle_bags=shuffle_bags)
-    return torch.utils.data.DataLoader(featureset, *args, **kwargs)
+    return torch.utils.data.DataLoader(featureset, *dataloader_args, **dataloader_kwargs)
 
 
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLE"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 1000)"
-def gigapath_featurebagset_dataloader_samples(name, n, *args, shuffle_bags: bool = False, **kwargs):
-    dataloader = gigapath_featurebagset_dataloader(name, shuffle=shuffle_bags)
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLE"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 10)"
+def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, shuffle_bags: bool = False, **dataloader_kwargs):
+    dataloader = gigapath_featurebagset_dataloader(name, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
     itor = tqdm(iter(dataloader))
     for i, _ in enumerate(itor):
         if i >= n-1:
@@ -328,7 +328,7 @@ def gigapath_featureshardset_dataloader(name, *args, **kwargs):
 
 
 def gigapath_featureshardset_dataloader_samples(name, n, *args, **kwargs):
-    dataloader = gigapath_featureshardset_dataloader(name)
+    dataloader = gigapath_featureshardset_dataloader(name, *args, **kwargs)
     itor = tqdm(iter(dataloader))
     for i, _ in enumerate(itor):
         if i >= n-1:
