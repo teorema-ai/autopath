@@ -191,7 +191,7 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
             self.log.verbose(f"Shuffling shard indices with seed {self.cfg.shuffle_seed}")
             rng = np.random.default_rng(self.cfg.shuffle_seed)
             rng.shuffle(self._shard_indices)
-        self.shard_lens = [self.cfg.clip.shard_lens[i] for i in self.shard_indices]
+        self.shard_lens = [self.cfg.clip.shard_lens[i] for i in self._shard_indices]
         self.log.debug(f"Computing shard_bounds")
         self.shard_bounds = np.cumsum(self.shard_lens)
         self.log.detailed(f"{self.n_shards=}, {self.shard_bounds=}")
