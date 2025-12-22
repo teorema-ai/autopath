@@ -318,7 +318,7 @@ def gigapath_featurebagset_dataloader(name, *dataloader_args, shuffle_bags: bool
 # git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=2)"
 # git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=2, prefetch_factor=1)" 2.47s/it
 # 
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=2, prefetch_factor=0)" 
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=2, prefetch_factor=None)" 
 def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     dataloader = gigapath_featurebagset_dataloader(name, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
     itor = tqdm(iter(dataloader), total=n)
