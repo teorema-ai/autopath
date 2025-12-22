@@ -118,11 +118,11 @@ def gigapath_feature_bag_clip(name=None, n_devices: int = 1, n_threads: int = 1)
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
-def gigapath_featurebagset(name, *, shuffle: bool = False) -> torch.utils.data.Dataset:
+def gigapath_featurebagset(name, *, shuffle_bags: bool = False) -> torch.utils.data.Dataset:
     featureclip = gigapath_feature_bag_clip(name)
     quoted_featureclip = dbx.quote(featureclip)
     dbx.Logger().debug(f"===================> {featureclip=}\n{quoted_featureclip=}")
-    return featurebagset(quoted_featureclip, bags_shuffle_seed=42 if shuffle else None)
+    return featurebagset(quoted_featureclip, bags_shuffle_seed=42 if shuffle_bags else None)
 
 
 # git commit -am "gigaq: FeatureShardClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard_clip('GIGAPATH_BASELINE_CPTAC', shard_size=32, n_threads=16).build()"
@@ -306,16 +306,30 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
         )
 
 
-def gigapath_featureset_dataloader(name, *args, use_bags: bool = False, **kwargs):
-    if use_bags:
-        featureset = gigapath_featurebagset(name)
-    else:
-        featureset = gigapath_featureshardset(name)
+def gigapath_featurebagset_dataloader(name, *args, shuffle_bags: bool = False, **kwargs):
+    featureset = gigapath_featurebagset(name, shuffle_bags=shuffle_bags)
     return torch.utils.data.DataLoader(featureset, *args, **kwargs)
 
 
 def gigapath_featurebagset_dataloader_sample(name, *args, shuffle_bags: bool = False, **kwargs):
     featureset = gigapath_featurebagset(name, shuffle=shuffle_bags)
+    dataloader = torch.utils.data.DataLoader(featureset, *args, **kwargs)
+    return next(iter(dataloader))
+
+
+def gigapath_featureshardset_dataloader(name, *args, **kwargs):
+    featureset = gigapath_featureshardset(name)
+    return torch.utils.data.DataLoader(featureset, *args, **kwargs)
+
+
+def gigapath_featurebagset_dataloader_sample(name, *args, **kwargs):
+    featureset = gigapath_featureshardset(name)
+    dataloader = torch.utils.data.DataLoader(featureset, *args, **kwargs)
+    return next(iter(dataloader))
+
+
+def gigapath_featureshardset_dataloader_sample(name, *args, **kwargs):
+    featureset = gigapath_featureshardset(name)
     dataloader = torch.utils.data.DataLoader(featureset, *args, **kwargs)
     return next(iter(dataloader))
 
@@ -363,9 +377,10 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
     vred = dbx.quote(gigapath_vred, vredname, capture_latents=capture_latents)
-    featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, use_bags=not use_shards, **dataloader_kwargs)
+    if use_bags:
+        featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, shuffle_bags=shuffle_bags, **dataloader_kwargs)
     else:
-        featureloader = dbx.quote(gigapath_featureset_dataloader, clipname, **dataloader_kwargs)
+        featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
     return vred_evaluator
 
@@ -380,6 +395,8 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
 
 def gigapath_vred_still(vred_dataset_name = None, 
                         *, 
+                        use_bags: bool = True,
+                        shuffle_bags: bool = True,
                         learning_rate: float = 0.03, 
                         scheduler: str = 'cosine', 
                         max_epochs: int = 3, 
@@ -401,7 +418,10 @@ def gigapath_vred_still(vred_dataset_name = None,
         vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
         vred = dbx.quote(gigapath_vred, vredname, capture_latents=log_latents)
-        featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle=shuffle)
+        if use_bags:
+            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle_bags=shuffle_bags)
+        else:
+            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, batch_size=batch_siz)
         lightning = dbx.quote(VariationalReDecoderLightning, spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
         still = VariationalReDecoderStill(spec=dict(
                     lightning=lightning, 
