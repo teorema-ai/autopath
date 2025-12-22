@@ -575,6 +575,10 @@ class VariationalReDecoderStill(Datablock):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
 
     def __pre_build__(self):
+        self.linklogs()
+        return self
+
+    def linklogs(self):
         # Link the logs directory to the provided location (e.g., for Tensorboard to pick up the logs)
         if self.logs is not None:
             self.log.verbose(f"---------------------- Linking logs to {self.logs}----------------------------")
@@ -584,6 +588,7 @@ class VariationalReDecoderStill(Datablock):
             except:
                 pass
             os.symlink(self.dirpath('logs', ensure=True), self.logs)
+        return self
 
     def valid(self):
         #TODO: check if max_epochs has been run and a corresponding ckpt has been generated
