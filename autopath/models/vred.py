@@ -246,7 +246,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  use_batch_norm: bool = True,
                  variance_scale: float = 0.03,
                  class_batch_size: int = None,
-                 capture_latents: bool = False,
+                 capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
     ):
         super().__init__()
@@ -262,7 +262,7 @@ class VariationalReEncoderDecoder(nn.Module):
             variance_scale=variance_scale,
         )
         self.class_batch_size = class_batch_size
-        self.capture_latents = capture_latents
+        self.capture_mixture_distributions = capture_mixture_distributions
         self.log = log or dbx.Logger(self.__class__.__name__)
         self.device = 'cpu'
         self.means = None
@@ -313,7 +313,7 @@ class VariationalReEncoderDecoder(nn.Module):
         classes = torch.tensor(list(range(self.n_classes))).to(x.device)
         class_probabilities = self.classifier(x).reshape(1, -1)
         _losses = []
-        if self.capture_latents:
+        if self.capture_mixture_distributions:
             self.means_list = []
             self.variances_list = []
         if self.class_batch_size is None:
@@ -328,7 +328,7 @@ class VariationalReEncoderDecoder(nn.Module):
         losses = torch.stack(_losses)
         self.log.detailed(f"loss: losses: -------------requires_grad ------------> {losses.requires_grad}")
         loss = torch.sum(losses, dim=0) #TODO: take .mean()?
-        if self.capture_latents:
+        if self.capture_mixture_distributions:
             self.means = torch.cat(self.means_list, dim=0)
             self.variances = torch.cat(self.variances_list, dim=0)
             del self.means_list
@@ -357,7 +357,7 @@ class VariationalReEncoderDecoder(nn.Module):
             multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
         Mhat, Vhat = self.decoder(multiscale_means)
         self.log.detailed(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} Mhat from {len(multiscale_means)} multiscale means")
-        if self.capture_latents:
+        if self.capture_mixture_distributions:
             self.means_list.append(Mhat)
             self.variances_list.append(Vhat)
         del multiscale_means
@@ -502,7 +502,7 @@ class VariationalReEncoderDecoderLightning(Datablock):
             scheduler = self.lr_schedulers()
             lr = scheduler.get_last_lr()[0]
             self.logger.experiment.add_scalar(f"Learning Rate", lr, self.global_step)
-            if self.vred.capture_latents:
+            if self.vred.capture_mixture_distributions:
                 b = features.shape[0]
                 k = self.vred.n_classes
                 n = k*b

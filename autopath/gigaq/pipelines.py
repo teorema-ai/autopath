@@ -334,7 +334,7 @@ def gigapath_featureshardset_dataloader_sample(name, *args, **kwargs):
 
 
 # git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN')"
-def gigapath_vred(name, capture_latents: bool = False):
+def gigapath_vred(name, capture_mixture_distributions: bool = False):
     if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN":
         n_hidden_layers=2
         n_classes=100
@@ -359,7 +359,7 @@ def gigapath_vred(name, capture_latents: bool = False):
     vred = VariationalReEncoderDecoder(
         classifier=classifier,
         latent_gaussians=latent_gaussians,
-        capture_latents=capture_latents,
+        capture_mixture_distributions=capture_mixture_distributions,
     )
     return vred
     
@@ -372,10 +372,10 @@ def gigapath_vred(name, capture_latents: bool = False):
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
-def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle_bags: bool = True, capture_latents: bool = False, **dataloader_kwargs):
+def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle_bags: bool = True, capture_mixture_distributions: bool = False, **dataloader_kwargs):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
-    vred = dbx.quote(gigapath_vred, vredname, capture_latents=capture_latents)
+    vred = dbx.quote(gigapath_vred, vredname, capture_mixture_distributions=capture_mixture_distributions)
     if use_bags:
         featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, shuffle_bags=shuffle_bags, **dataloader_kwargs)
     else:
@@ -385,12 +385,12 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
 
 
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=3, max_steps=100, batch_size=8, shuffle=False, loss_capture_distribution=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=8e-3).build()'
-# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_latents=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-6).set(capture_output=True).build()'
-# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_latents=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-3).set(capture_output=True).build()'
-# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_latents=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
-# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=False, log_latents=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_mixture_distributions=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-6).set(capture_output=True).build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_mixture_distributions=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-3).set(capture_output=True).build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_mixture_distributions=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=False, log_mixture_distributions=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
 #
-# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=1, use_bags=True, shuffle_bags=True, log_latents=False, log_weights=False, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-5, gradient_clip_algorithm="norm", gradient_clip_val=1.0,).set(capture_output=True).build()'
+# git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=1, use_bags=True, shuffle_bags=True, log_mixture_distributions=True, log_weights=False, log_gradients=False, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-5, gradient_clip_algorithm="norm", gradient_clip_val=1.0,).set(capture_output=True).build()'
 
 def gigapath_vred_still(vred_dataset_name = None, 
                         *, 
@@ -404,8 +404,9 @@ def gigapath_vred_still(vred_dataset_name = None,
                         init_ckpt_path: str = None, 
                         n_devices: int = 1, 
                         batch_size: int = 1, 
-                        log_latents: bool = False, 
+                        log_mixture_distributions: bool = False, 
                         log_weights: bool = False, 
+                        log_gradients: bool = False, 
                         skip_invalid_gradients: bool = True,
                         gradient_clip_val: float = 1.0,
                         gradient_clip_algorithm: str = 'norm',
@@ -416,7 +417,7 @@ def gigapath_vred_still(vred_dataset_name = None,
     else:
         vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
-        vred = dbx.quote(gigapath_vred, vredname, capture_latents=log_latents)
+        vred = dbx.quote(gigapath_vred, vredname, capture_mixture_distributions=log_mixture_distributions)
         if use_bags:
             featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle_bags=shuffle_bags, shuffle=shuffle_dataset)
         else:
@@ -429,6 +430,7 @@ def gigapath_vred_still(vred_dataset_name = None,
                     max_steps=max_steps,
                     skip_invalid_gradients=skip_invalid_gradients,
                     log_weights=log_weights,
+                    log_gradients=log_gradients,
                     init_ckpt_path=init_ckpt_path,
                     gradient_clip_val=gradient_clip_val,
                     gradient_clip_algorithm=gradient_clip_algorithm,
