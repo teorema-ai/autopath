@@ -187,8 +187,8 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
         self.n_shards = len(self.cfg.clip.shards)
         self.log.debug(f"Building dataset out of {self.n_shards} shards")
         self._shard_indices = np.arange(self.n_shards)
-        if self.cfg.seed is not None:
-            self.log.verbose(f"Shuffling shard indices with seed {self.cfg.seed}")
+        if self.cfg.shuffle_seed is not None:
+            self.log.verbose(f"Shuffling shard indices with seed {self.cfg.shuffle_seed}")
             rng = np.random.default_rng(self.cfg.shuffle_seed)
             rng.shuffle(self._shard_indices)
         self.shard_lens = [self.cfg.clip.shard_lens[i] for i in self.shard_indices]
