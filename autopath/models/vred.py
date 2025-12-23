@@ -627,7 +627,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         self.log.debug(f"Launching training for {self.cfg.max_steps=}")
         original_precision = torch.get_float32_matmul_precision()
         if self.cfg.precision is not None:
-            self.log.info(f"Setting precision to {self.cfg.precision}")
+            self.log.info(f"Setting precision to {repr(self.cfg.precision)}")
             torch.set_float32_matmul_precision(self.cfg.precision)
         try:
             trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
