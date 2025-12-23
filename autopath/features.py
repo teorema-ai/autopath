@@ -270,7 +270,7 @@ class FeatureBagClip(Clip):
     def n_shards(self):
         return self.n_bags
     
-    @property
+    @functools.cached_property
     def bag_lens(self):
         return self.read("bag_lens")
     
