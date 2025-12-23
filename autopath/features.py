@@ -253,7 +253,7 @@ class FeatureBagClip(Clip):
             FeatureBag(self.root, spec=dict(tilebag=dbx.quote(tilebag), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size)
             for tilebag in self.cfg.tilebagclip.shards
         ]
-        self.log.debug(f"Forming FeatureBags from tilebagclip {self.cfg.tilebagclip} ... ")
+        self.log.debug(f"Forming FeatureBags from tilebagclip {self.cfg.tilebagclip} ... DONE")
         return bags
     
     @property
