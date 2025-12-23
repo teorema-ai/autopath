@@ -249,5 +249,5 @@ class ClipDataLoaderBuilder(Datablock):
 
     def dataloader(self):
         self.log.debug(f"--> Initializing ClipDataLoaderBuilder dataloader with kwargs: {self.dataloader_kwargs}")
-        torch.utils.data.DataLoader.__init__(self, dataset=self.cfg.clip_dataset, **self.dataloader_kwargs)
+        return torch.utils.data.DataLoader(dataset=self.cfg.clip_dataset, **self.dataloader_kwargs)
 
