@@ -91,7 +91,7 @@ def gigapath_feature_bag(name: str = None, *, root: str = None) -> FeatureBag:
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_9802_TRAIN', n_threads=16).build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_threads=16).build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', n_threads=16).build()"
-def gigapath_feature_bag_clip(name:str|None = None, *, root:str = None, n_devices: int = 1, n_threads: int = 1) -> FeatureBagClip:
+def gigapath_feature_bag_clip(name:str = None, *, root:str = None, n_devices: int = 1, n_threads: int = 1) -> FeatureBagClip:
     devices = [f'cuda:{i}' for i in range(n_devices)]
     if name is None:
         return FeatureBagClip
@@ -121,7 +121,7 @@ def gigapath_feature_bag_clip(name:str|None = None, *, root:str = None, n_device
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_8020_TEST')[0]"
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC_9802_TEST')[0]"
-def gigapath_featurebagset(name, *, root: str|None = None, shuffle_bags: bool = False) -> torch.utils.data.Dataset:
+def gigapath_featurebagset(name, *, root: str = None, shuffle_bags: bool = False) -> torch.utils.data.Dataset:
     featureclip = gigapath_feature_bag_clip(name, root=root)
     quoted_featureclip = dbx.quote(featureclip)
     dbx.Logger().debug(f"===================> {featureclip=}\n{quoted_featureclip=}")
@@ -129,7 +129,7 @@ def gigapath_featurebagset(name, *, root: str|None = None, shuffle_bags: bool = 
 
 
 # git commit -am "gigaq: FeatureShardClip: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_shard_clip('GIGAPATH_BASELINE_CPTAC', shard_size=32, n_threads=16).build()"
-def gigapath_feature_shard_clip(name: str|None = None, *, shard_size: int = 32, n_threads: int = 1) -> FeatureShardClip:
+def gigapath_feature_shard_clip(name: str = None, *, shard_size: int = 32, n_threads: int = 1) -> FeatureShardClip:
     if name is None:
         clip = FeatureShardClip
     else:
@@ -309,7 +309,7 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
         )
 
 
-def gigapath_featurebagset_dataloader(name, *dataloader_args, root: str|None = None, shuffle_bags: bool = False, **dataloader_kwargs):
+def gigapath_featurebagset_dataloader(name, *dataloader_args, root: str = None, shuffle_bags: bool = False, **dataloader_kwargs):
     featureset = gigapath_featurebagset(name, root=root,shuffle_bags=shuffle_bags)
     return torch.utils.data.DataLoader(featureset, *dataloader_args, **dataloader_kwargs)
 
@@ -328,7 +328,7 @@ def gigapath_featurebagset_dataloader(name, *dataloader_args, root: str|None = N
 # git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, batch_size=8, num_workers=1, prefetch_factor=2)" 2.47s/it
 # 
 # git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, batch_size=4, num_workers=4, prefetch_factor=1, root='/mnt/labshare/PERSONAL/dmitry/datalake')" 
-def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, root: str|None = None, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
+def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, root: str = None, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     batch_size = dataloader_kwargs.get('batch_size', None)
     dataloader = gigapath_featurebagset_dataloader(name, root=root, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
     progress = tqdm(total=n)
