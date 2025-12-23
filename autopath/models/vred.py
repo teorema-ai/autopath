@@ -611,7 +611,7 @@ class VariationalReEncoderDecoderStill(Datablock):
                 
             ]
         if self.cfg.ckpt_every_n_steps is not None:
-            callbacks.append(L.pytorch.callbacks.ModelCheckpoint(dirpath=self.dirpath('ckpts'), every_n_steps=self.cfg.ckpt_every_n_steps))
+            callbacks.append(L.pytorch.callbacks.ModelCheckpoint(dirpath=self.dirpath('ckpts'), every_n_train_steps=self.cfg.ckpt_every_n_steps))
         trainer = L.pytorch.Trainer(
             default_root_dir=default_root_dir, 
             max_epochs=self.cfg.max_epochs, 
