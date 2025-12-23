@@ -310,15 +310,14 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
         )
 
 
-def gigapath_featurebagset_dataloader(name, *dataloader_args, root: str = None, shuffle_bags_seed: int = None, **dataloader_kwargs):
+def gigapath_featurebagset_dataloader(name, root: str = None, shuffle_bags_seed: int = None, **dataloader_kwargs):
     featureset = gigapath_featurebagset(name, root=root,shuffle_bags_seed=shuffle_bags_seed)
     return ClipDataLoaderBuilder(spec=dict(
                             clip_dataset=featureset,
                             batch_size=dataloader_kwargs.get('batch_size', None),
                             shuffle=dataloader_kwargs.get('shuffle', False),
-                          ), 
-                          *dataloader_args, 
-                          **dataloader_kwargs
+                          ),  
+                          dataloader_kwargs=dataloader_kwargs,
     ).dataloader()
 
 
@@ -339,9 +338,9 @@ def gigapath_featurebagset_dataloader(name, *dataloader_args, root: str = None, 
 # unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=4, num_workers=2, prefetch_factor=2)" ~>
 # unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=4, num_workers=2, prefetch_factor=1)" ~=
 # unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=8, num_workers=2, prefetch_factor=1)" ~=
-def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, root: str = None, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
+def gigapath_featurebagset_dataloader_samples(name, n, root: str = None, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     batch_size = dataloader_kwargs.get('batch_size', None)
-    dataloader = gigapath_featurebagset_dataloader(name, root=root, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
+    dataloader = gigapath_featurebagset_dataloader(name, root=root, shuffle=shuffle_bags, **dataloader_kwargs)
     progress = tqdm(total=n)
     for i, _ in enumerate(dataloader):
         progress.update(batch_size if batch_size is not None else 1)
