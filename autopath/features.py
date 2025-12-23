@@ -261,7 +261,8 @@ class FeatureBagClip(Clip):
     def n_bags(self):
         try:
             length = len(self.read('bag_lens'))
-        except Exception:
+        except Exception as e:
+            self.log.debug(f"Encountered exception {e} when reading 'bag_lens'. Instantiating bags to obtain their len.")
             length = len(self.bags)
         return length
     
