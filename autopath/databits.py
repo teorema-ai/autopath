@@ -245,5 +245,6 @@ class ClipDataLoader(Datablock, torch.utils.data.DataLoader):
         Datablock.__init__(self, spec=spec)
         kwargs['shuffle'] = spec['shuffle']
         kwargs['batch_size'] = spec['batch_size']
+        self.log.debug(f"-------------------> Initializing ClipDataLoader with args: {args}kwargs: {kwargs}")
         torch.utils.data.DataLoader.__init__(self, dataset=self.cfg.clip_dataset, *args, **kwargs)
 
