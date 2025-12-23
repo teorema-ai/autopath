@@ -7,7 +7,7 @@ import torch.multiprocessing as mp
 
 import dbx
 
-from autopath.databits import ClipDataLoader
+from autopath.databits import ClipDataLoaderBuilder
 
 from autopath.pancan.pipelines import (
     pancan_tile_bag,
@@ -312,14 +312,14 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
 
 def gigapath_featurebagset_dataloader(name, *dataloader_args, root: str = None, shuffle_bags_seed: int = None, **dataloader_kwargs):
     featureset = gigapath_featurebagset(name, root=root,shuffle_bags_seed=shuffle_bags_seed)
-    return ClipDataLoader(spec=dict(
+    return ClipDataLoaderBuilder(spec=dict(
                             clip_dataset=featureset,
                             batch_size=dataloader_kwargs.get('batch_size', None),
                             shuffle=dataloader_kwargs.get('shuffle', False),
                           ), 
                           *dataloader_args, 
                           **dataloader_kwargs
-    )
+    ).dataloader()
 
 
 # git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 10, batch_size=1, num_workers=1)"
