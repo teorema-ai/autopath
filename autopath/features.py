@@ -259,7 +259,11 @@ class FeatureBagClip(Clip):
     
     @property
     def n_bags(self):
-        return len(self.bags)
+        try:
+            length = len(self.read('bag_lens'))
+        except Exception:
+            length = len(self.bags)
+        return length
     
     @property
     def n_shards(self):
