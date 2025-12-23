@@ -242,11 +242,12 @@ class ClipDataLoaderBuilder(Datablock):
         shuffle: bool = False
 
     def __init__(self, spec: dict, **dataloader_kwargs):
-        Datablock.__init__(self, spec=spec, **dataloader_kwargs)
+        Datablock.__init__(self, spec=spec)
         dataloader_kwargs['shuffle'] = spec['shuffle']
         dataloader_kwargs['batch_size'] = spec['batch_size']
+        self.dataloader_kwargs = dataloader_kwargs
 
     def dataloader(self):
-        self.log.debug(f"--> Initializing ClipDataLoaderBuilder dataloader with kwargs: {self.kwargs()}")
-        torch.utils.data.DataLoader.__init__(self, dataset=self.cfg.clip_dataset, **self.kwargs())
+        self.log.debug(f"--> Initializing ClipDataLoaderBuilder dataloader with kwargs: {self.dataloader_kwargs}")
+        torch.utils.data.DataLoader.__init__(self, dataset=self.cfg.clip_dataset, **self.dataloader_kwargs)
 
