@@ -82,6 +82,10 @@ class Clip(Datablock):
     def shards_lens(self):
         return self.read()
     
+    @property
+    def n_shards(self):
+        return len(self.shard_lens)
+    
     def UNSAFE_clear_shards(self):
         for shard in self.shards:
             try:
@@ -184,7 +188,7 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
         shuffle_seed: Optional[int] = None
 
     def __post_init__(self):
-        self.n_shards = len(self.cfg.clip.shards)
+        self.n_shards = self.cfg.clip.n_shards
         self.log.debug(f"Building dataset out of {self.n_shards} shards")
         self._shard_indices = np.arange(self.n_shards)
         if self.cfg.shuffle_seed is not None:
