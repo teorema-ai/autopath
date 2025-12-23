@@ -326,7 +326,7 @@ def gigapath_featurebagset_dataloader(name, *dataloader_args, shuffle_bags: bool
 def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     batch_size = dataloader_kwargs.get('batch_size', None)
     dataloader = gigapath_featurebagset_dataloader(name, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
-    progress = tqdm(total=n//batch_size if batch_size is not None else n)
+    progress = tqdm(total=n)
     for i, _ in enumerate(dataloader):
         progress.update(batch_size if batch_size is not None else 1)
         if i >= n-1:
