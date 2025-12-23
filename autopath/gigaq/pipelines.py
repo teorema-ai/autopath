@@ -330,8 +330,7 @@ def gigapath_featurebagset_dataloader(name, *dataloader_args, root: str = None, 
 # unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=4, num_workers=8, prefetch_factor=1)" ~=
 # unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=4, num_workers=2, prefetch_factor=2)" ~>
 # unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=4, num_workers=2, prefetch_factor=1)" ~=
-#
-# unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=8, num_workers=2, prefetch_factor=1)"
+# unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=8, num_workers=2, prefetch_factor=1)" ~=
 def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, root: str = None, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     batch_size = dataloader_kwargs.get('batch_size', None)
     dataloader = gigapath_featurebagset_dataloader(name, root=root, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
@@ -422,11 +421,13 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=True, log_mixture_distributions=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=4, shuffle=False, log_mixture_distributions=True, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=1, learning_rate=1e-2).set(capture_output=True).build()'
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=1, use_bags=True, shuffle_bags=True, log_mixture_distributions=True, log_weights=False, log_gradients=False, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=2, learning_rate=1e-5, gradient_clip_algorithm="norm", gradient_clip_val=1.0,).set(capture_output=True).build()'
-#
 # git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", max_epochs=1, max_steps=100, batch_size=2, use_bags=True, shuffle_bags=True, log_mixture_distributions=True, log_weights=False, log_gradients=False, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=2, learning_rate=1e-5, gradient_clip_algorithm="norm", gradient_clip_val=1.0,).set(capture_output=True).build()'
+#
+# UNSET DBXREPO; git commit -am 'gigaq: VRED: STILL: BUILD'; dbx.print 'autopath.gigaq.pipelines.gigapath_vred_still("GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TEST", root='/tmp/dmitry/datalake', max_epochs=1, max_steps=100, use_bags=True, shuffle_bags=True, log_mixture_distributions=True, log_weights=False, log_gradients=False, logs="/home/t-9dkarp/autopath/tensorboard/vred", n_devices=3, learning_rate=1e-5, gradient_clip_algorithm="norm", gradient_clip_val=1.0, batch_size=8, num_workers=2, prefetch_factor=1).set(capture_output=True).build()'
 
 def gigapath_vred_still(vred_dataset_name = None, 
                         *, 
+                        root: str = None, 
                         use_bags: bool = True,
                         shuffle_bags: bool = True,
                         learning_rate: float = 0.03, 
@@ -452,9 +453,9 @@ def gigapath_vred_still(vred_dataset_name = None,
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
         vred = dbx.quote(gigapath_vred, vredname, capture_mixture_distributions=log_mixture_distributions)
         if use_bags:
-            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle_bags=shuffle_bags, **dataloader_kwargs)
+            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, root=root, shuffle_bags=shuffle_bags, **dataloader_kwargs)
         else:
-            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, batch_size=batch_size, **dataloader_kwargs)
+            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, root=root, **dataloader_kwargs)
         lightning = dbx.quote(VariationalReEncoderDecoderLightning, spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
         still = VariationalReEncoderDecoderStill(spec=dict(
                     lightning=lightning, 
