@@ -312,24 +312,24 @@ def gigapath_featurebagset_dataloader(name, *dataloader_args, shuffle_bags: bool
     return torch.utils.data.DataLoader(featureset, *dataloader_args, **dataloader_kwargs)
 
 
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 10, num_workers=1)"
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 20, num_workers=2)"
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=1)"
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=2)"
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=2, prefetch_factor=None)" 2.58s/it
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=4, prefetch_factor=1)" 2.61s/it
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=1, prefetch_factor=1)" 2.71s/it
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=2, prefetch_factor=1)" 2.47s/it
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 10, batch_size=1, num_workers=1)"
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 20, batch_size=1, num_workers=2)"
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, batch_size=1, num_workers=1)"
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, batch_size=1, num_workers=2)"
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, batch_size=1, num_workers=1, prefetch_factor=1)" 2.71s/it
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, batch_size=1, num_workers=4, prefetch_factor=1)" 2.61s/it
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, batch_size=1, num_workers=2, prefetch_factor=None)" 2.58s/it
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, batch_size=1, num_workers=2, prefetch_factor=1)" 2.47s/it
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, batch_size=4, num_workers=1, prefetch_factor=1,)" 2.25s/it
 #
-# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 100, num_workers=1, prefetch_factor=1, batch_size=4)"
-
+# git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, batch_size=4, num_workers=4, prefetch_factor=1,)"
 def gigapath_featurebagset_dataloader_samples(name, n, *dataloader_args, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     batch_size = dataloader_kwargs.get('batch_size', None)
     dataloader = gigapath_featurebagset_dataloader(name, shuffle=shuffle_bags, *dataloader_args, **dataloader_kwargs)
     progress = tqdm(total=n)
     for i, _ in enumerate(dataloader):
         progress.update(batch_size if batch_size is not None else 1)
-        if i >= n-1:
+        if i*batch_size >= n-1:
             break
     if return_last:
         return _
@@ -420,7 +420,6 @@ def gigapath_vred_still(vred_dataset_name = None,
                         *, 
                         use_bags: bool = True,
                         shuffle_bags: bool = True,
-                        shuffle_dataset: bool = False,
                         learning_rate: float = 0.03, 
                         scheduler: str = 'cosine', 
                         max_epochs: int = 3, 
@@ -434,7 +433,8 @@ def gigapath_vred_still(vred_dataset_name = None,
                         skip_invalid_gradients: bool = True,
                         gradient_clip_val: float = 1.0,
                         gradient_clip_algorithm: str = 'norm',
-                        logs: str = None
+                        logs: str = None,
+                        **dataloader_kwargs,
     ):
     if vred_dataset_name is None:
         still = VariationalReEncoderDecoderStill
@@ -443,9 +443,9 @@ def gigapath_vred_still(vred_dataset_name = None,
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
         vred = dbx.quote(gigapath_vred, vredname, capture_mixture_distributions=log_mixture_distributions)
         if use_bags:
-            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle_bags=shuffle_bags, shuffle=shuffle_dataset)
+            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, batch_size=batch_size, shuffle_bags=shuffle_bags, **dataloader_kwargs)
         else:
-            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, batch_size=batch_size, shuffle=shuffle_dataset)
+            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, batch_size=batch_size, **dataloader_kwargs)
         lightning = dbx.quote(VariationalReEncoderDecoderLightning, spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
         still = VariationalReEncoderDecoderStill(spec=dict(
                     lightning=lightning, 
