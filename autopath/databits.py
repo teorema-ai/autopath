@@ -232,3 +232,18 @@ class ClipDataset(Datablock, torch.utils.data.Dataset):
         if self.cfg.target_transform is not None:
             label = self.target_transform(label)
         return sample, label
+    
+
+class ClipDataLoader(Datablock, torch.utils.data.DataLoader):
+    @dataclass
+    class CONFIG:
+        clip_dataset: ClipDataset
+        batch_size: int
+        shuffle: bool = False
+
+    def __init__(self, *args, spec: dict, **kwargs):
+        Datablock.__init__(self, spec=spec)
+        kwargs['shuffle'] = spec['shuffle']
+        kwargs['batch_size'] = spec['batch_size']
+        torch.utils.data.DataLoader.__init__(self, dataset=self.cfg.clip_dataset, *args, **kwargs)
+

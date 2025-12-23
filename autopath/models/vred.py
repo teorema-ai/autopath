@@ -570,6 +570,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         skip_invalid_gradients: bool = True
         gradient_clip_val: float = 1.0
         gradient_clip_algorithm: str = "norm"
+        ckpt_every_n_steps: int = None
 
     def __init__(self, *args, n_devices: int = 1, logs: str = None, **kwargs):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
@@ -603,12 +604,20 @@ class VariationalReEncoderDecoderStill(Datablock):
         if self.cfg.gradient_clip_val > 0.0:
             kwargs['gradient_clip_val'] = self.cfg.gradient_clip_val
             self.log.info(f"----------> Using gradient clipping with value {self.cfg.gradient_clip_val} and algorithm {self.cfg.gradient_clip_algorithm} <----------")
+        callbacks = [
+                VariationalReEncoderDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, 
+                                                               log_weights=self.cfg.log_weights, 
+                                                               skip_invalid_gradients=self.cfg.skip_invalid_gradients),
+                
+            ]
+        if self.cfg.ckpt_every_n_steps is not None:
+            callbacks.append(L.pytorch.callbacks.ModelCheckpoint(dirpath=self.dirpath('ckpts'), every_n_steps=self.cfg.ckpt_every_n_steps))
         trainer = L.pytorch.Trainer(
             default_root_dir=default_root_dir, 
             max_epochs=self.cfg.max_epochs, 
             limit_train_batches=self.cfg.max_steps,
             log_every_n_steps=self.cfg.log_interval,
-            callbacks = [VariationalReEncoderDecoderLightning.Callbacks(log_gradients=self.cfg.log_gradients, log_weights=self.cfg.log_weights, skip_invalid_gradients=self.cfg.skip_invalid_gradients)],
+            callbacks=callbacks,
             devices=self.n_devices,
             logger=logger,
             **kwargs,
@@ -617,3 +626,4 @@ class VariationalReEncoderDecoderStill(Datablock):
         self.log.debug(f"Launching training for {self.cfg.max_steps=}")
         trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
         return self
+    
