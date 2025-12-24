@@ -577,6 +577,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         super().__init__(*args, n_devices=n_devices, logs=logs, **kwargs)
 
     def __pre_build__(self):
+        super().__pre_build__()
         self.linklogs()
         return self
 
