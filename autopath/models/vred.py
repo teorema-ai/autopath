@@ -651,10 +651,11 @@ class VariationalReEncoderDecoderStill(Datablock):
             torch.set_float32_matmul_precision(self.cfg.precision)
         try:
             if self.cfg.init_ckpt_path_or_anchor is not None:
-                if self.cfg.init_ckpt_path_or_anchor.endswith('.ckpt'):
-                    ckpt = self.cfg.init_ckpt_path_or_anchor
+                ckpath = self.cfg.init_ckpt_path_or_anchor
+                if ckpath.startswith('/'):  #TODO: support for fsspec urls
+                    ckpt = ckpath
                 else:
-                    ckpt = os.path.join(self.root, self.cfg.init_ckpt_path_or_anchor)
+                    ckpt = os.path.join(self.root, ckpath)
             else:
                 ckpt = self.ckpt()
             if ckpt is not None:
