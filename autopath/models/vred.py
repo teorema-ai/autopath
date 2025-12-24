@@ -660,16 +660,16 @@ class VariationalReEncoderDecoderStill(Datablock):
         try:
             model = self.cfg.lightning.lightning_module
             resume = not self.cfg.restart
+            ckpt = None
             if resume: 
                 ckpt = self.ckpt()
-            elif self.cfg.init_ckpt_path_or_anchor is not None:
-                ckpath = self.cfg.init_ckpt_path_or_anchor
-                if ckpath.startswith('/'):  #TODO: support for fsspec urls
-                    ckpt = ckpath
-                else:
-                    ckpt = os.path.join(self.root, ckpath)
-            else: 
-                ckpt = None
+            if ckpt is None:
+                if self.cfg.init_ckpt_path_or_anchor is not None:
+                    ckpath = self.cfg.init_ckpt_path_or_anchor
+                    if ckpath.startswith('/'):  #TODO: support for fsspec urls
+                        ckpt = ckpath
+                    else:
+                        ckpt = os.path.join(self.root, ckpath)
             fit_kwargs = {}
             if ckpt is not None:
                 self.log.info(f"Using checkpoint {ckpt}")
