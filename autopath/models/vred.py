@@ -3,7 +3,10 @@ import functools
 import gc
 import os
 import traceback
+import re
 from typing import Callable, List, Optional, Tuple
+
+import fsspec
 
 import numpy as np
 
@@ -596,7 +599,22 @@ class VariationalReEncoderDecoderStill(Datablock):
     def valid(self):
         #TODO: check if max_epochs has been run and a corresponding ckpt has been generated
         return False
-
+    
+    def find_ckpt_path(self):
+        ckptfs, _ = fsspec.url_to_fs(self.dirpath('ckpts'))
+        ckpts = ckptfs.ls(self.dirpath('ckpts'))
+        steps = []
+        for ckpt in ckpts:
+            name, _ = ckpt.split('.')
+            _, stepstr = name.split('=')
+            step = int(stepstr)
+            steps.append(step)
+        if len(steps) == 0:
+            return None
+        i = np.argmax(np.array(steps))[0]
+        ckpt = os.path.join(self.dirpath('ckpts'), ckpts[i])
+        return ckpt 
+    
     def __build__(self):
         logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'), default_hp_metric=False, name=self.anchor())
         default_root_dir = self.dirpath('ckpts')
@@ -631,7 +649,10 @@ class VariationalReEncoderDecoderStill(Datablock):
             self.log.info(f"Setting precision to {repr(self.cfg.precision)}")
             torch.set_float32_matmul_precision(self.cfg.precision)
         try:
-            trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader)
+            ckpt = self.find_ckpt_path()
+            if ckpt is not None:
+                self.log.info(f"Found checkpoint {ckpt}")
+            trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader, ckpt_path=ckpt)
         finally:
             torch.set_float32_matmul_precision(original_precision)
         return self
