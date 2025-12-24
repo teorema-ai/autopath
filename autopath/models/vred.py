@@ -489,11 +489,11 @@ class VariationalReEncoderDecoderLightning(Datablock):
                     module.zero_grad()                    
 
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReEncoderDecoder, learning_rate: float = 1e-3, strict_loading: bool = False, log: dbx.Logger = dbx.Logger(name="Lightning")):
+        def __init__(self, vred: VariationalReEncoderDecoder, strict_loading: bool = False, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
-            self.scheduler = "cosine"# "onecyclelr"
+            self.scheduler = scheduler
             self.save_hyperparameters(ignore=['vred'])
             self.log = log
             self.strict_loading = strict_loading
