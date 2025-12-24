@@ -260,7 +260,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
                  variance_min: float = 0.001,
-                 variance_max: float = 5.00,
+                 variance_max: float = 100.00,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
@@ -327,25 +327,25 @@ class VariationalReEncoderDecoder(nn.Module):
         class_probabilities = self.classifier(x).reshape(1, -1)
         _losses = []
         if self.capture_mixture_distributions:
-            self.means_list = []
-            self.variances_list = []
+            means_list = []
+            variances_list = []
         if self.class_batch_size is None:
             self.class_batch_size = self.n_classes
         for class_lo in range(0, self.n_classes, self.class_batch_size):
             class_hi = min(self.n_classes, class_lo + self.class_batch_size)
             class_probabilities_batch = class_probabilities[:, class_lo:class_hi]
             classes_batch = classes[class_lo:class_hi]
-            _loss = self._class_batch_loss(x, y, classes_batch, class_probabilities_batch)
+            _loss = self._class_batch_loss(x, y, classes_batch, class_probabilities_batch, means_list=means_list, variances_list=variances_list)
             self.log.detailed(f"loss: _loss: -------------requires_grad ------------> {_loss.requires_grad}")
             _losses.append(_loss)
         losses = torch.stack(_losses)
         self.log.detailed(f"loss: losses: -------------requires_grad ------------> {losses.requires_grad}")
         loss = torch.sum(losses, dim=0) #TODO: take .mean()?
         if self.capture_mixture_distributions:
-            self.means = torch.cat(self.means_list, dim=0)
-            self.variances = torch.cat(self.variances_list, dim=0)
-            del self.means_list
-            del self.variances_list
+            self.means = torch.cat(means_list, dim=0)
+            self.variances = torch.cat(variances_list, dim=0)
+            del means_list
+            del variances_list
         del losses
         del class_probabilities
         del classes
@@ -354,7 +354,7 @@ class VariationalReEncoderDecoder(nn.Module):
         self.log.detailed(f"loss: loss: -------------requires_grad ------------> {loss.requires_grad}")
         return loss
 
-    def _class_batch_loss(self, x, y, classes, class_probabilities):
+    def _class_batch_loss(self, x, y, classes, class_probabilities, *, means_list=None, variances_list=None):
         b = x.shape[0]
         k = classes.shape[0]
         C = classes.reshape(-1, 1).repeat(1, b).reshape(b*k)
@@ -371,8 +371,8 @@ class VariationalReEncoderDecoder(nn.Module):
         Mhat, Vhat = self.decoder(multiscale_means)
         self.log.detailed(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} Mhat from {len(multiscale_means)} multiscale means")
         if self.capture_mixture_distributions:
-            self.means_list.append(Mhat)
-            self.variances_list.append(Vhat)
+            means_list.append(Mhat)
+            variances_list.append(Vhat)
         del multiscale_means
         gc.collect()
         torch.cuda.empty_cache()
