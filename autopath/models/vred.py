@@ -604,18 +604,16 @@ class VariationalReEncoderDecoderStill(Datablock):
         ckptfs, _ = fsspec.url_to_fs(self.dirpath('ckpts'))
         ckpts = [f for f in ckptfs.ls(self.dirpath('ckpts')) if f.endswith('.ckpt')]
         steps = []
-        #DEBIG
-        breakpoint()
-        
         for ckpt in ckpts:
-            name, _ = ckpt.split('.')
+            _, basename = os.path.split(ckpt)
+            name, _ = basename.split('.')
             _, stepstr = name.split('=')
             step = int(stepstr)
             steps.append(step)
         if len(steps) == 0:
             return None
         i = np.argmax(np.array(steps))[0]
-        ckpt = os.path.join(self.dirpath('ckpts'), ckpts[i])
+        ckpt = ckpts[i]
         return ckpt 
     
     def __build__(self):
