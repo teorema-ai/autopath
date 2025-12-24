@@ -389,7 +389,13 @@ class VariationalReEncoderDecoder(nn.Module):
                [3., 4., 2.]]]
         """
         Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
-        _loss_ = torch.sqrt((Mhat - Y)**2/Vhat) # (k b) c h w
+
+        #DEBUG
+        breakpoint()
+        
+        diffsquared = (Mhat - Y)**2
+        diffscaled = diffsquared/Vhat
+        _loss_ = torch.sqrt(diffscaled) # (k b) c h w
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
         _loss_nans = torch.isnan(_loss).sum().item()
         _loss_nans_ = torch.isnan(_loss_).sum().item()
