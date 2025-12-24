@@ -604,6 +604,9 @@ class VariationalReEncoderDecoderStill(Datablock):
         ckptfs, _ = fsspec.url_to_fs(self.dirpath('ckpts'))
         ckpts = [f for f in ckptfs.ls(self.dirpath('ckpts')) if f.endswith('.ckpt')]
         steps = []
+        #DEBIG
+        breakpoint()
+        
         for ckpt in ckpts:
             name, _ = ckpt.split('.')
             _, stepstr = name.split('=')
