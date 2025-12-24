@@ -650,6 +650,7 @@ class VariationalReEncoderDecoderStill(Datablock):
             self.log.info(f"Setting precision to {repr(self.cfg.precision)}")
             torch.set_float32_matmul_precision(self.cfg.precision)
         try:
+            model = self.cfg.lightning.lightning_module
             if self.cfg.init_ckpt_path_or_anchor is not None:
                 ckpath = self.cfg.init_ckpt_path_or_anchor
                 if ckpath.startswith('/'):  #TODO: support for fsspec urls
@@ -659,8 +660,9 @@ class VariationalReEncoderDecoderStill(Datablock):
             else:
                 ckpt = self.ckpt()
             if ckpt is not None:
-                self.log.info(f"Found checkpoint {ckpt}")
-            trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader, ckpt_path=ckpt)
+                self.log.info(f"Using checkpoint {ckpt}")
+                model = self.cfg.lightning.lightning_module.load_from_checkpoint(ckpt, strict=False)
+            trainer.fit(model=model, train_dataloaders=self.cfg.dataloader)
         finally:
             torch.set_float32_matmul_precision(original_precision)
         return self
