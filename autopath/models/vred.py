@@ -229,7 +229,7 @@ class ConvDecoder2D(nn.Module):
             self.multiscale_resolutions
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
         variance = self.variance_final_conv(mean)
-        variance_offset = self.variance_final_softplus(self.variance_final_fc(variance.reshape(bs, -1)))
+        variance_offset = self.variance_final_softplus(self.variance_final_fc(variance.reshape(bs, -1))).repeat(1, mean.shape[1], height, width)
         variance_baseline = torch.full((bs, mean.shape[1], height, width), self.variance_baseline).to(mean.device) 
         variance = variance_baseline + variance_offset
 
