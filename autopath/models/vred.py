@@ -234,7 +234,7 @@ class ConvDecoder2D(nn.Module):
         breakpoint()
         #
         variance_ones = torch.full((b, c, height, width), 1.0).to(mean.device)
-        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b)))
+        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, -1)))
         variance_offset = variance_off*variance_ones
         variance = self.variance_baseline + variance_offset
 
