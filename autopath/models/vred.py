@@ -456,6 +456,11 @@ class VariationalReEncoderDecoderEvaluator(Datablock):
 
 class VariationalReEncoderDecoderLightning(Datablock):
     VERSION = globals().get('VERSION', None)
+    @dataclass
+    class CONFIG:
+        vred: VariationalReEncoderDecoder
+        learning_rate: float = 1e-3
+        scheduler: str = "cosine"
 
     class Callbacks(L.pytorch.callbacks.Callback):
         def __init__(self, 
@@ -555,12 +560,6 @@ class VariationalReEncoderDecoderLightning(Datablock):
                 "optimizer": optimizer,
                 "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
             }
-
-    @dataclass
-    class CONFIG:
-        vred: VariationalReEncoderDecoder
-        learning_rate: float = 1e-3
-        scheduler: str = "cosine"
 
     @functools.cached_property
     def lightning_module(self):
