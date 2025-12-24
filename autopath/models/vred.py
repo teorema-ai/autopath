@@ -194,8 +194,8 @@ class ConvDecoder2D(nn.Module):
             setattr(self, f"up_layer_{layer_idx}", layer) #TODO: use nn.ModuleList
             in_channels = out_channels
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
-        self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=1, kernel_size=1)
-        self.variance_final_fc = nn.Linear(fine_scale_tile_size**2, 1)
+        self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
+        self.variance_final_fc = nn.Linear(fine_scale_tile_size**2, 3)
         self.variance_final_softplus = nn.Softplus()
         self.multiscale_resolutions = multiscale_resolutions or []
         self.variance_baseline = variance_baseline
@@ -228,10 +228,14 @@ class ConvDecoder2D(nn.Module):
         assert len(found_resolutions) == len(
             self.multiscale_resolutions
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
-        variance = self.variance_final_conv(mean)
         #
-        variance_ones = torch.ones(b, c, height, width).to(mean.device)
-        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, -1))).reshape(b, 1, 1, 1)
+
+        #DEBUG
+        breakpoint()
+        
+        variance = self.variance_final_conv(mean)
+        variance_ones = torch.ones(b, 3, height, width).to(mean.device)
+        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, 3))).reshape(b, 3, 1, 1)
         variance_offset = variance_off*variance_ones
         variance = self.variance_baseline + variance_offset
 
@@ -392,7 +396,7 @@ class VariationalReEncoderDecoder(nn.Module):
 
         #DEBUG
         breakpoint()
-        
+
         diffsquared = (Mhat - Y)**2
         diffscaled = diffsquared/Vhat
         _loss_ = torch.sqrt(diffscaled) # (k b) c h w
