@@ -232,10 +232,10 @@ class ConvDecoder2D(nn.Module):
 
         #DEBUG
         breakpoint()
-        
+
         variance = self.variance_final_conv(mean)
         variance_ones = torch.ones(b, 3, height, width).to(mean.device)
-        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, 3))).reshape(b, 3, 1, 1)
+        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b*3, -1))).reshape(b, 3, 1, 1)
         variance_offset = variance_off*variance_ones
         variance = self.variance_baseline + variance_offset
 
