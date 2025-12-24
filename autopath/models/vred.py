@@ -607,7 +607,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         for ckpt in ckpts:
             _, basename = os.path.split(ckpt)
             name, _ = basename.split('.')
-            _, stepstr = name.split('=')
+            _, stepstr = name.split('step=')
             step = int(stepstr)
             steps.append(step)
         if len(steps) == 0:
