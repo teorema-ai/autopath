@@ -489,13 +489,14 @@ class VariationalReEncoderDecoderLightning(Datablock):
                     module.zero_grad()                    
 
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReEncoderDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
+        def __init__(self, vred: VariationalReEncoderDecoder, learning_rate: float = 1e-3, strict_loading: bool = False, log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
             self.scheduler = "cosine"# "onecyclelr"
             self.save_hyperparameters(ignore=['vred'])
             self.log = log
+            self.strict_loading = strict_loading
                                          
         def training_step(self, batch, batch_idx):
             features, labels = batch
@@ -661,8 +662,7 @@ class VariationalReEncoderDecoderStill(Datablock):
                 ckpt = self.ckpt()
             if ckpt is not None:
                 self.log.info(f"Using checkpoint {ckpt}")
-                model = self.cfg.lightning.lightning_module.load_from_checkpoint(ckpt, strict=False)
-            trainer.fit(model=model, train_dataloaders=self.cfg.dataloader)
+            trainer.fit(model=model, train_dataloaders=self.cfg.dataloader, ckpt_path=ckpt)
         finally:
             torch.set_float32_matmul_precision(original_precision)
         return self
