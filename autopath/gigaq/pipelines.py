@@ -435,6 +435,8 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
 """
 UNSET DBXREPO; git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TRAIN', root='/tmp/dmitry/datalake', ckpt='autopath.models.vred.VariationalReEncoderDecoderStill/c074fe8c90427a27a5c13cebfda7007b1e4391cad734dfc73cee6a1af6af96f2/ckpts/epoch=0-step=1900.ckpt', \
        max_epochs=3, max_steps=None, ckpt_every_n_steps=100, use_bags=True, shuffle_bags_seed=42, log_mixture_distributions=True, log_weights=False, log_gradients=False, logs='/home/t-9dkarp/autopath/tensorboard/vred', n_devices=3, learning_rate=1e-5, gradient_clip_algorithm='norm', gradient_clip_val=1.0, batch_size=6, num_workers=2, prefetch_factor=1, pin_memory=True, precision='medium',).set(capture_output=True).build()"
+UNSET DBXREPO; git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_BASELINE_CPTAC_8020_TRAIN', root='/tmp/dmitry/datalake', \
+       max_epochs=3, max_steps=None, ckpt_every_n_steps=100, use_bags=True, shuffle_bags_seed=42, log_mixture_distributions=True, log_weights=False, log_gradients=False, logs='/home/t-9dkarp/autopath/tensorboard/vred', n_devices=3, learning_rate=1e-4, gradient_clip_algorithm='norm', gradient_clip_val=1.0, batch_size=6, num_workers=2, prefetch_factor=1, pin_memory=True, precision='medium',).set(capture_output=True).build()"
 
 """
 def gigapath_vred_still(vred_dataset_name = None, 

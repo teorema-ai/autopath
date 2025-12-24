@@ -169,7 +169,8 @@ class ConvDecoder2D(nn.Module):
         kernel_size: int = 3,
         use_batch_norm: bool = True,
         multiscale_resolutions: Optional[List[Tuple[int, int]]] = None,
-        variance_baseline: float = 0.001,
+        variance_min: float = 0.001,
+        variance_max: float = 5.00,
         fine_scale_tile_size: int = 256,
         add_skip_features: bool = False,
         log: dbx.Logger = None,
@@ -196,9 +197,10 @@ class ConvDecoder2D(nn.Module):
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_fc = nn.Linear(fine_scale_tile_size**2*3, 3)
-        self.variance_final_softplus = nn.Softplus()
+        self.variance_final_sigmoid = nn.Sigmoid()
         self.multiscale_resolutions = multiscale_resolutions or []
-        self.variance_baseline = variance_baseline
+        self.variance_min = variance_min
+        self.variance_max = variance_max
         self.log = log or dbx.Logger(self.__class__.__name__)
 
     def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
@@ -230,11 +232,10 @@ class ConvDecoder2D(nn.Module):
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
         #
 
-        variance = self.variance_final_conv(mean)
+        prevariance = self.variance_final_conv(mean)
         variance_ones = torch.ones(b, 3, height, width).to(mean.device)
-        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, -1))).reshape(b, 3, 1, 1)
-        variance_offset = variance_off*variance_ones
-        variance = self.variance_baseline + variance_offset
+        variance_amplitude = self.variance_final_sigmoid(self.variance_final_fc(prevariance.reshape(b, -1))).reshape(b, 3, 1, 1)
+        variance = (self.variance_min + variance_amplitude*self.variance_max)*variance_ones
 
         mean = self.final_conv(mean)
         self.log.detailed(f"final_conv: mean: {mean.shape=}, {mean.device=}")
@@ -258,7 +259,8 @@ class VariationalReEncoderDecoder(nn.Module):
                  latent_gaussians: ClassMultiscaleLatentGaussians2D,
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
-                 variance_baseline: float = 0.001,
+                 variance_min: float = 0.001,
+                 variance_max: float = 5.00,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
@@ -273,7 +275,8 @@ class VariationalReEncoderDecoder(nn.Module):
             output_features_per_layer=[self.latent_gaussians.n_channels]*(self.latent_gaussians.n_scales-2) + [self.latent_gaussians.n_channels],
             kernel_size=kernel_size,
             use_batch_norm=use_batch_norm,
-            variance_baseline=variance_baseline,
+            variance_min=variance_min,
+            variance_max=variance_max,
             fine_scale_tile_size=self.latent_gaussians.fine_scale,
         )
         self.class_batch_size = class_batch_size
