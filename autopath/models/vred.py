@@ -208,14 +208,14 @@ class ConvDecoder2D(nn.Module):
         self.log.detailed(f"num_layers: {self.num_layers}, top height: {height*(2**self.num_layers)}")
 
         self.log.detailed(f"feature_shapes: {[f.shape for f in features]}")
-        bs, _, _, width = mean.shape
+        b, c, _, width = mean.shape
 
         multiscale_features = []
         found_resolutions = []
         for i in reversed(list(range(self.num_layers))):
             height *= 2
             width *= 2
-            skip_features = [torch.empty(bs, 0, height, width, device=mean.device)]
+            skip_features = [torch.empty(b, 0, height, width, device=mean.device)]
             skip_features += [f for f in features if f.shape[-2] == height]
             skip_features = torch.cat(skip_features, dim=1)
             up_layer = getattr(self, f"up_layer_{i}") # TODO: use a nn.ModuleList
@@ -232,9 +232,9 @@ class ConvDecoder2D(nn.Module):
         #DEBUG
         breakpoint()
 
-        variance_baseline = torch.full((bs, mean.shape[1], height, width), self.variance_baseline).to(mean.device)
-        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(bs, -1)))
-        variance_offset = variance_off.reshape(bs, 1, height, width)
+        variance_baseline = torch.full((b, mean.shape[1], height, width), self.variance_baseline).to(mean.device)
+        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, -1)))
+        variance_offset = variance_off.expand(b, c).reshape(b, c, 1).expand(b, c, height).reshape(b, c, height, 1).expand(b, c, height, width)
         variance = variance_baseline + variance_offset
 
         mean = self.final_conv(mean)
