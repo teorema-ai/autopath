@@ -617,7 +617,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         return ckpt 
     
     def __build__(self):
-        logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'), default_hp_metric=False, name=self.anchor())
+        logger = L.pytorch.loggers.TensorBoardLogger(save_dir=self.dirpath('logs'), default_hp_metric=False, name=self.anchor)
         default_root_dir = self.dirpath('ckpts')
         self.log.detailed(f"Built {logger=} for lightining {self.cfg.lightning}")
         self.log.debug(f"Building trainer using {default_root_dir=} to train for {self.cfg.max_steps=} using {self.cfg.lightning=} and {self.n_devices=}")
