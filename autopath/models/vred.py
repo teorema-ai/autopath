@@ -600,7 +600,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         #TODO: check if max_epochs has been run and a corresponding ckpt has been generated
         return False
     
-    def find_ckpt_path(self):
+    def ckpt(self):
         ckptfs, _ = fsspec.url_to_fs(self.dirpath('ckpts'))
         ckpts = [f for f in ckptfs.ls(self.dirpath('ckpts')) if f.endswith('.ckpt') and 'step=' in f]
         steps = []
@@ -650,7 +650,7 @@ class VariationalReEncoderDecoderStill(Datablock):
             self.log.info(f"Setting precision to {repr(self.cfg.precision)}")
             torch.set_float32_matmul_precision(self.cfg.precision)
         try:
-            ckpt = self.find_ckpt_path()
+            ckpt = self.ckpt()
             if ckpt is not None:
                 self.log.info(f"Found checkpoint {ckpt}")
             trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader, ckpt_path=ckpt)
