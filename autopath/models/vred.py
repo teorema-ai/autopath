@@ -195,7 +195,7 @@ class ConvDecoder2D(nn.Module):
             in_channels = out_channels
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
-        self.variance_final_fc = nn.Linear(fine_scale_tile_size**2, 3)
+        self.variance_final_fc = nn.Linear(fine_scale_tile_size**2*3, 3)
         self.variance_final_softplus = nn.Softplus()
         self.multiscale_resolutions = multiscale_resolutions or []
         self.variance_baseline = variance_baseline
@@ -235,7 +235,7 @@ class ConvDecoder2D(nn.Module):
 
         variance = self.variance_final_conv(mean)
         variance_ones = torch.ones(b, 3, height, width).to(mean.device)
-        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b*3, -1))).reshape(b, 3, 1, 1)
+        variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, -1))).reshape(b, 3, 1, 1)
         variance_offset = variance_off*variance_ones
         variance = self.variance_baseline + variance_offset
 
@@ -395,7 +395,7 @@ class VariationalReEncoderDecoder(nn.Module):
         Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
 
         #DEBUG
-        breakpoint()
+        #breakpoint()
 
         diffsquared = (Mhat - Y)**2
         diffscaled = diffsquared/Vhat
