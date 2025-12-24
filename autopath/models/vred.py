@@ -665,7 +665,7 @@ class VariationalReEncoderDecoderStill(Datablock):
                 self.log.info(f"Using checkpoint {ckpt}")
                 if not self.cfg.load_optimizer_state:
                     self.log.info(f"Skipping optimizer state from {ckpt}")
-                    checkpoint = torch.load(ckpt, weights_only=False)
+                    checkpoint = torch.load(ckpt, weights_only=False, strict=False)
                     model.load_state_dict(checkpoint['state_dict'])
                 else:
                     fit_kwargs['ckpt_path'] = ckpt
