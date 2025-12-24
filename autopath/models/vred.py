@@ -229,9 +229,6 @@ class ConvDecoder2D(nn.Module):
             self.multiscale_resolutions
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
         variance = self.variance_final_conv(mean)
-        
-        #DEBUG
-        breakpoint()
         #
         variance_ones = torch.ones(b, c, height, width).to(mean.device)
         variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, -1))).reshape(b, 1, 1, 1)
@@ -574,6 +571,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         lightning: VariationalReEncoderDecoderLightning
         dataloader: torch.utils.data.DataLoader
         init_ckpt_path_or_anchor: str = None
+        restart: bool = False
         load_optimizer_state: bool = False
         max_epochs: int = 1
         max_steps: int = 1
@@ -661,14 +659,17 @@ class VariationalReEncoderDecoderStill(Datablock):
             torch.set_float32_matmul_precision(self.cfg.precision)
         try:
             model = self.cfg.lightning.lightning_module
-            if self.cfg.init_ckpt_path_or_anchor is not None:
+            resume = not self.cfg.restart
+            if resume: 
+                ckpt = self.ckpt()
+            elif self.cfg.init_ckpt_path_or_anchor is not None:
                 ckpath = self.cfg.init_ckpt_path_or_anchor
                 if ckpath.startswith('/'):  #TODO: support for fsspec urls
                     ckpt = ckpath
                 else:
                     ckpt = os.path.join(self.root, ckpath)
-            else:
-                ckpt = self.ckpt()
+            else: 
+                ckpt = None
             fit_kwargs = {}
             if ckpt is not None:
                 self.log.info(f"Using checkpoint {ckpt}")
