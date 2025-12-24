@@ -230,9 +230,6 @@ class ConvDecoder2D(nn.Module):
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
         #
 
-        #DEBUG
-        breakpoint()
-
         variance = self.variance_final_conv(mean)
         variance_ones = torch.ones(b, 3, height, width).to(mean.device)
         variance_off = self.variance_final_softplus(self.variance_final_fc(variance.reshape(b, -1))).reshape(b, 3, 1, 1)
@@ -393,9 +390,6 @@ class VariationalReEncoderDecoder(nn.Module):
                [3., 4., 2.]]]
         """
         Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
-
-        #DEBUG
-        #breakpoint()
 
         diffsquared = (Mhat - Y)**2
         diffscaled = diffsquared/Vhat
