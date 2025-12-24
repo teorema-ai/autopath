@@ -9,8 +9,7 @@ import numpy as np
 import torch
 import torchvision
 
-import dbx
-from dbx import Logger, Datablock
+from dbx import Datablock
 
 from autopath.databits import Clip
 

@@ -23,7 +23,7 @@ from dbx import Datablock
 
 from .layers import UpLayer
 
-VERSION = 3
+VERSION = 4
 
 class Classifier(nn.Module):
     def __init__(self, 
@@ -169,7 +169,8 @@ class ConvDecoder2D(nn.Module):
         kernel_size: int = 3,
         use_batch_norm: bool = True,
         multiscale_resolutions: Optional[List[Tuple[int, int]]] = None,
-        variance_scale: float = 0.03,
+        variance_baseline: float = 0.001,
+        fine_scale_tile_size: int = 256,
         add_skip_features: bool = False,
         log: dbx.Logger = None,
     ):
@@ -193,8 +194,11 @@ class ConvDecoder2D(nn.Module):
             setattr(self, f"up_layer_{layer_idx}", layer) #TODO: use nn.ModuleList
             in_channels = out_channels
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
+        self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=1, kernel_size=1)
+        self.variance_final_fc = nn.Linear(fine_scale_tile_size**2, 1)
+        self.variance_final_softplus = nn.Softplus()
         self.multiscale_resolutions = multiscale_resolutions or []
-        self.variance_scale = variance_scale
+        self.variance_baseline = variance_baseline
         self.log = log or dbx.Logger(self.__class__.__name__)
 
     def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
@@ -224,9 +228,9 @@ class ConvDecoder2D(nn.Module):
         assert len(found_resolutions) == len(
             self.multiscale_resolutions
         ), f"Expected multiscale resolutions {self.multiscale_resolutions} but only found {found_resolutions}"
+        variance = self.variance_final_softplus(self.variance_final_fc(self.variance_finalconv(mean))) + torch.full((bs, mean.shape[1], height, width), self.variance_baseline).to(mean.device)
         mean = self.final_conv(mean)
         self.log.detailed(f"final_conv: mean: {mean.shape=}, {mean.device=}")
-        variance = torch.full((bs, mean.shape[1], height, width), self.variance_scale).to(mean.device)
         self.log.detailed(f"final_conv: variance: {variance.shape=}, {variance.device=}")
         if self.multiscale_resolutions:
             return mean, variance, multiscale_features
@@ -247,7 +251,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  latent_gaussians: ClassMultiscaleLatentGaussians2D,
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
-                 variance_scale: float = 0.03,
+                 variance_baseline: float = 0.001,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
@@ -262,7 +266,8 @@ class VariationalReEncoderDecoder(nn.Module):
             output_features_per_layer=[self.latent_gaussians.n_channels]*(self.latent_gaussians.n_scales-2) + [self.latent_gaussians.n_channels],
             kernel_size=kernel_size,
             use_batch_norm=use_batch_norm,
-            variance_scale=variance_scale,
+            variance_baseline=variance_baseline,
+            fine_scale_tile_size=self.latent_gaussians.fine_scale,
         )
         self.class_batch_size = class_batch_size
         self.capture_mixture_distributions = capture_mixture_distributions
@@ -270,11 +275,6 @@ class VariationalReEncoderDecoder(nn.Module):
         self.device = 'cpu'
         self.means = None
         self.variances = None
-        """
-        self.log.verbose("Initializing model parameters ... ")
-        self.apply(self.init_weights)
-        self.log.verbose("Initializing model parameters ... done")
-        """
 
     @staticmethod
     def init_weights(m):
@@ -564,7 +564,7 @@ class VariationalReEncoderDecoderStill(Datablock):
     class CONFIG:
         lightning: VariationalReEncoderDecoderLightning
         dataloader: torch.utils.data.DataLoader
-        init_ckpt_path: str = None
+        init_ckpt_path_or_anchor: str = None
         max_epochs: int = 1
         max_steps: int = 1
         log_interval: int = 1
@@ -650,7 +650,13 @@ class VariationalReEncoderDecoderStill(Datablock):
             self.log.info(f"Setting precision to {repr(self.cfg.precision)}")
             torch.set_float32_matmul_precision(self.cfg.precision)
         try:
-            ckpt = self.ckpt()
+            if self.cfg.init_ckpt_path_or_anchor is not None:
+                if self.cfg.init_ckpt_path_or_anchor.endswith('.ckpt'):
+                    ckpt = self.cfg.init_ckpt_path_or_anchor
+                else:
+                    ckpt = os.path.join(self.root, self.cfg.init_ckpt_path_or_anchor)
+            else:
+                ckpt = self.ckpt()
             if ckpt is not None:
                 self.log.info(f"Found checkpoint {ckpt}")
             trainer.fit(model=self.cfg.lightning.lightning_module, train_dataloaders=self.cfg.dataloader, ckpt_path=ckpt)
