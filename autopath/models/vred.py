@@ -489,14 +489,13 @@ class VariationalReEncoderDecoderLightning(Datablock):
                     module.zero_grad()                    
 
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReEncoderDecoder, strict_loading: bool = False, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
+        def __init__(self, vred: VariationalReEncoderDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
             self.scheduler = scheduler
             self.save_hyperparameters(ignore=['vred'])
             self.log = log
-            self.strict_loading = strict_loading
                                          
         def training_step(self, batch, batch_idx):
             features, labels = batch
@@ -566,6 +565,7 @@ class VariationalReEncoderDecoderStill(Datablock):
         lightning: VariationalReEncoderDecoderLightning
         dataloader: torch.utils.data.DataLoader
         init_ckpt_path_or_anchor: str = None
+        load_optimizer_state: bool = False
         max_epochs: int = 1
         max_steps: int = 1
         log_interval: int = 1
@@ -660,9 +660,16 @@ class VariationalReEncoderDecoderStill(Datablock):
                     ckpt = os.path.join(self.root, ckpath)
             else:
                 ckpt = self.ckpt()
+            fit_kwargs = {}
             if ckpt is not None:
                 self.log.info(f"Using checkpoint {ckpt}")
-            trainer.fit(model=model, train_dataloaders=self.cfg.dataloader, ckpt_path=ckpt)
+                if not self.cfg.load_optimizer_state:
+                    self.log.info(f"Skipping optimizer state from {ckpt}")
+                    checkpoint = torch.load(ckpt)
+                    model.load_state_dict(checkpoint['state_dict'])
+                else:
+                    fit_kwargs['ckpt_path'] = ckpt
+            trainer.fit(model=model, train_dataloaders=self.cfg.dataloader, **fit_kwargs)
         finally:
             torch.set_float32_matmul_precision(original_precision)
         return self
