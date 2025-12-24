@@ -609,8 +609,10 @@ class VariationalReEncoderDecoderStill(Datablock):
         return False
     
     def ckpt(self):
-        ckptfs, _ = fsspec.url_to_fs(self.dirpath('ckpts'))
-        ckpts = [f for f in ckptfs.ls(self.dirpath('ckpts')) if f.endswith('.ckpt') and 'step=' in f]
+        dirpath = self.dirpath('ckpts')
+        ckptfs, _ = fsspec.url_to_fs(dirpath)
+        files = [] if not ckptfs.exists(dirpath) else ckptfs.ls(dirpath)
+        ckpts = [f for f in files if f.endswith('.ckpt') and 'step=' in f]
         steps = []
         for ckpt in ckpts:
             _, basename = os.path.split(ckpt)
@@ -619,9 +621,10 @@ class VariationalReEncoderDecoderStill(Datablock):
             step = int(stepstr)
             steps.append(step)
         if len(steps) == 0:
-            return None
-        i = np.argmax(np.array(steps))
-        ckpt = ckpts[i]
+            ckpt = None
+        else:
+            i = np.argmax(np.array(steps))
+            ckpt = ckpts[i]
         return ckpt 
     
     def __build__(self):
