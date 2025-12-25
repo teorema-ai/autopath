@@ -263,7 +263,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
                  variance_min: float = 0.001,
-                 variance_max: float = 100.00,
+                 variance_max: float = 30.00,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
@@ -536,12 +536,12 @@ class VariationalReEncoderDecoderLightning(Datablock):
                     variance_vector = variance_matrix.mean(dim=(-1, -2))
                     self.log.detailed(f"Capturing mixture distribution for class {k}: {mean.shape=}, {variance_matrix.shape=}, {variance_vector=}")
                     feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
-                    self.logger.experiment.add_image(f"Distribution Mean/class={k}/step={self.global_step}", mean, self.global_step)
+                    self.logger.experiment.add_image(f"distribution_mean/class={k}/step={self.global_step}", mean, self.global_step)
                     for s in range(3):
-                        self.logger.experiment.add_scalar(f"Distribution Variance_{s}_class={k}", variance_vector[s], self.global_step)
+                        self.logger.experiment.add_scalar(f"distribution_variance/class={k}/{s}", variance_vector[s], self.global_step)
 
-                self.logger.experiment.add_scalar(f"feature_norms_max", torch.max(feature_norms), self.global_step)
-                self.logger.experiment.add_scalar(f"feature_norms_min", torch.min(feature_norms), self.global_step)
+                self.logger.experiment.add_scalar(f"feature_norms_max", max(feature_norms), self.global_step)
+                self.logger.experiment.add_scalar(f"feature_norms_min", min(feature_norms), self.global_step)
             return loss
 
         def configure_optimizers(self):
