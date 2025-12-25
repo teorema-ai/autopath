@@ -525,19 +525,18 @@ class VariationalReEncoderDecoderLightning(Datablock):
             self.logger.experiment.add_scalar(f"Learning Rate", lr, self.global_step)
             if self.vred.capture_mixture_distributions:
                 b = features.shape[0]
-                k = self.vred.n_classes
-                n = k*b
                 i = np.random.randint(b)
-                j = np.random.randint(k)
-                mean = self.vred.means[k*i+j].squeeze()
-                variance = self.vred.variances[k*i+j].squeeze()
-                feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
-                step = self.global_step
-                self.logger.experiment.add_image(f"Distribution Mean/{step=}/({k}*{i}+{j}={k*i+j})/{n}", mean, self.global_step)
-                self.logger.experiment.add_image(f"Distribution Variance/{step=}/({k}*{i}+{j}={k*i+j})/{n}", variance, self.global_step)
-                self.logger.experiment.add_image(f"Tile/{step=}/{i}/{b}", tiles[i], self.global_step)
+                for k in range(self.vred.n_classes):
+                    mean = self.vred.means[i*self.vred.n_classes+k].squeeze()
+                    variance = self.vred.variances[i*self.vred.n_classes+k].squeeze()[0,0]
+                    feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
+                    step = self.global_step
+                    self.logger.experiment.add_image(f"Distribution Mean/{k}/{step=}", mean, self.global_step)
+                    self.logger.experiment.add_image(f"Tile/{k=}{step=}/", tiles[i], self.global_step)
+                    self.logger.experiment.add_scalar(f"Scalar Distribution Variance/{k}", variance, self.global_step)
+
                 for i in range(len(feature_norms)):
-                    self.logger.experiment.add_scalar(f"Feature Norm/{step=}/{i}", feature_norms[i], self.global_step)
+                    self.logger.experiment.add_scalar(f"Feature Norm/{i}", feature_norms[i], self.global_step)
             return loss
 
         def configure_optimizers(self):
