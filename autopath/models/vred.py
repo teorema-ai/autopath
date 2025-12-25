@@ -197,7 +197,7 @@ class ConvDecoder2D(nn.Module):
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_fc = nn.Linear(fine_scale_tile_size**2*3, 3)
-        self.variance_final_sigmoid = nn.Sigmoid()
+        self.variance_final_activation = nn.Sigmoid() if variance_max is not None else nn.Softplus()
         self.multiscale_resolutions = multiscale_resolutions or []
         self.variance_min = variance_min
         self.variance_max = variance_max
@@ -234,8 +234,11 @@ class ConvDecoder2D(nn.Module):
 
         prevariance = self.variance_final_conv(mean)
         variance_ones = torch.ones(b, 3, height, width).to(mean.device)
-        variance_amplitude = self.variance_final_sigmoid(self.variance_final_fc(prevariance.reshape(b, -1))).reshape(b, 3, 1, 1)
-        variance = (self.variance_min + variance_amplitude*self.variance_max)*variance_ones
+        variance_amplitude = self.variance_final_activation(self.variance_final_fc(prevariance.reshape(b, -1))).reshape(b, 3, 1, 1)
+        if self.variance_max is None:
+            variance = (self.variance_min + variance_amplitude)*variance_ones
+        else:
+            variance = (self.variance_min + variance_amplitude*self.variance_max)*variance_ones
 
         mean = self.final_conv(mean)
         self.log.detailed(f"final_conv: mean: {mean.shape=}, {mean.device=}")
@@ -526,15 +529,14 @@ class VariationalReEncoderDecoderLightning(Datablock):
             if self.vred.capture_mixture_distributions:
                 b = features.shape[0]
                 i = np.random.randint(b)
-                self.logger.experiment.add_image(f"Tile/{step=}/", tiles[i], self.global_step)
+                self.logger.experiment.add_image(f"Tile/step={self.global_step}/", tiles[i], self.global_step)
                 for k in range(self.vred.n_classes):
                     mean = self.vred.means[i*self.vred.n_classes+k].squeeze()
                     variance_matrix = self.vred.variances[i*self.vred.n_classes+k].squeeze()
                     variance_vector = variance_matrix.mean(dim=(-1, -2))
                     self.log.detailed(f"Capturing mixture distribution for class {k}: {mean.shape=}, {variance_matrix.shape=}, {variance_vector=}")
                     feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
-                    step = self.global_step
-                    self.logger.experiment.add_image(f"Distribution Mean/class={k}/{step=}", mean, self.global_step)
+                    self.logger.experiment.add_image(f"Distribution Mean/class={k}/step{self.global_step}", mean, self.global_step)
                     for s in range(3):
                         self.logger.experiment.add_scalar(f"Distribution Variance (pixel mean)/{s}/class={k}", variance_vector[s], self.global_step)
 
