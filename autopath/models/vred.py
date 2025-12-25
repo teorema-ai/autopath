@@ -536,9 +536,9 @@ class VariationalReEncoderDecoderLightning(Datablock):
                     variance_vector = variance_matrix.mean(dim=(-1, -2))
                     self.log.detailed(f"Capturing mixture distribution for class {k}: {mean.shape=}, {variance_matrix.shape=}, {variance_vector=}")
                     feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
-                    self.logger.experiment.add_image(f"distribution_mean/class={k}/step={self.global_step}", mean, self.global_step)
+                    self.logger.experiment.add_image(f"distribution_mean/step={self.global_step}/mixture_component={k}", mean, self.global_step)
                     for s in range(3):
-                        self.logger.experiment.add_scalar(f"distribution_variance/class={k}/{s}", variance_vector[s], self.global_step)
+                        self.logger.experiment.add_scalar(f"distribution_variance/mixture_component={k}/{s}", variance_vector[s], self.global_step)
 
                 self.logger.experiment.add_scalar(f"feature_norms_max", max(feature_norms), self.global_step)
                 self.logger.experiment.add_scalar(f"feature_norms_min", min(feature_norms), self.global_step)
