@@ -528,7 +528,9 @@ class VariationalReEncoderDecoderLightning(Datablock):
                 i = np.random.randint(b)
                 for k in range(self.vred.n_classes):
                     mean = self.vred.means[i*self.vred.n_classes+k].squeeze()
-                    variance = self.vred.variances[i*self.vred.n_classes+k].squeeze()[0,0]
+                    variance = self.vred.variances[i*self.vred.n_classes+k].squeeze()
+                    variance_scalar = variance.mean()
+                    self.log.debug(f"Capturing mixture distribution for class {k}: {mean.shape=}, {variance.shape=}, {variance_scalar=}")
                     feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
                     step = self.global_step
                     self.logger.experiment.add_image(f"Distribution Mean/{k}/{step=}", mean, self.global_step)
