@@ -526,17 +526,17 @@ class VariationalReEncoderDecoderLightning(Datablock):
             if self.vred.capture_mixture_distributions:
                 b = features.shape[0]
                 i = np.random.randint(b)
+                self.logger.experiment.add_image(f"Tile/{step=}/", tiles[i], self.global_step)
                 for k in range(self.vred.n_classes):
                     mean = self.vred.means[i*self.vred.n_classes+k].squeeze()
                     variance_matrix = self.vred.variances[i*self.vred.n_classes+k].squeeze()
                     variance_vector = variance_matrix.mean(dim=(-1, -2))
-                    self.log.debug(f"Capturing mixture distribution for class {k}: {mean.shape=}, {variance_matrix.shape=}, {variance_vector=}")
+                    self.log.detailed(f"Capturing mixture distribution for class {k}: {mean.shape=}, {variance_matrix.shape=}, {variance_vector=}")
                     feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
                     step = self.global_step
-                    self.logger.experiment.add_image(f"Distribution Mean/{k}/{step=}", mean, self.global_step)
-                    self.logger.experiment.add_image(f"Tile/{k=}{step=}/", tiles[i], self.global_step)
+                    self.logger.experiment.add_image(f"Distribution Mean/class={k}/{step=}", mean, self.global_step)
                     for s in range(3):
-                        self.logger.experiment.add_scalar(f"Distribution Variance (pixel mean)/{s}/{k}", variance_vector[s], self.global_step)
+                        self.logger.experiment.add_scalar(f"Distribution Variance (pixel mean)/{s}/class={k}", variance_vector[s], self.global_step)
 
                 for i in range(len(feature_norms)):
                     self.logger.experiment.add_scalar(f"Feature Norm/{i}", feature_norms[i], self.global_step)
