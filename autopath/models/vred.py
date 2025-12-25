@@ -529,7 +529,7 @@ class VariationalReEncoderDecoderLightning(Datablock):
             if self.vred.capture_mixture_distributions:
                 b = features.shape[0]
                 i = np.random.randint(b)
-                self.logger.experiment.add_image(f"Tile/step={self.global_step}/", tiles[i], self.global_step)
+                self.logger.experiment.add_image(f"Tile", tiles[i], self.global_step)
                 for k in range(self.vred.n_classes):
                     mean = self.vred.means[i*self.vred.n_classes+k].squeeze()
                     variance_matrix = self.vred.variances[i*self.vred.n_classes+k].squeeze()
