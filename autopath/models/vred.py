@@ -254,7 +254,7 @@ class Loss(nn.Module):
     
 
 class VariationalReEncoderDecoder(nn.Module):
-    INIT_WEIGHTS_STD = 1000.0
+    INIT_WEIGHTS_STD = 100.0
     def __init__(self, 
                  *, 
                  classifier: Classifier, 
@@ -263,7 +263,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  use_batch_norm: bool = True,
                  variance_min: float = 0.001,
                  variance_max: float = 5.0,
-                 variance_weight: float = 100.0,
+                 variance_weight: float = 20.0,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
