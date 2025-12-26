@@ -40,7 +40,6 @@ class Classifier(nn.Module):
         self.hidden_dim = hidden_dim
         self.n_classes = n_classes
         self.n_hidden_layers = n_hidden_layers
-        self.log = dbx.Logger(self.__class__.__name__)
 
         self.hidden_layers = nn.ModuleList()
         self.hidden_activations = nn.ModuleList()
@@ -180,6 +179,7 @@ class ConvDecoder2D(nn.Module):
         assert len(skip_features_per_layer) == len(output_features_per_layer)
         self.num_layers = len(skip_features_per_layer)
         in_channels = num_input_features
+        self.up_layers = nn.ModuleList()
         for i, (skip_channels, out_channels) in enumerate(
             zip(skip_features_per_layer, output_features_per_layer)
         ):
@@ -191,8 +191,7 @@ class ConvDecoder2D(nn.Module):
                 use_batch_norm=use_batch_norm,
                 add_skip=add_skip_features,
             )
-            layer_idx = self.num_layers - i - 1
-            setattr(self, f"up_layer_{layer_idx}", layer) #TODO: use nn.ModuleList
+            self.up_layers.append(layer)
             in_channels = out_channels
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
@@ -214,13 +213,12 @@ class ConvDecoder2D(nn.Module):
 
         multiscale_features = []
         found_resolutions = []
-        for i in reversed(list(range(self.num_layers))):
+        for i, up_layer in enumerate(self.up_layers):
             height *= 2
             width *= 2
             skip_features = [torch.empty(b, 0, height, width, device=mean.device)]
             skip_features += [f for f in features if f.shape[-2] == height]
             skip_features = torch.cat(skip_features, dim=1)
-            up_layer = getattr(self, f"up_layer_{i}") # TODO: use a nn.ModuleList
             self.log.detailed(f"{height=}, {width=}, {skip_features.shape=}, {mean.shape=}")
             mean = up_layer(mean, skip_features)
             self.log.detailed(f"up_layer_{i}: {mean.shape=}")
@@ -399,7 +397,7 @@ class VariationalReEncoderDecoder(nn.Module):
 
         diffsquared = (Mhat - Y)**2
         diffscaled = diffsquared/Vhat
-        _loss_ = torch.sqrt(diffscaled) # (k b) c h w
+        _loss_ = torch.sqrt(diffscaled) + 0.5*torch.log(Vhat) # (k b) c h w
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
         _loss_nans = torch.isnan(_loss).sum().item()
         _loss_nans_ = torch.isnan(_loss_).sum().item()
