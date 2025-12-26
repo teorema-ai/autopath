@@ -169,7 +169,7 @@ class ConvDecoder2D(nn.Module):
         use_batch_norm: bool = True,
         multiscale_resolutions: Optional[List[Tuple[int, int]]] = None,
         variance_min: float = 0.001,
-        variance_max: float = 5.00,
+        variance_max: float = None,
         fine_scale_tile_size: int = 256,
         add_skip_features: bool = False,
         log: dbx.Logger = None,
@@ -254,6 +254,7 @@ class Loss(nn.Module):
     
 
 class VariationalReEncoderDecoder(nn.Module):
+    INIT_WEIGHTS_STD = 1000.0
     def __init__(self, 
                  *, 
                  classifier: Classifier, 
@@ -292,9 +293,9 @@ class VariationalReEncoderDecoder(nn.Module):
     @staticmethod
     def init_weights(m):
         if hasattr(m, 'weight') and m.weight is not None and m.weight.requires_grad:
-            torch.nn.init.normal_(m.weight.data, mean=0.0, std=5.00)
+            torch.nn.init.normal_(m.weight.data, mean=0.0, std=VariationalReEncoderDecoder.INIT_WEIGHTS_STD)
         if hasattr(m, 'bias') and m.bias is not None and m.bias.requires_grad:
-            torch.nn.init.normal_(m.bias.data, mean=0.0, std=5.00)
+            torch.nn.init.normal_(m.bias.data, mean=0.0, std=VariationalReEncoderDecoder.INIT_WEIGHTS_STD)
 
     def to(self, device):
         self.classifier.to(device)
