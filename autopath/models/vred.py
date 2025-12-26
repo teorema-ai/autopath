@@ -261,7 +261,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
                  variance_min: float = 0.001,
-                 variance_max: float = None,
+                 variance_max: float = 5.0,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
