@@ -262,7 +262,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  kernel_size: int = 3, 
                  use_batch_norm: bool = True,
                  variance_min: float = 0.001,
-                 variance_max: float = 0.2,
+                 variance_max: float = 0.1,
                  variance_weight: float = 100.0,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
