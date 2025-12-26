@@ -262,6 +262,7 @@ class VariationalReEncoderDecoder(nn.Module):
                  use_batch_norm: bool = True,
                  variance_min: float = 0.001,
                  variance_max: float = 5.0,
+                 variance_weight: float = 100.0,
                  class_batch_size: int = None,
                  capture_mixture_distributions: bool = False,
                  log: dbx.Logger = None,
@@ -280,6 +281,7 @@ class VariationalReEncoderDecoder(nn.Module):
             variance_max=variance_max,
             fine_scale_tile_size=self.latent_gaussians.fine_scale,
         )
+        self.variance_weight = variance_weight
         self.class_batch_size = class_batch_size
         self.capture_mixture_distributions = capture_mixture_distributions
         self.log = log or dbx.Logger(self.__class__.__name__)
@@ -290,9 +292,9 @@ class VariationalReEncoderDecoder(nn.Module):
     @staticmethod
     def init_weights(m):
         if hasattr(m, 'weight') and m.weight is not None and m.weight.requires_grad:
-            torch.nn.init.normal_(m.weight.data, mean=0.0, std=5.01)
+            torch.nn.init.normal_(m.weight.data, mean=0.0, std=5.00)
         if hasattr(m, 'bias') and m.bias is not None and m.bias.requires_grad:
-            torch.nn.init.normal_(m.bias.data, mean=0.0, std=5.01)
+            torch.nn.init.normal_(m.bias.data, mean=0.0, std=5.00)
 
     def to(self, device):
         self.classifier.to(device)
@@ -397,7 +399,7 @@ class VariationalReEncoderDecoder(nn.Module):
 
         diffsquared = (Mhat - Y)**2
         diffscaled = diffsquared/Vhat
-        _loss_ = torch.sqrt(diffscaled) + 0.5*torch.log(Vhat) # (k b) c h w
+        _loss_ = torch.sqrt(diffscaled) + 0.5*torch.log(Vhat)*self.variance_weight # (k b) c h w
         _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
         _loss_nans = torch.isnan(_loss).sum().item()
         _loss_nans_ = torch.isnan(_loss_).sum().item()
