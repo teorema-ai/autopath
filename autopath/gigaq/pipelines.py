@@ -371,9 +371,9 @@ def gigapath_featureshardset_dataloader_sample(name, *args, **kwargs):
     return next(iter(dataloader))
 
 
-# git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0')"
+# git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG')"
 def gigapath_vred(name, capture_mixture_distributions: bool = False):
-    if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0":
+    if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG":
         n_hidden_layers = 2
         n_classes = 100
         latent_gaussian_n_channels = 5
@@ -398,15 +398,15 @@ def gigapath_vred(name, capture_mixture_distributions: bool = False):
     ))
     return vred
     
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').samples(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').samples(2)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').samples(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').samples(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').samples(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').samples(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').samples(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').samples(2)"
 #
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
-# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
+# git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
 def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle_bags_seed: int = 42, capture_mixture_distributions: bool = False, **dataloader_kwargs):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
@@ -420,7 +420,7 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
 
 
 """
-git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_9802_TEST', dataroot='/tmp/dmitry/datalake', \
+git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_9802_TEST', dataroot='/tmp/dmitry/datalake', \
     n_devices=1, batch_size=6, num_workers=2, prefetch_factor=1, pin_memory=True).set(capture_output=True).build()"
 
 """
@@ -439,48 +439,47 @@ def gigapath_vred_still(vred_dataset_name = None,
         vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
         tag = vred_dataset_name
-        if vredname == "GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0":
-            max_epochs=1
-            max_steps=None
-            ckpt_every_n_steps=100
-            use_bags=True
-            shuffle_bags_seed=42
-            logs='/home/t-9dkarp/autopath/tensorboard/vred'
-            learning_rate=1e-4
-            scheduler='cosine'
-            gradient_clip_algorithm='norm'
-            gradient_clip_val=10.0
-            skip_invalid_gradients: bool = True
-            precision='medium'
-            log_weights: bool = False
-            log_gradients: bool = False
-            ckpt: str = None
-            vred = dbx.quote(gigapath_vred, vredname)
-            if use_bags:
-                featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, root=dataroot, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
-            else:
-                featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, root=dataroot, **dataloader_kwargs)
-            lightning = dbx.quote(VariationalReEncoderDecoderLightning, 
-                                  spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
-            still = VariationalReEncoderDecoderStill(spec=dict(
-                        lightning=lightning, 
-                        dataloader=featureloader,
-                        max_epochs=max_epochs,
-                        max_steps=max_steps,
-                        ckpt_every_n_steps=ckpt_every_n_steps,
-                        skip_invalid_gradients=skip_invalid_gradients,
-                        log_weights=log_weights,
-                        log_gradients=log_gradients,
-                        init_ckpt_path_or_anchor=ckpt,
-                        gradient_clip_val=gradient_clip_val,
-                        gradient_clip_algorithm=gradient_clip_algorithm,
-                        precision=precision,
-                    ),
-                n_devices=n_devices,
-                logs=logs,
-                tag=tag,
-            )
+        vred = dbx.quote(gigapath_vred, vredname)
+        
+        max_epochs=1
+        max_steps=None
+        ckpt_every_n_steps=100
+        use_bags=True
+        shuffle_bags_seed=42
+        logs='/home/t-9dkarp/autopath/tensorboard/vred'
+        learning_rate=1e-4
+        scheduler='cosine'
+        gradient_clip_algorithm='norm'
+        gradient_clip_val=10.0
+        skip_invalid_gradients: bool = True
+        precision='medium'
+        log_weights: bool = False
+        log_gradients: bool = False
+        ckpt: str = None
+        
+        if use_bags:
+            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, root=dataroot, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
         else:
-            raise ValueError(f"Unknown gigapath_vred_still: {vred_dataset_name}")
+            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, root=dataroot, **dataloader_kwargs)
+        lightning = dbx.quote(VariationalReEncoderDecoderLightning, 
+                                spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
+        still = VariationalReEncoderDecoderStill(spec=dict(
+                    lightning=lightning, 
+                    dataloader=featureloader,
+                    max_epochs=max_epochs,
+                    max_steps=max_steps,
+                    ckpt_every_n_steps=ckpt_every_n_steps,
+                    skip_invalid_gradients=skip_invalid_gradients,
+                    log_weights=log_weights,
+                    log_gradients=log_gradients,
+                    init_ckpt_path_or_anchor=ckpt,
+                    gradient_clip_val=gradient_clip_val,
+                    gradient_clip_algorithm=gradient_clip_algorithm,
+                    precision=precision,
+                ),
+            n_devices=n_devices,
+            logs=logs,
+            tag=tag,
+        )
     return still
     
