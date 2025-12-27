@@ -403,12 +403,12 @@ def gigapath_vred(name, capture_mixture_distributions: bool = False):
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').losses(2)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(1)"
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_BASELINE_CPTAC_8020_TEST', batch_size=2).to('cuda').losses(2)"
-def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle_bags: bool = True, capture_mixture_distributions: bool = False, **dataloader_kwargs):
+def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle_bags_seed: int = 42, capture_mixture_distributions: bool = False, **dataloader_kwargs):
     vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
     vred = dbx.quote(gigapath_vred, vredname, capture_mixture_distributions=capture_mixture_distributions)
     if use_bags:
-        featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, shuffle_bags=shuffle_bags, **dataloader_kwargs)
+        featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
     else:
         featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReEncoderDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
