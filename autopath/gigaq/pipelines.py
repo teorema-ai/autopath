@@ -318,7 +318,7 @@ def gigapath_featurebagset_dataloader_builder(name, root: str = None, shuffle_ba
                             shuffle=dataloader_kwargs.get('shuffle', False),
                           ),  
                           dataloader_kwargs=dataloader_kwargs,
-    ).dataloader()
+    )
 
 
 # git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 10, batch_size=1, num_workers=1)"
