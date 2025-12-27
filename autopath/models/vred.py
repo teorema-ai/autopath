@@ -379,6 +379,8 @@ class VariationalReEncoderDecoder(Datablock):
             if self.log_latent_mixture_distributions:
                 latent_means_list = []
                 latent_variances_list = []
+                self.latent_means = []
+                self.latent_variances = []
             else:
                 latent_means_list = None
                 latent_variances_list = None
@@ -404,8 +406,8 @@ class VariationalReEncoderDecoder(Datablock):
                 del means_list
                 del variances_list
             if self.log_latent_mixture_distributions:
-                self.latent_means = torch.cat(latent_means_list, dim=0)
-                self.latent_variances = torch.cat(latent_variances_list, dim=0)
+                self.latent_means.extend(latent_means_list)
+                self.latent_variances.extend(latent_variances_list)
                 del latent_means_list
                 del latent_variances_list
             del losses
