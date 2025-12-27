@@ -374,11 +374,13 @@ def gigapath_featureshardset_dataloader_sample(name, *args, **kwargs):
 # git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0')"
 def gigapath_vred(name, capture_mixture_distributions: bool = False):
     if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0":
-        n_hidden_layers=2
-        n_classes=100
-        latent_gaussian_n_channels=5
-        latent_var_max=1.0
-        decoder_var_max=1.0
+        n_hidden_layers = 2
+        n_classes = 100
+        latent_gaussian_n_channels = 5
+        latent_var_max = 1.0
+        decoder_var_max = 1.0
+        log_mixture_distributions = True
+        log_latent_mixture_distributions = True
     else:
         raise ValueError(f"Unknown gigapath_vred: {name}")
     
@@ -391,6 +393,8 @@ def gigapath_vred(name, capture_mixture_distributions: bool = False):
         latent_gaussian_n_channels=latent_gaussian_n_channels,
         latent_gaussian_var_max=latent_var_max,
         decoder_var_max=decoder_var_max,
+        log_mixture_distributions=log_mixture_distributions,
+        log_latent_mixture_distributions=log_latent_mixture_distributions,
     ))
     return vred
     
@@ -441,8 +445,6 @@ def gigapath_vred_still(vred_dataset_name = None,
             ckpt_every_n_steps=100
             use_bags=True
             shuffle_bags_seed=42
-            log_mixture_distributions=True
-            log_latent_mixture_distributions=True
             logs='/home/t-9dkarp/autopath/tensorboard/vred'
             learning_rate=1e-4
             scheduler='cosine'
