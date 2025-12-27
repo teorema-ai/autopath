@@ -481,11 +481,12 @@ def gigapath_vred_still(vred_dataset_name = None,
             featureloader_builder = dbx.quote(gigapath_featurebagset_dataloader_builder, clipname, root=dataroot, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
         else:
             raise NotImplementedError(f"Shard dataloader_builder")
-        lightning = dbx.quote(VariationalReEncoderDecoderLightning, 
-                                spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
         #DEBUG
         breakpoint()
         
+        lightning = dbx.quote(VariationalReEncoderDecoderLightning, 
+                                spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
+
         still = VariationalReEncoderDecoderStill(spec=dict(
                     lightning=lightning, 
                     dataloader=featureloader_builder,
