@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import functools
 import gc
+import math
 import os
 import traceback
 import re
@@ -14,6 +15,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import einops
+
 import lightning as L
 import lightning.pytorch.loggers
 
@@ -25,13 +28,23 @@ from .layers import UpLayer
 
 VERSION = 4
 
+def vector_to_image(vector,):
+    N = vector.shape[-1]
+    n = int(math.sqrt(N))
+    m = int(math.ceil(N/n))
+    padsize = (m*n) - N
+    if padsize > 0:
+        vector = F.pad(vector, (0, padsize))
+    image = vector.reshape(vector, n, n)
+    return image
+
 class Classifier(nn.Module):
     def __init__(self, 
                  *, 
                  input_dim: int = 1536, 
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
-                 n_hidden_activation_cls: Callable = nn.ReLU, 
+                 hidden_activation_cls: Callable = nn.ReLU, 
                  n_classes=100,
                  log: dbx.Logger = None,
     ):
@@ -46,7 +59,7 @@ class Classifier(nn.Module):
         for i in range(n_hidden_layers):
             N = input_dim if i == 0 else hidden_dim
             self.hidden_layers.append(nn.Linear(N, hidden_dim))
-            self.hidden_activations.append(n_hidden_activation_cls())
+            self.hidden_activations.append(hidden_activation_cls())
         self.last_layer = nn.Linear(hidden_dim, n_classes)
         self.log = log or dbx.Logger(self.__class__.__name__)
 
@@ -70,10 +83,11 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
                  input_dim: int = 1536, 
                  hidden_dim: int = 512, 
                  n_hidden_layers: int = 1, 
-                 n_hidden_activation_cls: Callable = nn.ReLU, 
+                 hidden_activation_cls: Callable = nn.ReLU, 
                  fine_scale: int = 256, 
                  n_scales: int = 5,
-                 variance_eps: float = 0.01,
+                 var_min: float = 0.01,
+                 var_max: float = None,
                  log: dbx.Logger = None,
     ):
         super().__init__()
@@ -84,13 +98,14 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
         self.n_hidden_layers = n_hidden_layers
         self.fine_scale = fine_scale
         self.n_scales = n_scales
-        self.variance_eps = variance_eps
+        self.var_min = var_min
+        self.var_max = var_max
         self.log = log or dbx.Logger(self.__class__.__name__)
 
         self.latents = nn.ModuleList()
         self.means = nn.ModuleList()
         self.prevariances = nn.ModuleList()
-        self.softpluses = nn.ModuleList()
+        self.activations = nn.ModuleList()
 
         self.scales = [fine_scale//(2**i) for i in range(self.n_scales)]
         self.scale_dims = [
@@ -103,13 +118,16 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             for i in range(n_hidden_layers):
                 N = input_dim + 1 if i == 0 else hidden_dim
                 hidden_layer = nn.Linear(N, hidden_dim)
-                hidden_activation = n_hidden_activation_cls()
+                hidden_activation = hidden_activation_cls()
                 hidden_modules.append(hidden_layer)
                 hidden_modules.append(hidden_activation)
             self.latents.append(nn.Sequential(*hidden_modules))
             self.means.append(nn.Linear(hidden_dim, scale_dim))
             self.prevariances.append(nn.Linear(hidden_dim, scale_dim))
-            self.softpluses.append(nn.Softplus())
+            if var_max is None:
+                self.activations.append(nn.Softplus())
+            else:
+                self.activations.append(nn.Sigmoid())
         self.log.detailed(f"named_parameters: {list(self.named_parameters())}")
 
     def forward(self, x, c):
@@ -127,7 +145,11 @@ class ClassMultiscaleLatentGaussians2D(nn.Module):
             m = self.means[i](w)
             self.log.detailed(f"prevariances: devices: prevariances[{i}]: {self.prevariances[i].weight.device=}, {w.device=}")
             pv = self.prevariances[i](w)
-            v = self.softpluses[i](pv) + self.variance_eps
+            amplitude = self.activations[i](pv)
+            if self.var_max is None:
+                v = amplitude + self.var_min
+            else:
+                v = (self.var_min + amplitude*self.var_max)
             scale = self.scales[i]
             m = m.reshape(m.shape[0], self.n_channels, scale, scale)
             v = v.reshape(v.shape[0], self.n_channels, scale, scale)
@@ -168,8 +190,8 @@ class ConvDecoder2D(nn.Module):
         kernel_size: int = 3,
         use_batch_norm: bool = True,
         multiscale_resolutions: Optional[List[Tuple[int, int]]] = None,
-        variance_min: float = 0.001,
-        variance_max: float = None,
+        var_min: float = 0.001,
+        var_max: float = None,
         fine_scale_tile_size: int = 256,
         add_skip_features: bool = False,
         log: dbx.Logger = None,
@@ -196,10 +218,10 @@ class ConvDecoder2D(nn.Module):
         self.final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_conv = nn.Conv2d(in_channels=output_features_per_layer[-1], out_channels=3, kernel_size=1)
         self.variance_final_fc = nn.Linear(fine_scale_tile_size**2*3, 3)
-        self.variance_final_activation = nn.Sigmoid() if variance_max is not None else nn.Softplus()
+        self.variance_final_activation = nn.Sigmoid() if var_max is not None else nn.Softplus()
         self.multiscale_resolutions = multiscale_resolutions or []
-        self.variance_min = variance_min
-        self.variance_max = variance_max
+        self.var_min = var_min
+        self.var_max = var_max
         self.log = log or dbx.Logger(self.__class__.__name__)
 
     def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
@@ -233,10 +255,10 @@ class ConvDecoder2D(nn.Module):
         prevariance = self.variance_final_conv(mean)
         variance_ones = torch.ones(b, 3, height, width).to(mean.device)
         variance_amplitude = self.variance_final_activation(self.variance_final_fc(prevariance.reshape(b, -1))).reshape(b, 3, 1, 1)
-        if self.variance_max is None:
-            variance = (self.variance_min + variance_amplitude)*variance_ones
+        if self.var_max is None:
+            variance = (self.var_min + variance_amplitude)*variance_ones
         else:
-            variance = (self.variance_min + variance_amplitude*self.variance_max)*variance_ones
+            variance = (self.var_min + variance_amplitude*self.var_max)*variance_ones
 
         mean = self.final_conv(mean)
         self.log.detailed(f"final_conv: mean: {mean.shape=}, {mean.device=}")
@@ -253,171 +275,257 @@ class Loss(nn.Module):
         return loss
     
 
-class VariationalReEncoderDecoder(nn.Module):
-    INIT_WEIGHTS_STD = 100.0
-    def __init__(self, 
-                 *, 
-                 classifier: Classifier, 
-                 latent_gaussians: ClassMultiscaleLatentGaussians2D,
-                 kernel_size: int = 3, 
-                 use_batch_norm: bool = True,
-                 variance_min: float = 0.001,
-                 variance_max: float = 0.1,
-                 variance_weight: float = 100.0,
-                 class_batch_size: int = None,
-                 capture_mixture_distributions: bool = False,
-                 log: dbx.Logger = None,
-    ):
-        super().__init__()
-        self.classifier = dbx.eval_term(classifier)
-        self.latent_gaussians = dbx.eval_term(latent_gaussians)
-        assert self.classifier.n_classes == self.latent_gaussians.n_classes, f"Classifier has {self.classifier.n_classes} classes but latent_gaussians has {self.latent_gaussians.n_classes} classes"
-        self.decoder = ConvDecoder2D(
-            num_input_features=self.latent_gaussians.n_channels,
-            skip_features_per_layer=[self.latent_gaussians.n_channels]*(self.latent_gaussians.n_scales-2) + [self.latent_gaussians.n_channels],
-            output_features_per_layer=[self.latent_gaussians.n_channels]*(self.latent_gaussians.n_scales-2) + [self.latent_gaussians.n_channels],
-            kernel_size=kernel_size,
-            use_batch_norm=use_batch_norm,
-            variance_min=variance_min,
-            variance_max=variance_max,
-            fine_scale_tile_size=self.latent_gaussians.fine_scale,
+class VariationalReEncoderDecoder(Datablock):
+    @dataclass
+    class CONFIG:
+        classifier_input_dim: int = 1536
+        classifier_hidden_dim: int = 512
+        classifier_n_hidden_layers: int = 1
+        classifier_hidden_activation_cls: Callable = nn.ReLU
+        classifier_n_classes: int = 100
+
+        latent_gaussian_n_classes: int = 100
+        latent_gaussian_n_channels: int = 16
+        latent_gaussian_input_dim: int = 1536
+        latent_gaussian_hidden_dim: int = 512
+        latent_gaussian_n_hidden_layers: int = 1
+        latent_gaussian_hidden_activation_cls: Callable = nn.ReLU
+        latent_gaussian_fine_scale: int = 256
+        latent_gaussian_n_scales: int = 5
+        latent_gaussian_var_min: float = 0.01
+        latent_gaussian_var_max: float = None
+
+        decoder_kernel_size: int = 3
+        decoder_use_batch_norm: bool = True
+        decoder_var_min: float = 0.001
+        decoder_var_max: float = 0.1
+        loss_var_weight: float = 100.0
+        class_batch_size: int = None
+        log_mixture_distributions: bool = False
+        log_latent_mixture_distributions: bool = False
+
+    class Module(nn.Module):
+        INIT_WEIGHTS_STD = 100.0
+        def __init__(self, 
+                     *, 
+                     classifier: Classifier, 
+                     latent_gaussians: ClassMultiscaleLatentGaussians2D,
+                     decoder: ConvDecoder2D,
+                     loss_var_weight: float = 100.0,
+                     class_batch_size: int = None,
+                     log_mixture_distributions: bool = False,
+                     log_latent_mixture_distributions: bool = False,
+                     log: dbx.Logger = None,
+        ):
+            super().__init__()
+            self.classifier = classifier
+            self.latent_gaussians = latent_gaussians
+            self.decoder = decoder
+            self.loss_var_weight = loss_var_weight
+            self.class_batch_size = class_batch_size
+            self.log_mixture_distributions = log_mixture_distributions
+            self.log = log or dbx.Logger(self.__class__.__name__)
+            self.device = 'cpu'
+            self.means = None
+            self.variances = None
+            self.latent_means = None
+            self.latent_variances = None
+
+        @staticmethod
+        def init_weights(m):
+            if hasattr(m, 'weight') and m.weight is not None and m.weight.requires_grad:
+                torch.nn.init.normal_(m.weight.data, mean=0.0, std=VariationalReEncoderDecoder.Module.INIT_WEIGHTS_STD)
+            if hasattr(m, 'bias') and m.bias is not None and m.bias.requires_grad:
+                torch.nn.init.normal_(m.bias.data, mean=0.0, std=VariationalReEncoderDecoder.Module.INIT_WEIGHTS_STD)
+
+        def to(self, device):
+            super().to(device)
+            self.device = device
+            return self
+
+        @property
+        def n_classes(self):
+            return self.classifier.n_classes
+        
+        def sample(self, x):
+            self.log.detailed(f"Computing class probabilities for x of shape: {x.shape}")
+            class_probabilities = self.classifier(x)
+            class_distribution = torch.distributions.Categorical(probs=class_probabilities)
+            ksample = class_distribution.sample().to(x.device)
+            self.log.detailed(f"Sampled classes {ksample}")
+            gaussian_means_and_variances = self.latent_gaussians(x, ksample)
+            multiscale_means = []
+            for mean, variance in gaussian_means_and_variances:
+                normal_sample = torch.randn(mean.shape).to(x.device)
+                multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
+            decoded_mean, decoded_variance = self.decoder(multiscale_means)
+            normal_sample = torch.randn(decoded_mean.shape).to(x.device)
+            self.log.detailed(f"sample: {decoded_mean.device=}, {decoded_variance.device=}, {normal_sample.device=}, {x.device=}")
+            decoded_sample = decoded_mean + normal_sample*torch.sqrt(decoded_variance)
+            return decoded_sample
+
+        def loss(self, x, y):
+            self.log.detailed(f"Computing loss for x,y of shapes: {x.shape=}, {y.shape=}, devices: {x.device=}, {y.device=}")
+            classes = torch.tensor(list(range(self.n_classes))).to(x.device)
+            class_probabilities = self.classifier(x).reshape(1, -1)
+            _losses = []
+            if self.log_mixture_distributions:
+                means_list = []
+                variances_list = []
+            else:
+                means_list = None
+                variances_list = None
+            if self.log_latent_mixture_distributions:
+                latent_means_list = []
+                latent_variances_list = []
+            else:
+                latent_means_list = None
+                latent_variances_list = None
+            if self.class_batch_size is None:
+                self.class_batch_size = self.n_classes
+            for class_lo in range(0, self.n_classes, self.class_batch_size):
+                class_hi = min(self.n_classes, class_lo + self.class_batch_size)
+                class_probabilities_batch = class_probabilities[:, class_lo:class_hi]
+                classes_batch = classes[class_lo:class_hi]
+                _loss = self._class_batch_loss(x, y, 
+                                               classes_batch, class_probabilities_batch, 
+                                               means_list=means_list, variances_list=variances_list,
+                                               latent_means_list=latent_means_list, latent_variances_list=latent_variances_list
+                )
+                self.log.detailed(f"loss: _loss: -------------requires_grad ------------> {_loss.requires_grad}")
+                _losses.append(_loss)
+            losses = torch.stack(_losses)
+            self.log.detailed(f"loss: losses: -------------requires_grad ------------> {losses.requires_grad}")
+            loss = torch.sum(losses, dim=0) #TODO: take .mean()?
+            if self.log_mixture_distributions:
+                self.means = torch.cat(means_list, dim=0)
+                self.variances = torch.cat(variances_list, dim=0)
+                del means_list
+                del variances_list
+            if self.log_latent_mixture_distributions:
+                self.latent_means = torch.cat(latent_means_list, dim=0)
+                self.latent_variances = torch.cat(latent_variances_list, dim=0)
+                del latent_means_list
+                del latent_variances_list
+            del losses
+            del class_probabilities
+            del classes
+            gc.collect()
+            torch.cuda.empty_cache()
+            self.log.detailed(f"loss: loss: -------------requires_grad ------------> {loss.requires_grad}")
+            return loss
+
+        def _class_batch_loss(self, x, y, classes, class_probabilities, *, means_list=None, variances_list=None, latent_means_list=None, latent_variances_list=None):
+            b = x.shape[0]
+            k = classes.shape[0]
+            C = classes.reshape(-1, 1).repeat(1, b).reshape(b*k)
+            X = x.repeat(self.n_classes, *([1]*len(x.shape[1:])))
+            gaussian_means_and_variances = self.latent_gaussians(X, C)
+            del X
+            del C
+            gc.collect()
+            torch.cuda.empty_cache()
+            multiscale_means = []
+            for scale, (mean, variance) in enumerate(gaussian_means_and_variances):
+                normal_sample = torch.randn(mean.shape).to(x.device)
+                multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
+            if self.log_latent_mixture_distributions:
+                latent_means, latent_variances = zip(*gaussian_means_and_variances)
+                latent_mean = torch.cat(latent_means, dim=0)
+                latent_variance = torch.cat(latent_variances, dim=0)
+                latent_means_list.append(latent_mean)
+                latent_variances_list.append(latent_variance)
+            Mhat, Vhat = self.decoder(multiscale_means)
+            self.log.detailed(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} Mhat from {len(multiscale_means)} multiscale means")
+            if self.log_mixture_distributions:
+                means_list.append(Mhat)
+                variances_list.append(Vhat)
+            del multiscale_means
+            gc.collect()
+            torch.cuda.empty_cache()
+            """
+            # mhat: "(k b) c h w" --> yhat: "k b c h w"
+            x = [
+                [1., 2.],
+                [3., 4.]
+            ]
+            #
+            k = [0, 1, 3]
+            #
+            XK = [[[1., 2., 0.],
+                   [3., 4., 0.],
+                   [1., 2., 1.],
+                   [3., 4., 1.],
+                   [1., 2., 2.],
+                   [3., 4., 2.]]]
+            """
+            Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
+
+            diffsquared = (Mhat - Y)**2
+            diffscaled = diffsquared/Vhat
+            _loss_ = torch.sqrt(diffscaled) + 0.5*torch.log(Vhat)*self.loss_var_weight # (k b) c h w
+            _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
+            _loss_nans = torch.isnan(_loss).sum().item()
+            _loss_nans_ = torch.isnan(_loss_).sum().item()
+            self.log.detailed(f"_class_batch_loss: _loss_nans: {_loss_nans}, _loss_nans_: {_loss_nans_}")
+            del Y
+            del _loss_
+            gc.collect()
+            torch.cuda.empty_cache()
+            _kloss = _loss.reshape(k, b) # k b
+            _loss = torch.matmul(class_probabilities, _kloss) # b
+            loss = _loss.mean() # scalar
+            del _loss
+            del _kloss
+            gc.collect()
+            torch.cuda.empty_cache()
+            return loss
+
+    def model(self) -> nn.Module:
+        classifier = Classifier(
+            input_dim=self.cfg.classifier_input_dim,
+            hidden_dim=self.cfg.classifier_hidden_dim,
+            n_hidden_layers=self.cfg.classifier_n_hidden_layers,
+            hidden_activation_cls=self.cfg.classifier_hidden_activation_cls,
+            n_classes=self.cfg.classifier_n_classes,
+            log=self.log,
         )
-        self.variance_weight = variance_weight
-        self.class_batch_size = class_batch_size
-        self.capture_mixture_distributions = capture_mixture_distributions
-        self.log = log or dbx.Logger(self.__class__.__name__)
-        self.device = 'cpu'
-        self.means = None
-        self.variances = None
+        latent_gaussians = ClassMultiscaleLatentGaussians2D(
+            n_classes=self.cfg.latent_gaussian_n_classes,
+            n_channels=self.cfg.latent_gaussian_n_channels,
+            input_dim=self.cfg.latent_gaussian_input_dim,
+            hidden_dim=self.cfg.latent_gaussian_hidden_dim,
+            n_hidden_layers=self.cfg.latent_gaussian_n_hidden_layers,
+            hidden_activation_cls=self.cfg.latent_gaussiahidden_activation_cls,
+            fine_scale=self.cfg.latent_gaussian_fine_scale,
+            n_scales=self.cfg.latent_gaussian_n_scales,
+            var_min=self.cfg.latent_gaussian_var_min,
+            var_max=self.cfg.latent_gaussian_var_max,
+            log=self.log,
+        )
+        assert classifier.n_classes == latent_gaussians.n_classes, f"Classifier has {classifier.n_classes} classes but latent_gaussians has {latent_gaussians.n_classes} classes"
+        decoder = ConvDecoder2D(
+            num_input_features=latent_gaussians.n_channels,
+            skip_features_per_layer=[latent_gaussians.n_channels]*(latent_gaussians.n_scales-2) + [latent_gaussians.n_channels],
+            output_features_per_layer=[latent_gaussians.n_channels]*(latent_gaussians.n_scales-2) + [latent_gaussians.n_channels],
+            kernel_size=self.cfg.decoder_kernel_size,
+            use_batch_norm=self.cfg.decoder_use_batch_norm,
+            var_min=self.cfg.decoder_var_min,
+            var_max=self.cfg.decoder_var_max,
+            fine_scale_tile_size=latent_gaussians.fine_scale,
+            log=self.log,
+        )
+        return self.Module(
+            classifier=classifier,
+            latent_gaussians=latent_gaussians,
+            decoder=decoder,
+            loss_var_weight=self.cfg.loss_var_weight,
+            class_batch_size=self.cfg.class_batch_size,
+            log_mixture_distributions=self.cfg.log_mixture_distributions,
+            log_latent_mixture_distributions=self.cfg.log_latent_mixture_distributions,
+            log=self.log,
+        )
 
-    @staticmethod
-    def init_weights(m):
-        if hasattr(m, 'weight') and m.weight is not None and m.weight.requires_grad:
-            torch.nn.init.normal_(m.weight.data, mean=0.0, std=VariationalReEncoderDecoder.INIT_WEIGHTS_STD)
-        if hasattr(m, 'bias') and m.bias is not None and m.bias.requires_grad:
-            torch.nn.init.normal_(m.bias.data, mean=0.0, std=VariationalReEncoderDecoder.INIT_WEIGHTS_STD)
-
-    def to(self, device):
-        self.classifier.to(device)
-        self.latent_gaussians.to(device)
-        self.decoder.to(device)
-        self.device = device
-        return self
-
-    @property
-    def n_classes(self):
-        return self.classifier.n_classes
-    
-    def sample(self, x):
-        self.log.detailed(f"Computing class probabilities for x of shape: {x.shape}")
-        class_probabilities = self.classifier(x)
-        class_distribution = torch.distributions.Categorical(probs=class_probabilities)
-        ksample = class_distribution.sample().to(x.device)
-        self.log.detailed(f"Sampled classes {ksample}")
-        gaussian_means_and_variances = self.latent_gaussians(x, ksample)
-        multiscale_means = []
-        for mean, variance in gaussian_means_and_variances:
-            normal_sample = torch.randn(mean.shape).to(x.device)
-            multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
-        decoded_mean, decoded_variance = self.decoder(multiscale_means)
-        normal_sample = torch.randn(decoded_mean.shape).to(x.device)
-        self.log.detailed(f"sample: {decoded_mean.device=}, {decoded_variance.device=}, {normal_sample.device=}, {x.device=}")
-        decoded_sample = decoded_mean + normal_sample*torch.sqrt(decoded_variance)
-        return decoded_sample
-
-    def loss(self, x, y):
-        self.log.detailed(f"Computing loss for x,y of shapes: {x.shape=}, {y.shape=}, devices: {x.device=}, {y.device=}")
-        classes = torch.tensor(list(range(self.n_classes))).to(x.device)
-        class_probabilities = self.classifier(x).reshape(1, -1)
-        _losses = []
-        if self.capture_mixture_distributions:
-            means_list = []
-            variances_list = []
-        if self.class_batch_size is None:
-            self.class_batch_size = self.n_classes
-        for class_lo in range(0, self.n_classes, self.class_batch_size):
-            class_hi = min(self.n_classes, class_lo + self.class_batch_size)
-            class_probabilities_batch = class_probabilities[:, class_lo:class_hi]
-            classes_batch = classes[class_lo:class_hi]
-            _loss = self._class_batch_loss(x, y, classes_batch, class_probabilities_batch, means_list=means_list, variances_list=variances_list)
-            self.log.detailed(f"loss: _loss: -------------requires_grad ------------> {_loss.requires_grad}")
-            _losses.append(_loss)
-        losses = torch.stack(_losses)
-        self.log.detailed(f"loss: losses: -------------requires_grad ------------> {losses.requires_grad}")
-        loss = torch.sum(losses, dim=0) #TODO: take .mean()?
-        if self.capture_mixture_distributions:
-            self.means = torch.cat(means_list, dim=0)
-            self.variances = torch.cat(variances_list, dim=0)
-            del means_list
-            del variances_list
-        del losses
-        del class_probabilities
-        del classes
-        gc.collect()
-        torch.cuda.empty_cache()
-        self.log.detailed(f"loss: loss: -------------requires_grad ------------> {loss.requires_grad}")
-        return loss
-
-    def _class_batch_loss(self, x, y, classes, class_probabilities, *, means_list=None, variances_list=None):
-        b = x.shape[0]
-        k = classes.shape[0]
-        C = classes.reshape(-1, 1).repeat(1, b).reshape(b*k)
-        X = x.repeat(self.n_classes, *([1]*len(x.shape[1:])))
-        gaussian_means_and_variances = self.latent_gaussians(X, C)
-        del X
-        del C
-        gc.collect()
-        torch.cuda.empty_cache()
-        multiscale_means = []
-        for mean, variance in gaussian_means_and_variances:
-            normal_sample = torch.randn(mean.shape).to(x.device)
-            multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
-        Mhat, Vhat = self.decoder(multiscale_means)
-        self.log.detailed(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} Mhat from {len(multiscale_means)} multiscale means")
-        if self.capture_mixture_distributions:
-            means_list.append(Mhat)
-            variances_list.append(Vhat)
-        del multiscale_means
-        gc.collect()
-        torch.cuda.empty_cache()
-        """
-        # mhat: "(k b) c h w" --> yhat: "k b c h w"
-        x = [
-            [1., 2.],
-            [3., 4.]
-        ]
-        #
-        k = [0, 1, 3]
-        #
-        XK = [[[1., 2., 0.],
-               [3., 4., 0.],
-               [1., 2., 1.],
-               [3., 4., 1.],
-               [1., 2., 2.],
-               [3., 4., 2.]]]
-        """
-        Y = y.repeat(self.n_classes, *([1]*len(y.shape[1:]))).to(x.dtype)
-
-        diffsquared = (Mhat - Y)**2
-        diffscaled = diffsquared/Vhat
-        _loss_ = torch.sqrt(diffscaled) + 0.5*torch.log(Vhat)*self.variance_weight # (k b) c h w
-        _loss = torch.sum(_loss_, dim=(1, 2, 3)) # (k b)
-        _loss_nans = torch.isnan(_loss).sum().item()
-        _loss_nans_ = torch.isnan(_loss_).sum().item()
-        self.log.detailed(f"_class_batch_loss: _loss_nans: {_loss_nans}, _loss_nans_: {_loss_nans_}")
-        del Y
-        del _loss_
-        gc.collect()
-        torch.cuda.empty_cache()
-        _kloss = _loss.reshape(k, b) # k b
-        _loss = torch.matmul(class_probabilities, _kloss) # b
-        loss = _loss.mean() # scalar
-        del _loss
-        del _kloss
-        gc.collect()
-        torch.cuda.empty_cache()
-        return loss
-    
 
 class VariationalReEncoderDecoderEvaluator(Datablock):
     @dataclass
@@ -426,7 +534,7 @@ class VariationalReEncoderDecoderEvaluator(Datablock):
         dataloader: torch.utils.data.DataLoader
 
     def __post_init__(self):
-        self.vred = self.cfg.vred
+        self.vred = self.cfg.vred.model()
         self.dataloader = self.cfg.dataloader
 
     def to(self, device):
@@ -465,6 +573,8 @@ class VariationalReEncoderDecoderLightning(Datablock):
         vred: VariationalReEncoderDecoder
         learning_rate: float = 1e-3
         scheduler: str = "cosine"
+        log_tiles: bool = False
+        log_feature_norms: bool = False
 
     class Callbacks(L.pytorch.callbacks.Callback):
         def __init__(self, 
@@ -511,12 +621,14 @@ class VariationalReEncoderDecoderLightning(Datablock):
                     module.zero_grad()                    
 
     class Lightning(L.LightningModule):
-        def __init__(self, vred: VariationalReEncoderDecoder, learning_rate: float = 1e-3, scheduler: str = "cosine", log: dbx.Logger = dbx.Logger(name="Lightning")):
+        def __init__(self, vred: VariationalReEncoderDecoder.Module, learning_rate: float = 1e-3, scheduler: str = "cosine", log_tiles: bool = False, log_feature_norms: bool = False, log: dbx.Logger = dbx.Logger(name="Lightning")):
             super().__init__()
             self.vred = vred
             self.learning_rate = learning_rate
             self.scheduler = scheduler
             self.save_hyperparameters(ignore=['vred'])
+            self.log_tiles = log_tiles
+            self.log_feature_norms = log_feature_norms
             self.log = log
                                          
         def training_step(self, batch, batch_idx):
@@ -527,20 +639,32 @@ class VariationalReEncoderDecoderLightning(Datablock):
             scheduler = self.lr_schedulers()
             lr = scheduler.get_last_lr()[0]
             self.logger.experiment.add_scalar(f"Learning Rate", lr, self.global_step)
-            if self.vred.capture_mixture_distributions:
-                b = features.shape[0]
-                i = np.random.randint(b)
+            b = features.shape[0]
+            i = np.random.randint(b)
+            if self.log_tiles:
                 self.logger.experiment.add_image(f"Tile", tiles[i], self.global_step)
+            if self.vred.log_mixture_distributions:
                 for k in range(self.vred.n_classes):
                     mean = self.vred.means[i*self.vred.n_classes+k].squeeze()
                     variance_matrix = self.vred.variances[i*self.vred.n_classes+k].squeeze()
                     variance_vector = variance_matrix.mean(dim=(-1, -2))
-                    self.log.detailed(f"Capturing mixture distribution for class {k}: {mean.shape=}, {variance_matrix.shape=}, {variance_vector=}")
+                    self.log.detailed(f"Logging mixture distribution for class {k}: {mean.shape=}, {variance_matrix.shape=}, {variance_vector=}")
                     feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
-                    self.logger.experiment.add_image(f"distribution_mean/component={k}", mean, self.global_step)
+                    self.logger.experiment.add_image(f"mix_mean/component={k}", mean, self.global_step)
                     for s in range(3):
-                        self.logger.experiment.add_scalar(f"distribution_variance/component={k}/{s}", variance_vector[s], self.global_step)
-
+                        self.logger.experiment.add_scalar(f"mix_variance/component={k}/{s}", variance_vector[s], self.global_step)
+            if self.vred.log_latent_mixture_distributions:
+                for k in range(self.vred.n_classes):
+                    for s in range(self.vred.latent_gaussians.n_scales):
+                        latent_mean = self.vred.latent_means[i*self.vred.n_classes+k, s].squeeze()
+                        latent_variance = self.vred.latent_variances[i*self.vred.n_classes+k, s].squeeze()
+                        self.log.detailed(f"Logging latent mixture distribution for class {k}, scale {s}: {latent_mean.shape=}, {latent_variance.shape=}")
+                        latent_mean_image = vector_to_image(latent_mean)
+                        latent_variance_image = vector_to_image(latent_variance)
+                        self.logger.experiment.add_image(f"latent_mix_mean/component={k}", latent_mean_image, self.global_step)
+                        self.logger.experiment.add_scalar(f"latent_mix_variance/component={k}/{s}", latent_variance_image, self.global_step)
+            if self.log_feature_norms:
+                feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
                 self.logger.experiment.add_scalar(f"feature_norms_max", max(feature_norms), self.global_step)
                 self.logger.experiment.add_scalar(f"feature_norms_min", min(feature_norms), self.global_step)
             return loss
@@ -568,7 +692,7 @@ class VariationalReEncoderDecoderLightning(Datablock):
 
     @functools.cached_property
     def lightning_module(self):
-        return self.Lightning(vred=self.cfg.vred, learning_rate=self.cfg.learning_rate, scheduler=self.cfg.scheduler)
+        return self.Lightning(vred=self.cfg.vred.model(), learning_rate=self.cfg.learning_rate, scheduler=self.cfg.scheduler, log_tiles=self.cfg.log_tiles, log_feature_norms=self.cfg.log_feature_norms)
     
 
 class VariationalReEncoderDecoderStill(Datablock):
