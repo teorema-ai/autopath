@@ -392,6 +392,15 @@ def gigapath_vred(name, **kwargs):
         log_mixture_distributions = True
         log_latent_mixture_distributions = True
         tag = f"LVAR{latent_var_max}_VAR{decoder_var_max}"
+    elif name == "GIGAPATH_VRED_10HDN_2CLS_5CHN_LOG":
+        n_hidden_layers = 10
+        n_classes = 2
+        latent_gaussian_n_channels = 5
+        latent_var_max = kwargs.get('latent_var_max', 1.0)
+        decoder_var_max = kwargs.get('decoder_var_max', 1.0)
+        log_mixture_distributions = True
+        log_latent_mixture_distributions = True
+        tag = f"LVAR{latent_var_max}_VAR{decoder_var_max}"
     else:
         raise ValueError(f"Unknown gigapath_vred: {name}")
     
@@ -438,6 +447,9 @@ git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.
     n_devices=1, batch_size=6, num_workers=2, prefetch_factor=1, pin_memory=True).set(capture_output=True).build()"
 
 git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_10HDN_1CLS_5CHN_LOG_HIGHEST_BASELINE_CPTAC_9802_TEST', dataroot='/tmp/dmitry/datalake', \
+    n_devices=1, batch_size=6, num_workers=2, prefetch_factor=1, pin_memory=True).set(capture_output=True).build()"
+
+git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_10HDN_2CLS_5CHN_LOG_HIGHEST_BASELINE_CPTAC_9802_TEST', dataroot='/tmp/dmitry/datalake', \
     n_devices=1, batch_size=6, num_workers=2, prefetch_factor=1, pin_memory=True).set(capture_output=True).build()"
 
 """
