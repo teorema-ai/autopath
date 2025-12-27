@@ -705,9 +705,6 @@ class VariationalReEncoderDecoderLightning(Datablock):
             }
 
     def __init__(self, *args, **kwargs):
-        #DEBUG
-        breakpoint()
-        
         super().__init__(*args, **kwargs)
 
     def __post_init__(self):
