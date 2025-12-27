@@ -455,7 +455,7 @@ def gigapath_vred_still(vred_dataset_name = None,
             log_weights: bool = False
             log_gradients: bool = False
             ckpt: str = None
-            vred = dbx.quote(gigapath_vred, vredname, log_mixture_distributions=log_mixture_distributions, log_latent_mixture_distributions=log_latent_mixture_distributions)
+            vred = dbx.quote(gigapath_vred, vredname)
             if use_bags:
                 featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, root=dataroot, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
             else:

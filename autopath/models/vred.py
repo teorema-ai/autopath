@@ -432,10 +432,8 @@ class VariationalReEncoderDecoder(Datablock):
                 multiscale_means.append(mean + normal_sample*torch.sqrt(variance))
             if self.log_latent_mixture_distributions:
                 latent_means, latent_variances = zip(*gaussian_means_and_variances)
-                latent_mean = torch.cat(latent_means, dim=0)
-                latent_variance = torch.cat(latent_variances, dim=0)
-                latent_means_list.append(latent_mean)
-                latent_variances_list.append(latent_variance)
+                latent_means_list.append(latent_means)
+                latent_variances_list.append(latent_variances)
             Mhat, Vhat = self.decoder(multiscale_means)
             self.log.detailed(f"_class_batch_loss: computing loss for {len(classes)} classes, obtained {len(Mhat)} Mhat from {len(multiscale_means)} multiscale means")
             if self.log_mixture_distributions:
@@ -657,8 +655,8 @@ class VariationalReEncoderDecoderLightning(Datablock):
             if self.vred.log_latent_mixture_distributions:
                 for k in range(self.vred.n_classes):
                     for s in range(self.vred.latent_gaussians.n_scales):
-                        latent_mean = self.vred.latent_means[i*self.vred.n_classes+k, s].squeeze()
-                        latent_variance = self.vred.latent_variances[i*self.vred.n_classes+k, s].squeeze()
+                        latent_mean = self.vred.latent_means[i*self.vred.n_classes+k][s].squeeze()
+                        latent_variance = self.vred.latent_variances[i*self.vred.n_classes+k][s].squeeze()
                         self.log.detailed(f"Logging latent mixture distribution for class {k}, scale {s}: {latent_mean.shape=}, {latent_variance.shape=}")
                         latent_mean_image = vector_to_image(latent_mean)
                         latent_variance_image = vector_to_image(latent_variance)
