@@ -420,7 +420,7 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
 
 
 """
-git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_9802_TEST', dataroot='/tmp/dmitry/datalake', \
+git commit -am "gigaq: VRED: STILL: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_still('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_MEDIUM_BASELINE_CPTAC_9802_TEST', dataroot='/tmp/dmitry/datalake', \
     n_devices=1, batch_size=6, num_workers=2, prefetch_factor=1, pin_memory=True).set(capture_output=True).build()"
 
 """
@@ -436,9 +436,12 @@ def gigapath_vred_still(vred_dataset_name = None,
     if vred_dataset_name is None:
         still = VariationalReEncoderDecoderStill
     else:
-        vredname, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
+        vredname_precision, _clipname = vred_dataset_name.split('_BASELINE_CPTAC_')
         clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
         tag = vred_dataset_name
+        bits = vredname_precision.split('_')
+        precision = bits[-1].lower()
+        vredname = '_'.join(bits[:-1])
         vred = dbx.quote(gigapath_vred, vredname)
         
         max_epochs=1
@@ -452,7 +455,6 @@ def gigapath_vred_still(vred_dataset_name = None,
         gradient_clip_algorithm='norm'
         gradient_clip_val=10.0
         skip_invalid_gradients: bool = True
-        precision='medium'
         log_weights: bool = False
         log_gradients: bool = False
         ckpt: str = None
