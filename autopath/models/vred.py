@@ -657,16 +657,11 @@ class VariationalReEncoderDecoderLightning(Datablock):
             if self.vred.log_latent_mixture_distributions:
                 for k in range(self.vred.n_classes):
                     for s in range(self.vred.latent_gaussians.n_scales):
-                        #DEBUG
-                        breakpoint()
-                        
-                        latent_mean = self.vred.latent_means[i*self.vred.n_classes+k][s].squeeze()
-                        latent_variance = self.vred.latent_variances[i*self.vred.n_classes+k][s].squeeze()
+                        latent_mean = self.vred.latent_means[0][s][i*self.vred.n_classes+k].squeeze()
+                        latent_variance = self.vred.latent_variances[0][s][i*self.vred.n_classes+k].squeeze()
                         self.log.detailed(f"Logging latent mixture distribution for class {k}, scale {s}: {latent_mean.shape=}, {latent_variance.shape=}")
-                        latent_mean_image = vector_to_image(latent_mean)
-                        latent_variance_image = vector_to_image(latent_variance)
-                        self.logger.experiment.add_image(f"latent_mix_mean/component={k}", latent_mean_image, self.global_step)
-                        self.logger.experiment.add_scalar(f"latent_mix_variance/component={k}/{s}", latent_variance_image, self.global_step)
+                        self.logger.experiment.add_image(f"latent_mix_mean/component={k}", latent_mean, self.global_step)
+                        self.logger.experiment.add_scalar(f"latent_mix_variance/component={k}/{s}", latent_variance, self.global_step)
             if self.log_feature_norms:
                 feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
                 self.logger.experiment.add_scalar(f"feature_norms_max", max(feature_norms), self.global_step)
