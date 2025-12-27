@@ -458,7 +458,7 @@ def gigapath_vred_still(vred_dataset_name = None,
         bits = vredname_precision.split('_')
         precision = bits[-1].lower()
         vredname = '_'.join(bits[:-1])
-        vred, suffix = dbx.quote(gigapath_vred, vredname, force_gc=force_gc, latent_var_max=latent_var_max, decoder_var_max=decoder_var_max)
+        vred, suffix = gigapath_vred(vredname, force_gc=force_gc, latent_var_max=latent_var_max, decoder_var_max=decoder_var_max)
         tag = vred_dataset_name if suffix is None else f"{vred_dataset_name}_{suffix}"
 
         max_epochs=1
