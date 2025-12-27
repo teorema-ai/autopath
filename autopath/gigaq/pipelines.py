@@ -372,7 +372,7 @@ def gigapath_featureshardset_dataloader_sample(name, *args, **kwargs):
 
 
 # git commit -am "gigaq: VRED"; dbx.print "autopath.gigaq.pipelines.gigapath_vred('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG')"
-def gigapath_vred(name, capture_mixture_distributions: bool = False):
+def gigapath_vred(name, force_gc: bool = False):
     if name == "GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG":
         n_hidden_layers = 2
         n_classes = 100
@@ -395,7 +395,9 @@ def gigapath_vred(name, capture_mixture_distributions: bool = False):
         decoder_var_max=decoder_var_max,
         log_mixture_distributions=log_mixture_distributions,
         log_latent_mixture_distributions=log_latent_mixture_distributions,
-    ))
+        ),
+        force_gc=force_gc,
+    )
     return vred
     
 # git commit -am "gigaq: VRED EVAL"; dbx.print "autopath.gigaq.pipelines.gigapath_vred_evaluator('GIGAPATH_VRED_2HDN_100CLS_5CHN_LVAR1_0_VAR1_0_LOG_BASELINE_CPTAC_8020_TEST', batch_size=1).to('cuda').samples(1)"
@@ -428,8 +430,7 @@ def gigapath_vred_still(vred_dataset_name = None,
                         *, 
                         dataroot: str = None, 
                         n_devices: int = 1,
-                        gradient_clip_val: float = 1.0,
-                        gradient_clip_algorithm: str = 'norm',
+                        force_gc: bool = False,
                         logs: str = None,
                         **dataloader_kwargs,
     ):
@@ -442,7 +443,7 @@ def gigapath_vred_still(vred_dataset_name = None,
         bits = vredname_precision.split('_')
         precision = bits[-1].lower()
         vredname = '_'.join(bits[:-1])
-        vred = dbx.quote(gigapath_vred, vredname)
+        vred = dbx.quote(gigapath_vred, vredname, force_gc=force_gc)
         
         max_epochs=1
         max_steps=None

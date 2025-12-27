@@ -315,6 +315,7 @@ class VariationalReEncoderDecoder(Datablock):
                      class_batch_size: int = None,
                      log_mixture_distributions: bool = False,
                      log_latent_mixture_distributions: bool = False,
+                     force_gc: bool = False,
                      log: dbx.Logger = None,
         ):
             super().__init__()
@@ -325,6 +326,7 @@ class VariationalReEncoderDecoder(Datablock):
             self.class_batch_size = class_batch_size
             self.log_mixture_distributions = log_mixture_distributions
             self.log_latent_mixture_distributions = log_latent_mixture_distributions
+            self.force_gc = force_gc
             self.log = log or dbx.Logger(self.__class__.__name__)
             self.device = 'cpu'
             self.means = None
@@ -410,11 +412,12 @@ class VariationalReEncoderDecoder(Datablock):
                 self.latent_variances.extend(latent_variances_list)
                 del latent_means_list
                 del latent_variances_list
-            del losses
-            del class_probabilities
-            del classes
-            gc.collect()
-            torch.cuda.empty_cache()
+            if self.force_gc:
+                del losses
+                del class_probabilities
+                del classes
+                gc.collect()
+                torch.cuda.empty_cache()
             self.log.detailed(f"loss: loss: -------------requires_grad ------------> {loss.requires_grad}")
             return loss
 
@@ -424,10 +427,11 @@ class VariationalReEncoderDecoder(Datablock):
             C = classes.reshape(-1, 1).repeat(1, b).reshape(b*k)
             X = x.repeat(self.n_classes, *([1]*len(x.shape[1:])))
             gaussian_means_and_variances = self.latent_gaussians(X, C)
-            del X
-            del C
-            gc.collect()
-            torch.cuda.empty_cache()
+            if self.force_gc:
+                del X
+                del C
+                gc.collect()
+                torch.cuda.empty_cache()
             multiscale_means = []
             for scale, (mean, variance) in enumerate(gaussian_means_and_variances):
                 normal_sample = torch.randn(mean.shape).to(x.device)
@@ -441,9 +445,10 @@ class VariationalReEncoderDecoder(Datablock):
             if self.log_mixture_distributions:
                 means_list.append(Mhat)
                 variances_list.append(Vhat)
-            del multiscale_means
-            gc.collect()
-            torch.cuda.empty_cache()
+            if self.force_gc:
+                del multiscale_means
+                gc.collect()
+                torch.cuda.empty_cache()
             """
             # mhat: "(k b) c h w" --> yhat: "k b c h w"
             x = [
@@ -469,18 +474,23 @@ class VariationalReEncoderDecoder(Datablock):
             _loss_nans = torch.isnan(_loss).sum().item()
             _loss_nans_ = torch.isnan(_loss_).sum().item()
             self.log.detailed(f"_class_batch_loss: _loss_nans: {_loss_nans}, _loss_nans_: {_loss_nans_}")
-            del Y
-            del _loss_
-            gc.collect()
-            torch.cuda.empty_cache()
+            if self.force_gc:
+                del Y
+                del _loss_
+                gc.collect()
+                torch.cuda.empty_cache()
             _kloss = _loss.reshape(k, b) # k b
             _loss = torch.matmul(class_probabilities, _kloss) # b
             loss = _loss.mean() # scalar
-            del _loss
-            del _kloss
-            gc.collect()
-            torch.cuda.empty_cache()
+            if self.force_gc:
+                del _loss
+                del _kloss
+                gc.collect()
+                torch.cuda.empty_cache()
             return loss
+        
+    def __init__(self, *args, force_gc: bool = False, **kwargs):
+        super().__init__(*args, force_gc=force_gc, **kwargs)
 
     def model(self) -> nn.Module:
         classifier = Classifier(
@@ -524,6 +534,7 @@ class VariationalReEncoderDecoder(Datablock):
             class_batch_size=self.cfg.class_batch_size,
             log_mixture_distributions=self.cfg.log_mixture_distributions,
             log_latent_mixture_distributions=self.cfg.log_latent_mixture_distributions,
+            force_gc=self.force_gc,
             log=self.log,
         )
 
@@ -664,10 +675,7 @@ class VariationalReEncoderDecoderLightning(Datablock):
                         for c in range(latent_mean.shape[0]):
                             self.logger.experiment.add_image(f"latent_mix_mean/component={k}/scale={s}/channel={c}", latent_mean[c:c+1], self.global_step)
                         for c in range(latent_variance.shape[0]):
-                            #DEBUG
-                            breakpoint()
-                            
-                            self.logger.experiment.add_scalar(f"latent_mix_variance/component={k}/scale={s}/channel={c}", latent_variance[c:c+1], self.global_step)
+                            self.logger.experiment.add_image(f"latent_mix_variance/component={k}/scale={s}/channel={c}", latent_variance[c:c+1], self.global_step)
             if self.log_feature_norms:
                 feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
                 self.logger.experiment.add_scalar(f"feature_norms_max", max(feature_norms), self.global_step)
@@ -695,9 +703,15 @@ class VariationalReEncoderDecoderLightning(Datablock):
                 "lr_scheduler": {"scheduler": scheduler, "interval": "step"},
             }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __post_init__(self):
+        self.vred = self.cfg.vred
+
     @functools.cached_property
     def lightning_module(self):
-        return self.Lightning(vred=self.cfg.vred.model(), learning_rate=self.cfg.learning_rate, scheduler=self.cfg.scheduler, log_tiles=self.cfg.log_tiles, log_feature_norms=self.cfg.log_feature_norms)
+        return self.Lightning(vred=self.vred.model(), learning_rate=self.cfg.learning_rate, scheduler=self.cfg.scheduler, log_tiles=self.cfg.log_tiles, log_feature_norms=self.cfg.log_feature_norms)
     
 
 class VariationalReEncoderDecoderStill(Datablock):
