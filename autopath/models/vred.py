@@ -324,6 +324,7 @@ class VariationalReEncoderDecoder(Datablock):
             self.loss_var_weight = loss_var_weight
             self.class_batch_size = class_batch_size
             self.log_mixture_distributions = log_mixture_distributions
+            self.log_latent_mixture_distributions = log_latent_mixture_distributions
             self.log = log or dbx.Logger(self.__class__.__name__)
             self.device = 'cpu'
             self.means = None
