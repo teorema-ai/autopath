@@ -496,7 +496,7 @@ class VariationalReEncoderDecoder(Datablock):
             input_dim=self.cfg.latent_gaussian_input_dim,
             hidden_dim=self.cfg.latent_gaussian_hidden_dim,
             n_hidden_layers=self.cfg.latent_gaussian_n_hidden_layers,
-            hidden_activation_cls=self.cfg.latent_gaussiahidden_activation_cls,
+            hidden_activation_cls=self.cfg.latent_gaussian_hidden_activation_cls,
             fine_scale=self.cfg.latent_gaussian_fine_scale,
             n_scales=self.cfg.latent_gaussian_n_scales,
             var_min=self.cfg.latent_gaussian_var_min,
