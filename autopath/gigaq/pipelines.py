@@ -426,7 +426,7 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
     vred, suffix = gigapath_vred(vredname, log_mixture_distributions=log_mixture_distributions)
     if use_bags:
-        featureloader = dbx.quote(gigapath_featurebagset_dataloader_builder, clipname, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs).dataloader()
+        featureloader = gigapath_featurebagset_dataloader_builder(clipname, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs).dataloader()
     else:
         featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReEncoderDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
