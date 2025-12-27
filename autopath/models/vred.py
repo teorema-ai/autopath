@@ -35,7 +35,7 @@ def vector_to_image(vector,):
     padsize = (m*n) - N
     if padsize > 0:
         vector = F.pad(vector, (0, padsize))
-    image = vector.reshape(vector, n, n)
+    image = vector.reshape(n, n)
     return image
 
 class Classifier(nn.Module):
