@@ -543,11 +543,11 @@ class VariationalReEncoderDecoderEvaluator(Datablock):
     @dataclass
     class CONFIG:
         vred: VariationalReEncoderDecoder
-        dataloader: torch.utils.data.DataLoader
+        dataloader: ClipDataLoaderBuilder
 
     def __post_init__(self):
         self.vred = self.cfg.vred.model()
-        self.dataloader = self.cfg.dataloader
+        self.dataloader = self.cfg.dataloader.dataloader()
 
     def to(self, device):
         self.device = device
