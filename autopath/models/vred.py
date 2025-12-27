@@ -15,14 +15,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import einops
-
 import lightning as L
 import lightning.pytorch.loggers
 
 
 import dbx
 from dbx import Datablock
+
+from autopath.databits import ClipDataLoaderBuilder
 
 from .layers import UpLayer
 
@@ -724,7 +724,7 @@ class VariationalReEncoderDecoderStill(Datablock):
     @dataclass 
     class CONFIG:
         lightning: VariationalReEncoderDecoderLightning
-        dataloader: torch.utils.data.DataLoader
+        dataloader: ClipDataLoaderBuilder
         init_ckpt_path_or_anchor: str = None
         restart: bool = False
         load_optimizer_state: bool = False
@@ -837,7 +837,7 @@ class VariationalReEncoderDecoderStill(Datablock):
                     model.load_state_dict(checkpoint['state_dict'], strict=False)
                 else:
                     fit_kwargs['ckpt_path'] = ckpt
-            trainer.fit(model=model, train_dataloaders=self.cfg.dataloader, **fit_kwargs)
+            trainer.fit(model=model, train_dataloaders=self.cfg.dataloader.dataloader(), **fit_kwargs)
         finally:
             torch.set_float32_matmul_precision(original_precision)
         return self

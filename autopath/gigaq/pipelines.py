@@ -310,7 +310,7 @@ def gigapath_feature_2nn_dim(name) -> Feature2NNDim:
         )
 
 
-def gigapath_featurebagset_dataloader(name, root: str = None, shuffle_bags_seed: int = None, **dataloader_kwargs):
+def gigapath_featurebagset_dataloader_builder(name, root: str = None, shuffle_bags_seed: int = None, **dataloader_kwargs):
     featureset = gigapath_featurebagset(name, root=root,shuffle_bags_seed=shuffle_bags_seed)
     return ClipDataLoaderBuilder(spec=dict(
                             clip_dataset=featureset,
@@ -340,9 +340,9 @@ def gigapath_featurebagset_dataloader(name, root: str = None, shuffle_bags_seed:
 # unset DBXREPO; git commit -am "gigaq: FeaturebagsetDataloader: SAMPLES"; dbx.print "autopath.gigaq.pipelines.gigapath_featurebagset_dataloader_samples('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', 400, root='/tmp/dmitry/datalake', batch_size=8, num_workers=2, prefetch_factor=1)" ~=
 def gigapath_featurebagset_dataloader_samples(name, n, root: str = None, shuffle_bags: bool = False, return_last: bool = False, **dataloader_kwargs):
     batch_size = dataloader_kwargs.get('batch_size', None)
-    dataloader = gigapath_featurebagset_dataloader(name, root=root, shuffle=shuffle_bags, **dataloader_kwargs)
+    dataloader_builder = gigapath_featurebagset_dataloader_builder(name, root=root, shuffle=shuffle_bags, **dataloader_kwargs)
     progress = tqdm(total=n)
-    for i, _ in enumerate(dataloader):
+    for i, _ in enumerate(dataloader_builder.dataloader()):
         progress.update(batch_size if batch_size is not None else 1)
         if i*batch_size >= n-1:
             break
@@ -414,7 +414,7 @@ def gigapath_vred_evaluator(vred_dataset_name, *, use_bags: bool = True, shuffle
     clipname = "GIGAPATH_BASELINE_CPTAC_" + _clipname
     vred = dbx.quote(gigapath_vred, vredname, capture_mixture_distributions=capture_mixture_distributions)
     if use_bags:
-        featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
+        featureloader = dbx.quote(gigapath_featurebagset_dataloader_builder, clipname, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs).dataloader()
     else:
         featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, **dataloader_kwargs)
     vred_evaluator = VariationalReEncoderDecoderEvaluator(spec=dict(vred=vred, dataloader=featureloader))
@@ -461,14 +461,14 @@ def gigapath_vred_still(vred_dataset_name = None,
         ckpt: str = None
         
         if use_bags:
-            featureloader = dbx.quote(gigapath_featurebagset_dataloader, clipname, root=dataroot, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
+            featureloader_builder = dbx.quote(gigapath_featurebagset_dataloader_builder, clipname, root=dataroot, shuffle_bags_seed=shuffle_bags_seed, **dataloader_kwargs)
         else:
-            featureloader = dbx.quote(gigapath_featureshardset_dataloader, clipname, root=dataroot, **dataloader_kwargs)
+            raise NotImplementedError(f"Shard dataloader_builder")
         lightning = dbx.quote(VariationalReEncoderDecoderLightning, 
                                 spec=dict(vred=vred, learning_rate=learning_rate, scheduler=scheduler))
         still = VariationalReEncoderDecoderStill(spec=dict(
                     lightning=lightning, 
-                    dataloader=featureloader,
+                    dataloader=featureloader_builder,
                     max_epochs=max_epochs,
                     max_steps=max_steps,
                     ckpt_every_n_steps=ckpt_every_n_steps,
