@@ -389,7 +389,7 @@ def gigapath_vred(name, capture_mixture_distributions: bool = False):
         classifier_n_classes=n_classes,
         latent_gaussian_n_classes=n_classes,
         latent_gaussian_n_channels=latent_gaussian_n_channels,
-        latent_var_max=latent_var_max,
+        latent_gaussian_var_max=latent_var_max,
         decoder_var_max=decoder_var_max,
     ))
     return vred
