@@ -657,6 +657,9 @@ class VariationalReEncoderDecoderLightning(Datablock):
             if self.vred.log_latent_mixture_distributions:
                 for k in range(self.vred.n_classes):
                     for s in range(self.vred.latent_gaussians.n_scales):
+                        #DEBUG
+                        breakpoint()
+                        
                         latent_mean = self.vred.latent_means[i*self.vred.n_classes+k][s].squeeze()
                         latent_variance = self.vred.latent_variances[i*self.vred.n_classes+k][s].squeeze()
                         self.log.detailed(f"Logging latent mixture distribution for class {k}, scale {s}: {latent_mean.shape=}, {latent_variance.shape=}")
