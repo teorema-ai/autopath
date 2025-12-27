@@ -676,6 +676,7 @@ class VariationalReEncoderDecoderLightning(Datablock):
                             self.logger.experiment.add_image(f"latent_mix_mean/component={k}/scale={s}/channel={c}", latent_mean[c:c+1], self.global_step)
                         for c in range(latent_variance.shape[0]):
                             self.logger.experiment.add_image(f"latent_mix_variance/component={k}/scale={s}/channel={c}", latent_variance[c:c+1], self.global_step)
+                            self.logger.experiment.add_image(f"latent_mix_variance_mean/component={k}/scale={s}/channel={c}", latent_variance[c].mean(), self.global_step)
             if self.log_feature_norms:
                 feature_norms = [torch.linalg.norm(features[i]) for i in range(len(features))]
                 self.logger.experiment.add_scalar(f"feature_norms_max", max(feature_norms), self.global_step)
