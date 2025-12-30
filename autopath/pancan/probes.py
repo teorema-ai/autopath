@@ -6,6 +6,8 @@ import gc
 import math
 from typing import Optional, Union, Tuple
 
+import tqdm
+
 
 import numpy as np
 import pandas as pd
@@ -174,7 +176,11 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         bag_labels = []
         bag_feature_list = []
         self.log.verbose(f"READING featurebags and bag names")
-        for featurebag in self.cfg.featurebagclip.shards:
+        if self.verbose:
+            sharditor = tqdm.tqdm(self.cfg.featurebagclip.shards)
+        else:
+            sharditor = self.cfg.featurebagclip.shards
+        for featurebag in sharditor:
             bag_labels.append(featurebag.cfg.tilebag.name)
             bag_feature_list.append(torch.mean(featurebag.features, dim=0))
         bag_features = torch.stack(bag_feature_list)
