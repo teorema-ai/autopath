@@ -243,7 +243,7 @@ class BipolarFeatureBagProbe(Datablock):
 
     def __build__(self):
         prober = FeatureBagProber()
-        self.log.verbose(f"READING featurebags and bag names")
+        self.log.verbose(f"READING featurebags and labels")
         if self.verbose:
             bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
         else:
