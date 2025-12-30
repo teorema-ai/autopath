@@ -250,11 +250,16 @@ class BipolarFeatureBagProbe(Datablock):
             if featurebag.cfg.tilebag.label not in label_features_lists:
                 label_features_lists[featurebag.cfg.tilebag.label] = []
             label_features_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
-        label_features = {
-            label: prober.discretize_features(torch.cat(feature_list, dim=0), self.cfg.n_bins) 
-            for label, feature_list in label_features_lists.items()
-        }
-        self.log.verbose(f"FOUND {len(label_features)} labels and discretized their features using {self.cfg.n_bins} bins")
+        self.log.verbose(f"CONCATENATING and DISCRETIZING label features")
+        if self.verbose:
+            label_feature_itor = tqdm.tqdm(label_features_lists.items())
+        else:
+            label_feature_itor = label_features_lists.items()
+        label_features = {}
+        for label, feature_list in label_feature_itor:
+            label_features[label] = prober.discretize_features(torch.cat(feature_list, dim=0), self.cfg.n_bins) 
+                
+        self.log.verbose(f"COMPUTED {len(label_features)} labels and discretized their features using {self.cfg.n_bins} bins")
         labels = np.array(list(label_features.keys()))
         write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
         label_sim = {}
