@@ -157,7 +157,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         'bag_cdf': 'bag_cdf.npy',
         'bag_features': 'bag_features.npy',
         'discretized_bag_features': 'discretized_bag_features.npy',
-        'discretized_bag_features_umap': 'discretized_bag_features_umap.png',
+        #'discretized_bag_features_umap': None, #TODO: RESTORE
         'evaluation_reports': 'evaluation_reports.pkl',
     }
     @dataclass
