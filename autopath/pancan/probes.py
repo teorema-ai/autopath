@@ -110,12 +110,12 @@ class LogisticFeatureBagProber:
                            label2="(2)",
                            log: Logger = Logger(),
     ):
-        log.verbose(f"Evaluating features {label1}: started at {datetime.datetime.now()}")
+        log.verbose(f"EVALUATING features: {label1}: started at {datetime.datetime.now()}")
         report1 = LogisticFeatureBagProber.evaluate_features(Xy1, fraction=fraction)
-        log.verbose(f"Evaluating features {label1}: finished at {datetime.datetime.now()}")
-        log.verbose(f"Evaluating features {label2}: started at {datetime.datetime.now()}")
+        log.verbose(f"EVALUATING features: {label1}: finished at {datetime.datetime.now()}")
+        log.verbose(f"EVALUATING features: {label2}: started at {datetime.datetime.now()}")
         report2 = LogisticFeatureBagProber.evaluate_features(Xy2, fraction=fraction)
-        log.verbose(f"Evaluating features {label2}: finished at {datetime.datetime.now()}")
+        log.verbose(f"EVALUATING features: {label2}: finished at {datetime.datetime.now()}")
 
         rstr = f"---------- {label1} ------------\n{report1}\n---------- {label2} ------------\n{report2}"
         log.verbose(rstr)
