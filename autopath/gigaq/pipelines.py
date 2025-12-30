@@ -152,11 +152,8 @@ def gigapath_featureshardset(name) -> torch.utils.data.Dataset:
 
 # git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_logistic_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
 def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2) -> LogisticFeatureBagProbe:
-    if name == "GIGAPATH_BASELINE_CPTAC_8020_TEST":
-        return LogisticFeatureBagProbe(
-                    spec=dict(featurebagclip=dbx.quote(gigapath_feature_bag_clip, 'GIGAPATH_BASELINE_CPTAC_8020_TEST'), n_bins=n_bins,))
-    else:
-        raise ValueError(f"Unknown feature bags probe: {name}")
+    return LogisticFeatureBagProbe(spec=dict(featurebagclip=gigapath_feature_bag_clip(name), n_bins=n_bins,))
+    
 
 # git commit -am "gigaq: FeaturePairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_4000').set(n_devices=3).build()"
 # git commit -am "gigaq: FeaturePairwiseDistances: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_pairwise_distances('GIGAPATH_BASELINE_CPTAC_8020_TEST_10_4000_20000').set(n_devices=3).build()"
