@@ -157,7 +157,7 @@ def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2) -> LogisticFeatu
     
 
 # git commit -am "gigaq: BipolarFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_bipolar_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
-def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2) -> LogisticFeatureBagProbe:
+def gigapath_bipolar_feature_bags_probe(name, n_bins: int = 2) -> LogisticFeatureBagProbe:
     return BipolarFeatureBagProbe(spec=dict(featurebagclip=gigapath_feature_bag_clip(name), n_bins=n_bins,))
  
 
