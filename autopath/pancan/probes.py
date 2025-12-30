@@ -238,6 +238,9 @@ class BipolarFeatureBagProbe(Datablock):
         featurebagclip: FeatureBagClip
         n_bins: int = 2
 
+    def __init__(self, *args, use_gpu: bool = False, gpu_batch_size: int = 1024, **kwargs):
+        super().__init__(*args, use_gpu=use_gpu, gpu_batch_size=gpu_batch_size, **kwargs)
+
     def __build__(self):
         prober = FeatureBagProber()
         self.log.verbose(f"READING featurebags and bag names")
@@ -263,15 +266,20 @@ class BipolarFeatureBagProbe(Datablock):
         labels = np.array(list(label_features.keys()))
         write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
         label_sim = {}
-        for li in labels:
-            for lj in labels:
-                key = f"sim_{li}_{lj}"
-                fi = label_features[li].numpy()
-                fj = label_features[lj].numpy()
-                self.log.verbose(f"Computing similarity between labels {li} and {lj}: len li: {fi}, len lj: {fj}")
-                simij = np.matmul(fi, fj.T) / (np.linalg.norm(fi, axis=1) * np.linalg.norm(fj, axis=1))
-                label_sim[key] = simij
-                self.log.verbose(f"Computed similarity between discretized features with labels {li} and {lj}: len li: {fi}, len lj: {fj}: shape: {simij.shape}")
+        labels2 = [(li, lj) for i, li in enumerate(labels) for j, lj in enumerate(labels) if i <= j]
+        self.log.verbose(f"COMPUTING label similarities for {len(labels2)} label pairs")
+        if self.verbose:
+            labels2_itor = tqdm.tqdm(labels2)
+        else:
+            labels2_itor = labels2
+        for li, lj in labels2_itor:
+            key = f"sim_{li}_{lj}"
+            fi = label_features[li]
+            fj = label_features[lj]
+            self.log.debug(f"Computing similarity between labels {li} and {lj}: len li: {fi}, len lj: {fj}")
+            simij = np.matmul(fi, fj.T) / (np.linalg.norm(fi, axis=1) * np.linalg.norm(fj, axis=1))
+            label_sim[key] = simij
+            self.log.debug(f"Computed similarity between discretized features with labels {li} and {lj}: len li: {fi}, len lj: {fj}: shape: {simij.shape}")
         write_npz(self.path('label_similarity', ensure_dirpath=True), **label_sim)
         return self
 
