@@ -173,10 +173,9 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
     def __build__(self):
         bag_labels = []
         bag_feature_list = []
-        for featureshard in self.cfg.featurebagclip.shards:
-            if isinstance(featureshard.cfg.tileshard, TileBag):
-                bag_labels.append(featureshard.cfg.tileshard.name)
-                bag_feature_list.append(torch.mean(featureshard.features, dim=0))
+        for featurebag in self.cfg.featurebagclip.shards:
+            bag_labels.append(featurebag.cfg.tilebag.name)
+            bag_feature_list.append(torch.mean(featurebag.features, dim=0))
         bag_features = torch.stack(bag_feature_list)
         assert len(bag_labels) == len(bag_features), f"len(bag_labels) != len(bag_features): {len(bag_labels)} != {len(bag_features)}"
         write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
