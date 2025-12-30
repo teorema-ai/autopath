@@ -177,11 +177,11 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         bag_feature_list = []
         self.log.verbose(f"READING featurebags and bag names")
         if self.verbose:
-            sharditor = tqdm.tqdm(self.cfg.featurebagclip.shards)
+            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
         else:
-            sharditor = self.cfg.featurebagclip.shards
-        for featurebag in sharditor:
-            bag_labels.append(featurebag.cfg.tilebag.name)
+            bagitor = self.cfg.featurebagclip.bags
+        for featurebag in bagitor:
+            bag_labels.append(featurebag.cfg.tilebag.label)
             bag_feature_list.append(torch.mean(featurebag.features, dim=0))
         bag_features = torch.stack(bag_feature_list)
         assert len(bag_labels) == len(bag_features), f"len(bag_labels) != len(bag_features): {len(bag_labels)} != {len(bag_features)}"
