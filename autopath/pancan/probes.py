@@ -35,7 +35,7 @@ from autopath.tiles import TileBag
 from autopath.features import FeatureBagClip
 
 
-class LogisticFeatureBagProber:
+class FeatureBagProber:
     @staticmethod
     def ndarray(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame]):
         if isinstance(X, list):
@@ -52,7 +52,7 @@ class LogisticFeatureBagProber:
 
     @staticmethod
     def discretize_features(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], d:int = 4) -> np.ndarray:
-        features = LogisticFeatureBagProber.ndarray(X)
+        features = FeatureBagProber.ndarray(X)
         return pd.DataFrame(features).apply(lambda c: pd.qcut(c, d, labels=False, duplicates='drop')).fillna(0.0).values
 
     @staticmethod
@@ -61,9 +61,9 @@ class LogisticFeatureBagProber:
                          train_fraction:float=0.8
     ):
         #TODO: split_slides_labels_train_test() -> split_features_labels_train_test()
-        X = LogisticFeatureBagProber.ndarray(X)
+        X = FeatureBagProber.ndarray(X)
         if y is not None:
-            y = LogisticFeatureBagProber.ndarray(y)
+            y = FeatureBagProber.ndarray(y)
         N = y.shape[0]
         permutation = permutation = np.random.permutation(range(N))
         n = int(math.floor(N*train_fraction))
@@ -73,7 +73,38 @@ class LogisticFeatureBagProber:
             return (X[train, :], y[train]), (X[test, :], y[test])
         else:
             return X[train, :], X[test, :]
+        
+    @staticmethod
+    def plot_features_umap(Xy,
+                           *, 
+                           fraction = 0.01, 
+                           title="", 
+                           label="",
+                           use_umap_plot=False,
+                           output_path=None,
+                           log: Logger = Logger(),
+    ):
+        features, labels = Xy
+        import umap
+        import umap.plot
+        from matplotlib import pyplot as plt
+        # UMAP visualization of original features (1% subsample)
+        um = umap.UMAP(n_components=2, random_state=42)
+        umap_features = um.fit_transform(features)
+        ulabels = set(labels)
+        ilablesmap = {l: i for i, l in enumerate(ulabels)}
+        ilabels = [ilablesmap[l] for l in labels]
+        plt.scatter(umap_features[:, 0], umap_features[:, 1], c=ilabels, label=labels)
 
+        if output_path is not None:
+            plt.savefig(output_path)
+            log.verbose(f"Wrote figure to '{output_path}'")
+        else:
+            plt.show()
+        return umap_features
+
+
+class LogisticFeatureBagProber(FeatureBagProber):
     @staticmethod
     def evaluate_features(Xy: Tuple[Union[np.ndarray, list, torch.Tensor, pd.DataFrame], 
                                     Union[np.ndarray, list, torch.Tensor, pd.DataFrame],], 
@@ -120,35 +151,6 @@ class LogisticFeatureBagProber:
         rstr = f"---------- {label1} ------------\n{report1}\n---------- {label2} ------------\n{report2}"
         log.verbose(rstr)
         return report1, report2
-
-    def plot_features_umap(self,
-                           Xy,
-                           *, 
-                           fraction = 0.01, 
-                           title="", 
-                           label="",
-                           use_umap_plot=False,
-                           output_path=None,
-                           log: Logger = Logger(),
-    ):
-        features, labels = Xy
-        import umap
-        import umap.plot
-        from matplotlib import pyplot as plt
-        # UMAP visualization of original features (1% subsample)
-        um = umap.UMAP(n_components=2, random_state=42)
-        umap_features = um.fit_transform(features)
-        ulabels = set(labels)
-        ilablesmap = {l: i for i, l in enumerate(ulabels)}
-        ilabels = [ilablesmap[l] for l in labels]
-        plt.scatter(umap_features[:, 0], umap_features[:, 1], c=ilabels, label=labels)
-
-        if output_path is not None:
-            plt.savefig(output_path)
-            log.verbose(f"Wrote figure to '{output_path}'")
-        else:
-            plt.show()
-        return umap_features
 
 
 class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
@@ -225,6 +227,66 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
             raise ValueError(f"Unknown topic: {topic}")
         return result
 
+
+class BipolarFeatureBagProbe(Datablock):
+    TOPICFILES = {
+        'labels': 'labels.npy',
+        'label_similarity': 'label_similarity.npy',
+    }
+    @dataclass
+    class CONFIG:
+        featurebagclip: FeatureBagClip
+        n_bins: int = 2
+
+    def __build__(self):
+        prober = FeatureBagProber()
+        self.log.verbose(f"READING featurebags and bag names")
+        if self.verbose:
+            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
+        else:
+            bagitor = self.cfg.featurebagclip.bags
+        label_features_lists = {}
+        for featurebag in bagitor:
+            if featurebag.cfg.tilebag.label not in label_features_lists:
+                label_features_lists[featurebag.cfg.tilebag.label] = []
+            label_features_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
+        label_features = {
+            label: prober.discretize_features(torch.cat(feature_list, dim=0), self.cfg.n_bins) 
+            for label, feature_list in label_features_lists.items()
+        }
+        self.log.verbose(f"FOUND {len(label_features)} labels and discretized their features using {self.cfg.n_bins} bins")
+        labels = np.array(list(label_features.keys()))
+        write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
+        label_sim = {}
+        for li in labels:
+            for lj in labels:
+                key = f"sim_{li}_{lj}"
+                fi = label_features[li].numpy()
+                fj = label_features[lj].numpy()
+                self.log.verbose(f"Computing similarity between labels {li} and {lj}: len li: {fi}, len lj: {fj}")
+                simij = np.matmul(fi, fj.T) / (np.linalg.norm(fi, axis=1) * np.linalg.norm(fj, axis=1))
+                label_sim[key] = simij
+                self.log.verbose(f"Computed similarity between discretized features with labels {li} and {lj}: len li: {fi}, len lj: {fj}: shape: {simij.shape}")
+        write_npz(self.path('label_similarity', ensure_dirpath=True), **label_sim)
+        return self
+
+    @functools.cached_property
+    def labels(self):
+        return self.read('labels')
+    
+    @functools.cached_property
+    def label_similarity(self):
+        return self.read('label_similarity')
+
+    def __read__(self, topic):
+        if topic == 'labels':
+            result = read_npz(self.path('labels'), 'labels')
+        elif topic == 'label_similarity':
+            result = read_npz(self.path('mean_label_similarity'), *self.labels)
+        else:
+            raise ValueError(f"Unknown topic: {topic}")
+        return result
+    
 
 class FeaturePairwiseDistancesShard(Datablock):
     VERSION = 1
