@@ -173,6 +173,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
     def __build__(self):
         bag_labels = []
         bag_feature_list = []
+        self.log.verbose(f"READING featurebags and bag names")
         for featurebag in self.cfg.featurebagclip.shards:
             bag_labels.append(featurebag.cfg.tilebag.name)
             bag_feature_list.append(torch.mean(featurebag.features, dim=0))
