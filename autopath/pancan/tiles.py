@@ -43,10 +43,9 @@ class PancanTileBag(TileBag):
 
 	def __post_init__(self):
 		root, tail = self.config.source.split('/tfrecords/')
-		label = root.split('/')[-1] #cancer
+		self.label = root.split('/')[-1] #cancer
 		self.resolution, records = tail.split('/')
-		name, _  = os.path.splitext(records)
-		Bag.__init__(self, name=name, label=label)
+		self.name, _  = os.path.splitext(records)
 		tilesfile = os.path.basename(self.config.source)
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
 		self.TOPICFILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}

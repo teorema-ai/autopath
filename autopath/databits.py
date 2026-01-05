@@ -50,7 +50,7 @@ class Bag(Shard):
     def __init__(self, *args, name, label, **kwargs):
         self.name = name
         self.label = label
-        super().__init__(*args, **kwargs)
+        Shard.__init__(self, *args, **kwargs)
     
     @functools.cached_property
     def labels(self):
