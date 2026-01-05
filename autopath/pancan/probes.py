@@ -258,19 +258,24 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
             if featurebag.cfg.tilebag.label not in label_2_feature_lists:
                 label_2_feature_lists[featurebag.cfg.tilebag.label] = []
             label_2_feature_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
-        if not self.valid
-        self.log.verbose(f"CONCATENATING and POLARIZING label features")
-        if self.verbose:
-            label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
+        if not self.validpath('labels') or not self.validpath('polarized_features'):
+            self.log.verbose(f"CONCATENATING and POLARIZING label features")
+            if self.verbose:
+                label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
+            else:
+                label_feature_lists_itor = label_2_feature_lists.items()
+            label_2_features = {}
+            for label, feature_list in label_feature_lists_itor:
+                label_2_features[label] = prober.polarize_features(torch.cat(feature_list, dim=0)) 
+                    
+            self.log.verbose(f"COMPUTED {len(label_2_features)} labels and polarizes their features")
+            labels = np.array(list(label_2_features.keys()))
+            write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
+            write_npz(self.path('polarized_features', ensure_dirpath=True), **label_2_features)
         else:
-            label_feature_lists_itor = label_2_feature_lists.items()
-        label_2_features = {}
-        for label, feature_list in label_feature_lists_itor:
-            label_2_features[label] = prober.polarize_features(torch.cat(feature_list, dim=0)) 
-                
-        self.log.verbose(f"COMPUTED {len(label_2_features)} labels and polarize their features using")
-        labels = np.array(list(label_2_features.keys()))
-        write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
+            self.log.verbose(f"READING precomputed labels and polarized features")
+            labels = read_npz(self.path('labels'), 'labels')
+            label_2_features = read_npz(self.path('polarized_features'), *labels)
         label_sim = {}
         labels2 = [(li, lj) for i, li in enumerate(labels) for j, lj in enumerate(labels) if i <= j]
         self.log.verbose(f"COMPUTING label similarities for {len(labels2)} label pairs")
