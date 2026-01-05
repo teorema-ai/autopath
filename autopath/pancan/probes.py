@@ -257,17 +257,21 @@ class BipolarFeatureBagProbe(Datablock):
                 bagitor = self.cfg.featurebagclip.bags
             bag_labels = []
             bag_bipolar_features = []
+            bag_agg_bipolar_features = []
             for featurebag in bagitor:
                 bag_labels.append(featurebag.cfg.tilebag.label)
                 _bipolar_features = prober.polarize_features(featurebag.features)
-                _bag_bipolar_features = np.round(_bipolar_features.mean(axis=0)).astype(np.int8)
-                bag_bipolar_features.append(_bag_bipolar_features)
+                bag_bipolar_features.append(_bipolar_features)
+                _agg_bipolar_features = np.round(_bipolar_features.mean(axis=0)).astype(np.int8)
+                bag_agg_bipolar_features.append(_agg_bipolar_features)
             self.log.verbose(f"COMPUTING bag bipolarized features and labels: DONE")     
             write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
             write_npz(self.path('bag_polarized_features', ensure_dirpath=True), bag_polarized_features=bag_bipolar_features)
+            write_npz(self.path('bag_agg_polarized_features', ensure_dirpath=True), bag_agg_polarized_features=bag_agg_bipolar_features)
         else:
             bag_labels = self.labels
             bag_bipolar_features = self.features
+            bag_agg_bipolar_features = self.agg_features
 
         return self
 
@@ -278,12 +282,34 @@ class BipolarFeatureBagProbe(Datablock):
     @functools.cached_property
     def features(self):
         return self.read('bag_polarized_features')
+    
+    @functools.cached_property
+    def agg_features(self):
+        return self.read('bag_agg_polarized_features')
+    
+    def hamming_distances(self, bag1, bag2):
+        distances = np.sum(np.abs(self.features[bag1] - self.features[bag2]), dim=-1)*0.5
+        mindist = distances.min()
+        maxdist = distances.max()
+        meandist = distances.mean()
+        stddist = distances.std()
+        aggdist = np.sum(np.abs(self.agg_features[bag1] - self.agg_features[bag2]))*0.5
+        return dict(
+            mindist=mindist,
+            maxdist=maxdist,
+            meandist=meandist,
+            stddist=stddist,
+            aggdist=aggdist,
+        )
+    
 
     def __read__(self, topic):
         if topic == 'bag_labels':
             result = read_npz(self.path('bag_labels'), 'bag_labels')['bag_labels']
         elif topic == 'bag_polarized_features':
             result = read_npz(self.path('bag_polarized_features'), 'bag_polarized_features')['bag_polarized_features']
+        elif topic == 'bag_agg_polarized_features':
+            result = read_npz(self.path('bag_agg_polarized_features'), 'bag_agg_polarized_features')['bag_agg_polarized_features']
         else:
             raise ValueError(f"Unknown topic: {topic}")
         return result
