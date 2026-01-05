@@ -235,9 +235,9 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
 
 class BipolarFeatureBagSimilarityProbe(Datablock):
     TOPICFILES = {
-        'labels': 'labels.npy',
-        'polarized_features': 'polarized_features.npy',
-        'label_similarity': 'label_similarity.npy',
+        'labels': 'labels.npz',
+        'polarized_features': 'polarized_features.npz',
+        'label_similarity': 'label_similarity.npz',
     }
     @dataclass
     class CONFIG:
@@ -274,7 +274,7 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
             write_npz(self.path('polarized_features', ensure_dirpath=True), **label_2_features)
         else:
             self.log.verbose(f"READING precomputed labels and polarized features")
-            labels = read_npz(self.path('labels'), 'labels')
+            labels = read_npz(self.path('labels'))
             label_2_features = read_npz(self.path('polarized_features'), *labels)
         label_sim = {}
         labels2 = [(li, lj) for i, li in enumerate(labels) for j, lj in enumerate(labels) if i <= j]
