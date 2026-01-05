@@ -49,8 +49,6 @@ class FeatureBag(Bag):
                      **kwargs)
 
     def __post_init__(self):
-        self.name = self.cfg.tilebag.name
-        self.label = self.cfg.tilebag.label, 
         self.TOPICFILES = {
             'features': 'features.npy',
         }
@@ -66,6 +64,14 @@ class FeatureBag(Bag):
     @property
     def has_sideband(self):
         return hasattr(self.cfg.extractor, 'sideband_layers')
+    
+    @property
+    def name(self):
+        return self.cfg.tilebag.name
+    
+    @property
+    def label(self):
+        return self.cfg.tilebag.label, 
 
     def __build__(self, extractor=None):
         if extractor is None:
