@@ -249,7 +249,7 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
     def __build__(self):
         prober = FeatureBagProber()
         
-        if not self.validtopic('labels') or not self.validtopic('polarized_features'):
+        if not self.validtopic('labels') or not self.validtopic('polarized_bag_features'):
             self.log.verbose(f"READING featurebags and labels")
             if self.verbose:
                 bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
