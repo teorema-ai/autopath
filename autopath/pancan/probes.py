@@ -292,6 +292,10 @@ class BipolarFeatureBagProbe(Datablock):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
         assert fb1.shape == fb2.shape
         distances = np.sum(np.abs(fb1 - fb2), axis=-1)*0.5
+        return distances
+    
+    def hamming_distance_stats(self, bag1, bag2):
+        distances = self.hamming_distances(bag1, bag2)
         mindist = distances.min()
         maxdist = distances.max()
         meandist = distances.mean()
