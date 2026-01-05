@@ -43,12 +43,14 @@ class FeatureBag(Bag):
         extractor: Callable
 
     def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
-        Bag.__init__(self, 
+        Datablock.__init__(self, 
                      *args, 
-                     name=self.cfg.tilebag.name, label=self.cfg.tilebag.label, gpu_batch_size=gpu_batch_size, 
+                     gpu_batch_size=gpu_batch_size, 
                      **kwargs)
 
     def __post_init__(self):
+        self.name = self.cfg.tilebag.name
+        self.label = self.cfg.tilebag.label, 
         self.TOPICFILES = {
             'features': 'features.npy',
         }

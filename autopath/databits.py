@@ -47,11 +47,18 @@ class Shard(Datablock):
     
 
 class Bag(Shard):
-    def __init__(self, *args, name, label, **kwargs):
-        self.name = name
-        self.label = label
+    def __init__(self, *args, **kwargs):
         Shard.__init__(self, *args, **kwargs)
     
+    @property
+    def name(self):
+        raise NotImplementedError
+
+    @property
+    def label(self):
+        raise NotImplementedError
+
+    @property
     @functools.cached_property
     def labels(self):
         return [self.label]*len(self)

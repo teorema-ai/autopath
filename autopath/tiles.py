@@ -25,9 +25,8 @@ class TileShard(Shard):
     
 
 class TileBag(TileShard, Bag):
-    def __init__(self, *args, name, label, **kwargs):
+    def __init__(self, *args, **kwargs):
         TileShard.__init__(self, *args, **kwargs)
-        Bag.__init__(self, name=name, label=label)
 
 
 def tileset(tilebagclip: Clip, 
