@@ -44,7 +44,7 @@ class FeatureBag(Bag):
 
     def __init__(self, *args, gpu_batch_size: int = 16, **kwargs):
         Datablock.__init__(self, *args, gpu_batch_size=gpu_batch_size, **kwargs)
-        Bag.__init__(self, self.cfg.tilebag.name)
+        Bag.__init__(self, name=self.cfg.tilebag.name, label=self.cfg.tilebag.label)
 
     def __post_init__(self):
         self.TOPICFILES = {
@@ -389,7 +389,7 @@ class FeatureShardClip(Clip):
         shard_size = self.cfg.shard_size
         seed = self.cfg.seed
         n_shards = math.ceil(featuresetlen / shard_size)
-        self.log.debug(f"Forming FeatureShards from featureset of len {featuresetlen} with shard_size {shard_size} and seed {seed}: {n_shards} shards")
+        self.log.detailed(f"Forming FeatureShards from featureset of len {featuresetlen} with shard_size {shard_size} and seed {seed}: {n_shards} shards")
         shards = [
             FeatureShard(
                 spec=dict(

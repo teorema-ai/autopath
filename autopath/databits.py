@@ -47,12 +47,14 @@ class Shard(Datablock):
     
 
 class Bag(Shard):
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, *args, name, label, **kwargs):
         self.name = name
+        self.label = label
+        super().__init__(*args, **kwargs)
     
     @functools.cached_property
     def labels(self):
-        return [self.name]*len(self)
+        return [self.label]*len(self)
 
     
 class Clip(Datablock):

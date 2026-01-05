@@ -250,7 +250,7 @@ class BipolarFeatureBagProbe(Datablock):
         prober = FeatureBagProber()
         
         if not self.validtopic('bag_labels') or not self.validtopic('bag_polarized_features'):
-            self.log.verbose(f"COMPUTING bag bipolarized features and labels: BEGIN")
+            self.log.verbose(f"COMPUTING bipolarized bag features and labels: BEGIN")
             if self.verbose:
                 bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
             else:
@@ -260,6 +260,7 @@ class BipolarFeatureBagProbe(Datablock):
             bag_agg_bipolar_features = []
             for featurebag in bagitor:
                 bag_labels.append(featurebag.cfg.tilebag.label)
+                self.log.debug(f"Polarizing features for bag: {featurebag.cfg.tilebag.label} label: {featurebag.cfg.tilebag.label}")
                 _bipolar_features = prober.polarize_features(featurebag.features)
                 bag_bipolar_features.append(_bipolar_features)
                 _agg_bipolar_features = np.round(_bipolar_features.mean(axis=0)).astype(np.int8)
