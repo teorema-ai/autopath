@@ -237,7 +237,7 @@ class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
         'bag_labels': 'bag_labels.npz',
         'bag_polarized_features': 'bag_polarized_features.npz',
-        'bag_hamming_distance': 'bag_hamming_distance.npz',
+        'bag_agg_polarized_features': 'bag_agg_polarized_features.npz',
     }
     @dataclass
     class CONFIG:
@@ -302,7 +302,6 @@ class BipolarFeatureBagProbe(Datablock):
             aggdist=aggdist,
         )
     
-
     def __read__(self, topic):
         if topic == 'bag_labels':
             result = read_npz(self.path('bag_labels'), 'bag_labels')['bag_labels']
