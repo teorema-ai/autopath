@@ -236,7 +236,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
 class BipolarFeatureBagSimilarityProbe(Datablock):
     TOPICFILES = {
         'labels': 'labels.npz',
-        'polarized_features': 'polarized_features.npz',
+        'polarized_bag_features': 'polarized_bag_features.npz',
         'label_similarity': 'label_similarity.npz',
     }
     @dataclass
@@ -259,7 +259,7 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
             for featurebag in bagitor:
                 if featurebag.cfg.tilebag.label not in label_2_feature_lists:
                     label_2_feature_lists[featurebag.cfg.tilebag.label] = []
-                label_2_feature_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
+                label_2_feature_lists[featurebag.cfg.tilebag.label].append(torch.mean(featurebag.features, dim=0))
             self.log.verbose(f"CONCATENATING and POLARIZING label features")
             if self.verbose:
                 label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
@@ -267,7 +267,7 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
                 label_feature_lists_itor = label_2_feature_lists.items()
             label_2_features = {}
             for label, feature_list in label_feature_lists_itor:
-                label_2_features[label] = prober.polarize_features(torch.cat(feature_list, dim=0)) 
+                label_2_features[label] = prober.polarize_features(torch.stack(feature_list, dim=0)) 
                     
             self.log.verbose(f"COMPUTED {len(label_2_features)} labels and polarizes their features")
             labels = np.array(list(label_2_features.keys()))
