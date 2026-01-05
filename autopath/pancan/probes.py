@@ -289,7 +289,7 @@ class BipolarFeatureBagProbe(Datablock):
         return self.read('bag_agg_polarized_features')
     
     def hamming_distances(self, bag1, bag2):
-        fb1, fb2 = tools.repeat_tensors_pairwise(self.features[bag1], self.features[bag2])
+        fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
         assert fb1.shape == fb2.shape
         distances = np.sum(np.abs(fb1 - fb2), dim=-1)*0.5
         mindist = distances.min()
