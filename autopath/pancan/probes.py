@@ -272,12 +272,12 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
             self.log.verbose(f"COMPUTED {len(label_2_features)} labels and polarizes their features")
             labels = np.array(list(label_2_features.keys()))
             write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
-            write_npz(self.path('polarized_features', ensure_dirpath=True), **label_2_features)
+            write_npz(self.path('polarized_bag_features', ensure_dirpath=True), **label_2_features)
         else:
             self.log.verbose(f"READING precomputed labels and polarized features")
             labels = read_npz(self.path('labels'), 'labels')['labels']
             self.log.debug(f"{labels=}")
-            label_2_features = read_npz(self.path('polarized_features'), *labels)
+            label_2_features = read_npz(self.path('polarized_bag_features'), *labels)
         label_sim = {}
         labels2 = [(li, lj) for i, li in enumerate(labels) for j, lj in enumerate(labels) if i <= j]
         self.log.verbose(f"COMPUTING label similarities for {len(labels2)} label pairs")
