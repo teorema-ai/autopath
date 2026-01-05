@@ -248,17 +248,18 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
 
     def __build__(self):
         prober = FeatureBagProber()
-        self.log.verbose(f"READING featurebags and labels")
-        if self.verbose:
-            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
-        else:
-            bagitor = self.cfg.featurebagclip.bags
-        label_2_feature_lists = {}
-        for featurebag in bagitor:
-            if featurebag.cfg.tilebag.label not in label_2_feature_lists:
-                label_2_feature_lists[featurebag.cfg.tilebag.label] = []
-            label_2_feature_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
+        
         if not self.validtopic('labels') or not self.validtopic('polarized_features'):
+            self.log.verbose(f"READING featurebags and labels")
+            if self.verbose:
+                bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
+            else:
+                bagitor = self.cfg.featurebagclip.bags
+            label_2_feature_lists = {}
+            for featurebag in bagitor:
+                if featurebag.cfg.tilebag.label not in label_2_feature_lists:
+                    label_2_feature_lists[featurebag.cfg.tilebag.label] = []
+                label_2_feature_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
             self.log.verbose(f"CONCATENATING and POLARIZING label features")
             if self.verbose:
                 label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
