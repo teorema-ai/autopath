@@ -233,11 +233,11 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         return result
 
 
-class BipolarFeatureBagSimilarityProbe(Datablock):
+class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
-        'labels': 'labels.npz',
-        'polarized_bag_features': 'polarized_bag_features.npz',
-        'label_similarity': 'label_similarity.npz',
+        'bag_labels': 'bag_labels.npz',
+        'bag_polarized_features': 'bag_polarized_features.npz',
+        'bag_hamming_distance': 'bag_hamming_distance.npz',
     }
     @dataclass
     class CONFIG:
@@ -249,66 +249,41 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
     def __build__(self):
         prober = FeatureBagProber()
         
-        if not self.validtopic('labels') or not self.validtopic('polarized_bag_features'):
-            self.log.verbose(f"READING featurebags and labels")
+        if not self.validtopic('bag_labels') or not self.validtopic('bag_polarized_features'):
+            self.log.verbose(f"COMPUTING bag bipolarized features and labels: BEGIN")
             if self.verbose:
                 bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
             else:
                 bagitor = self.cfg.featurebagclip.bags
-            label_2_feature_lists = {}
+            bag_labels = []
+            bag_bipolar_features = []
             for featurebag in bagitor:
-                if featurebag.cfg.tilebag.label not in label_2_feature_lists:
-                    label_2_feature_lists[featurebag.cfg.tilebag.label] = []
-                label_2_feature_lists[featurebag.cfg.tilebag.label].append(torch.mean(featurebag.features, dim=0))
-            self.log.verbose(f"CONCATENATING and POLARIZING label features")
-            if self.verbose:
-                label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
-            else:
-                label_feature_lists_itor = label_2_feature_lists.items()
-            label_2_features = {}
-            for label, feature_list in label_feature_lists_itor:
-                label_2_features[label] = prober.polarize_features(torch.stack(feature_list, dim=0)) 
-                    
-            self.log.verbose(f"COMPUTED {len(label_2_features)} labels and polarizes their features")
-            labels = np.array(list(label_2_features.keys()))
-            write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
-            write_npz(self.path('polarized_bag_features', ensure_dirpath=True), **label_2_features)
+                bag_labels.append(featurebag.cfg.tilebag.label)
+                _bipolar_features = prober.polarize_features(featurebag.features)
+                _bag_bipolar_features = np.round(_bipolar_features.mean(axis=0)).astype(np.int8)
+                bag_bipolar_features.append(_bag_bipolar_features)
+            self.log.verbose(f"COMPUTING bag bipolarized features and labels: DONE")     
+            write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
+            write_npz(self.path('bag_polarized_features', ensure_dirpath=True), bag_polarized_features=bag_bipolar_features)
         else:
-            self.log.verbose(f"READING precomputed labels and polarized features")
-            labels = read_npz(self.path('labels'), 'labels')['labels']
-            self.log.debug(f"{labels=}")
-            label_2_features = read_npz(self.path('polarized_bag_features'), *labels)
-        label_sim = {}
-        labels2 = [(li, lj) for i, li in enumerate(labels) for j, lj in enumerate(labels) if i <= j]
-        self.log.verbose(f"COMPUTING label similarities for {len(labels2)} label pairs")
-        if self.verbose:
-            labels2_itor = tqdm.tqdm(labels2)
-        else:
-            labels2_itor = labels2
-        for li, lj in labels2_itor:
-            key = f"sim_{li}_{lj}"
-            fi = label_2_features[li]
-            fj = label_2_features[lj]
-            self.log.debug(f"Computing similarity between features with labels {li} and {lj}: : {fi.shape=}, {fj.shape=}: BEGIN")
-            simij = np.matmul(fi, fj.T) / (np.linalg.norm(fi, axis=1) * np.linalg.norm(fj, axis=1))
-            label_sim[key] = simij
-            self.log.debug(f"Computing similarity between features with labels {li} and {lj}: : {fi.shape=}, {fj.shape=}: END")
-        write_npz(self.path('label_similarity', ensure_dirpath=True), **label_sim)
+            bag_labels = self.labels
+            bag_bipolar_features = self.features
+
         return self
 
     @functools.cached_property
     def labels(self):
-        return self.read('labels')
+        return self.read('bag_labels')
     
     @functools.cached_property
-    def label_similarity(self):
-        return self.read('label_similarity')
+    def features(self):
+        return self.read('bag_polarized_features')
 
     def __read__(self, topic):
-        if topic == 'labels':
-            result = read_npz(self.path('labels'), 'labels')
-        elif topic == 'label_similarity':
-            result = read_npz(self.path('mean_label_similarity'), *self.labels)
+        if topic == 'bag_labels':
+            result = read_npz(self.path('bag_labels'), 'bag_labels')['bag_labels']
+        elif topic == 'bag_polarized_features':
+            result = read_npz(self.path('bag_polarized_features'), 'bag_polarized_features')['bag_polarized_features']
         else:
             raise ValueError(f"Unknown topic: {topic}")
         return result
