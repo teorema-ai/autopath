@@ -31,7 +31,7 @@ from dbx import (
     TorchMultiprocessingDatablocksBuilder,
 )
 
-from autopath.tiles import TileBag
+from autopath import tools
 from autopath.features import FeatureBagClip
 
 
@@ -289,7 +289,9 @@ class BipolarFeatureBagProbe(Datablock):
         return self.read('bag_agg_polarized_features')
     
     def hamming_distances(self, bag1, bag2):
-        distances = np.sum(np.abs(self.features[bag1] - self.features[bag2]), dim=-1)*0.5
+        fb1, fb2 = tools.repeat_tensors_pairwise(self.features[bag1], self.features[bag2])
+        assert fb1.shape == fb2.shape
+        distances = np.sum(np.abs(fb1 - fb2), dim=-1)*0.5
         mindist = distances.min()
         maxdist = distances.max()
         meandist = distances.mean()
