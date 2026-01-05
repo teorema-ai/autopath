@@ -17,7 +17,7 @@ import dbx
 from dbx import Logger, Datablock
 
 from autopath.databits import Bag, Clip, Split, Fold, ClipDataset
-from autopath.tiles import TileBag
+from autopath.tiles import TileShard, TileBag
 from autopath.pancan.tools.tfrecord import TFRecordDataset, get_tfrecord_parser
 
 
@@ -39,14 +39,14 @@ class PancanTileBag(TileBag):
 		source: str
 
 	def __init__(self, *args, **kwargs):
-		TileBag.__init__(self, *args, **kwargs)
+		TileShard.__init__(self, *args, **kwargs)
 
 	def __post_init__(self):
 		root, tail = self.config.source.split('/tfrecords/')
-		self.label = root.split('/')[-1] #cancer
+		label = root.split('/')[-1] #cancer
 		self.resolution, records = tail.split('/')
 		name, _  = os.path.splitext(records)
-		Bag.__init__(self, name)
+		Bag.__init__(self, name=name, label=label)
 		tilesfile = os.path.basename(self.config.source)
 		indexfile = tilesfile.split('.')[0] + '.index.npz'
 		self.TOPICFILES = {'index': indexfile, 'tiles': tilesfile, 'labels': None}
