@@ -275,6 +275,7 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
         else:
             self.log.verbose(f"READING precomputed labels and polarized features")
             labels = read_npz(self.path('labels'))
+            self.log.debug(f"{labels=}")
             label_2_features = read_npz(self.path('polarized_features'), *labels)
         label_sim = {}
         labels2 = [(li, lj) for i, li in enumerate(labels) for j, lj in enumerate(labels) if i <= j]
