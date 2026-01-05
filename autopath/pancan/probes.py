@@ -258,7 +258,7 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
             if featurebag.cfg.tilebag.label not in label_2_feature_lists:
                 label_2_feature_lists[featurebag.cfg.tilebag.label] = []
             label_2_feature_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
-        if not self.validpath('labels') or not self.validpath('polarized_features'):
+        if not self.validtopic('labels') or not self.validtopic('polarized_features'):
             self.log.verbose(f"CONCATENATING and POLARIZING label features")
             if self.verbose:
                 label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
