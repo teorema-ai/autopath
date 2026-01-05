@@ -236,6 +236,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
 class BipolarFeatureBagSimilarityProbe(Datablock):
     TOPICFILES = {
         'labels': 'labels.npy',
+        'polarized_features': 'polarized_features.npy',
         'label_similarity': 'label_similarity.npy',
     }
     @dataclass
@@ -257,7 +258,8 @@ class BipolarFeatureBagSimilarityProbe(Datablock):
             if featurebag.cfg.tilebag.label not in label_2_feature_lists:
                 label_2_feature_lists[featurebag.cfg.tilebag.label] = []
             label_2_feature_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
-        self.log.verbose(f"CONCATENATING and POLIRIZING label features")
+        if not self.valid
+        self.log.verbose(f"CONCATENATING and POLARIZING label features")
         if self.verbose:
             label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
         else:
