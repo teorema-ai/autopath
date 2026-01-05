@@ -54,6 +54,11 @@ class FeatureBagProber:
     def discretize_features(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], d:int = 4) -> np.ndarray:
         features = FeatureBagProber.ndarray(X)
         return pd.DataFrame(features).apply(lambda c: pd.qcut(c, d, labels=False, duplicates='drop')).fillna(0.0).values
+    
+    @staticmethod
+    def polarize_features(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame]) -> np.ndarray:
+        features = FeatureBagProber.ndarray(X)
+        return (2.0*pd.DataFrame(features).apply(lambda c: pd.qcut(c, 2, labels=False, duplicates='drop')) - 1.0).fillna(0.0).values
 
     @staticmethod
     def split_train_test(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame], 
@@ -228,7 +233,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         return result
 
 
-class BipolarFeatureBagProbe(Datablock):
+class BipolarFeatureBagSimilarityProbe(Datablock):
     TOPICFILES = {
         'labels': 'labels.npy',
         'label_similarity': 'label_similarity.npy',
@@ -236,7 +241,6 @@ class BipolarFeatureBagProbe(Datablock):
     @dataclass
     class CONFIG:
         featurebagclip: FeatureBagClip
-        n_bins: int = 2
 
     def __init__(self, *args, use_gpu: bool = False, gpu_batch_size: int = 1024, **kwargs):
         super().__init__(*args, use_gpu=use_gpu, gpu_batch_size=gpu_batch_size, **kwargs)
@@ -248,22 +252,22 @@ class BipolarFeatureBagProbe(Datablock):
             bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
         else:
             bagitor = self.cfg.featurebagclip.bags
-        label_features_lists = {}
+        label_2_feature_lists = {}
         for featurebag in bagitor:
-            if featurebag.cfg.tilebag.label not in label_features_lists:
-                label_features_lists[featurebag.cfg.tilebag.label] = []
-            label_features_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
+            if featurebag.cfg.tilebag.label not in label_2_feature_lists:
+                label_2_feature_lists[featurebag.cfg.tilebag.label] = []
+            label_2_feature_lists[featurebag.cfg.tilebag.label].append(featurebag.features)
         self.log.verbose(f"CONCATENATING and DISCRETIZING label features")
         if self.verbose:
-            label_feature_itor = tqdm.tqdm(label_features_lists.items())
+            label_feature_lists_itor = tqdm.tqdm(label_2_feature_lists.items())
         else:
-            label_feature_itor = label_features_lists.items()
-        label_features = {}
-        for label, feature_list in label_feature_itor:
-            label_features[label] = prober.discretize_features(torch.cat(feature_list, dim=0), self.cfg.n_bins) 
+            label_feature_lists_itor = label_2_feature_lists.items()
+        label_2_features = {}
+        for label, feature_list in label_feature_lists_itor:
+            label_2_features[label] = prober.polarize_features(torch.cat(feature_list, dim=0)) 
                 
-        self.log.verbose(f"COMPUTED {len(label_features)} labels and discretized their features using {self.cfg.n_bins} bins")
-        labels = np.array(list(label_features.keys()))
+        self.log.verbose(f"COMPUTED {len(label_2_features)} labels and polarize their features using")
+        labels = np.array(list(label_2_features.keys()))
         write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
         label_sim = {}
         labels2 = [(li, lj) for i, li in enumerate(labels) for j, lj in enumerate(labels) if i <= j]
@@ -274,12 +278,12 @@ class BipolarFeatureBagProbe(Datablock):
             labels2_itor = labels2
         for li, lj in labels2_itor:
             key = f"sim_{li}_{lj}"
-            fi = label_features[li]
-            fj = label_features[lj]
-            self.log.debug(f"Computing similarity between labels {li} and {lj}: len li: {fi}, len lj: {fj}")
+            fi = label_2_features[li]
+            fj = label_2_features[lj]
+            self.log.debug(f"Computing similarity between features with labels {li} and {lj}: : {fi.shape=}, {fj.shape=}: BEGIN")
             simij = np.matmul(fi, fj.T) / (np.linalg.norm(fi, axis=1) * np.linalg.norm(fj, axis=1))
             label_sim[key] = simij
-            self.log.debug(f"Computed similarity between discretized features with labels {li} and {lj}: len li: {fi}, len lj: {fj}: shape: {simij.shape}")
+            self.log.debug(f"Computing similarity between features with labels {li} and {lj}: : {fi.shape=}, {fj.shape=}: END")
         write_npz(self.path('label_similarity', ensure_dirpath=True), **label_sim)
         return self
 
