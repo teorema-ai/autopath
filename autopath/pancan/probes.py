@@ -164,7 +164,6 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         'bag_cdf': 'bag_cdf.npy',
         'bag_features': 'bag_features.npy',
         'discretized_bag_features': 'discretized_bag_features.npy',
-        #'discretized_bag_features_umap': 'discretized_bag_features_umap.png', #TODO: RESTORE?
         'evaluation_reports': 'evaluation_reports.pkl',
     }
     @dataclass
@@ -204,7 +203,8 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         discretized_bag_features = torch.Tensor(self.discretize_features(bag_features.numpy(), self.cfg.n_bins))
         write_tensor(discretized_bag_features, self.path('discretized_bag_features', ensure_dirpath=True))
         
-        # evaluation_reports
+        # evaluation_reports  'label_cdf': 'label_cdf.npy',
+      
         continuous, discretized = self.evaluate_features2(
             (bag_features, bag_labels), 
             (discretized_bag_features, bag_labels),
@@ -231,7 +231,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         else:
             raise ValueError(f"Unknown topic: {topic}")
         return result
-
+    
 
 class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
