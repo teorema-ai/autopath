@@ -254,13 +254,11 @@ class BipolarFeatureBagProbe(Datablock):
             bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
         else:
             bagitor = self.cfg.featurebagclip.bags
-        bag_labels = []
         bag_uq = []
         bag_bipolar_features = []
         bag_bipolar_uq = []
         for featurebag in bagitor:
-            bag_labels.append(featurebag.cfg.tilebag.label)
-            self.log.debug(f"Polarizing features for bag: {featurebag.cfg.tilebag.name}, label: {featurebag.cfg.tilebag.label}")
+            self.log.debug(f"Bipolarizing features for bag: {featurebag.cfg.tilebag.name}, label: {featurebag.cfg.tilebag.label}")
             _bag_uq = featurebag.features.std(axis=0)
             bag_uq.append(_bag_uq)
             _bag_bipolar_features = prober.polarize_features(featurebag.features)
@@ -268,20 +266,17 @@ class BipolarFeatureBagProbe(Datablock):
             _bag_bipolar_uq = _bag_bipolar_features.std(axis=0)
             bag_bipolar_uq.append(_bag_bipolar_uq)
         self.log.verbose(f"COMPUTING bag bipolarized features and labels: DONE")     
-        write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
         write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
         write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
         write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
 
         return self
 
-    @functools.cached_property
-    def labels(self):
-        return self.read('bag_labels')
+    def label(self, bag: int):
+        return self.bags[bag].cfg.tilebag.label
     
-    @functools.cached_property
-    def features(self):
-        return self.read('bag_features')
+    def features(self, bag: int):
+        return self.bags[bag].features
     
     @functools.cached_property
     def uq(self):
@@ -295,23 +290,24 @@ class BipolarFeatureBagProbe(Datablock):
     def bipolar_uq(self):
         return self.read('bag_bipolar_uq')
     
-    def agg_features(self, bag: int, *, uq_threshold: float = None, bipolar_uq_threshold: float = None):
-        bag_features = self.features[bag]
-        bag_uq = self.uq[bag]
+    def agg_features(self, bag: int, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
+        if aggregate_bipolar:
+            bag_features = self.bipolar_features[bag]
+        else:
+            bag_features = self.features[bag]
+        if aggregate_bipolar:
+            bag_uq = self.bipolar_uq[bag]
+        else:
+            bag_uq = self.uq[bag]
         bag_agg_features = bag_features.mean(axis=0)
         if uq_threshold is not None:
             bag_agg_features[bag_uq > uq_threshold] = 0.0
-        if bipolar_uq_threshold is not None:
-            bag_agg_features[self.bipolar_uq[bag] > bipolar_uq_threshold] = 0.0
+        if bipolarize_aggregate:
+            prober = FeatureBagProber()
+            bag_agg_features = prober.polarize_features(bag_agg_features)
         return bag_agg_features
-
-    def bipolar_agg_features(self, bag: int, *, uq_threshold: float = None, bipolar_uq_threshold: float = None):
-        prober = FeatureBagProber()
-        agg_features = self.agg_features(bag, uq_threshold=uq_threshold, bipolar_uq_threshold=bipolar_uq_threshold)
-        bipolar_agg_features = prober.polarize_features(agg_features)
-        return bipolar_agg_features
     
-    def hamming_distances(self, bag1, bag2):
+    def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
         assert fb1.shape == fb2.shape
         distances = np.sum(np.abs(fb1 - fb2), axis=-1)*0.5
