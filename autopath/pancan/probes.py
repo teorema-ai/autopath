@@ -296,10 +296,12 @@ class BipolarFeatureBagProbe(Datablock):
     def bag_bipolar_uq(self, bag):
         return self.bipolar_uq[bag]
     
-    def bag_bipolar_features(self, bag: int, *, uq_threshold: float = None):
+    def bag_bipolar_features(self, bag: int, *, uq_threshold: float = None, return_unique: bool = False):
         bag_bipolar_features = self.bipolar_features[bag]
         if uq_threshold is not None:
             bag_bipolar_features[self.bag_bipolar_uq(bag) > uq_threshold] = 0.0
+        if return_unique:
+            bag_bipolar_features = np.unique(bag_bipolar_features, axis=0)  
         return bag_bipolar_features
     
     def agg_bipolar_features(self, bag: int = None, *, uq_threshold: float = None, bipolarize_aggregate: bool = True, return_unique: bool = False):
