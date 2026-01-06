@@ -302,13 +302,13 @@ class BipolarFeatureBagProbe(Datablock):
             _agg_features = self.bipolar_features[bag].mean(axis=0)
             if uq_threshold is not None:
                 _agg_features[self.bipolar_uq[bag] > uq_threshold] = 0.0
-            agg_feature_list.append(_agg_features)
+            agg_feature_list.append(torch.tensor(_agg_features))
         agg_features = torch.stack(agg_feature_list)
         if bipolarize_aggregate:
             agg_features = prober.polarize_features(agg_features)
         else:
             agg_features = agg_features
-        return agg_features
+        return agg_features.numpy()
     
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
