@@ -307,8 +307,8 @@ class BipolarFeatureBagProbe(Datablock):
         if bipolarize_aggregate:
             agg_features = prober.polarize_features(agg_features)
         else:
-            agg_features = agg_features
-        return agg_features.numpy()
+            agg_features = agg_features.numpy()
+        return agg_features
     
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
