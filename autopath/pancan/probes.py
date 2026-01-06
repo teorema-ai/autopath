@@ -204,7 +204,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         if self.cfg.polarize:
             assert self.cfg.n_bins == 2, f"Polarizing features with n_bins != 2: {self.cfg.n_bins}"
             self.log.verbose(f"POLARIZING features")
-            bag_features = torch.tensor(prober.polarize_features(bag_features.numpy()))
+            discretized_bag_features = torch.tensor(prober.polarize_features(bag_features.numpy()))
         else:
             discretized_bag_features = torch.Tensor(prober.discretize_features(bag_features.numpy(), self.cfg.n_bins))
         write_tensor(discretized_bag_features, self.path('discretized_bag_features', ensure_dirpath=True))
