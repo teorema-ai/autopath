@@ -271,24 +271,36 @@ class BipolarFeatureBagProbe(Datablock):
         write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
 
         return self
-
-    def label(self, bag: int):
-        return self.bags[bag].cfg.tilebag.label
-    
-    def features(self, bag: int):
-        return self.bags[bag].features
-    
-    @functools.cached_property
-    def uq(self):
-        return self.read('bag_uq')
     
     @functools.cached_property
     def bipolar_features(self):
         return self.read('bag_bipolar_features')
     
     @functools.cached_property
+    def uq(self):
+        return self.read('bag_uq')
+    
+    @functools.cached_property
     def bipolar_uq(self):
         return self.read('bag_bipolar_uq')
+
+    def bag_label(self, bag: int):
+        return self.bags[bag].cfg.tilebag.label
+    
+    def bag_features(self, bag: int):
+        return self.bags[bag].features
+    
+    def bag_uq(self, bag):
+        return self.uq[bag]
+    
+    def bag_bipolar_uq(self, bag):
+        return self.bipolar_uq[bag]
+    
+    def bag_bipolar_features(self, bag: int, *, uq_threshold: float = None):
+        bag_bipolar_features = self.bipolar_features[bag]
+        if uq_threshold is not None:
+            bag_bipolar_features[self.bag_bipolar_uq(bag) > uq_threshold] = 0.0
+        return bag_bipolar_features
     
     def agg_bipolar_features(self, bag: int = None, *, uq_threshold: float = None, bipolarize_aggregate: bool = True, return_unique: bool = False):
         if bag is None:
