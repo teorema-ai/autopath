@@ -292,7 +292,7 @@ class BipolarFeatureBagProbe(Datablock):
     
     def agg_bipolar_features(self, bag: int = None, *, uq_threshold: float = None, bipolarize_aggregate: bool = True):
         if bag is None:
-            bags = range(len(self.bags))
+            bags = range(len(self.cfg.featurebagclip.bags))
         else:
             bags = [bag]
         agg_feature_list = []
