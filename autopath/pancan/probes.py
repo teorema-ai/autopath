@@ -236,8 +236,9 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
 class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
         'bag_labels': 'bag_labels.npz',
-        'bag_polarized_features': 'bag_polarized_features.npz',
-        'bag_agg_polarized_features': 'bag_agg_polarized_features.npz',
+        'bag_bipolar_features': 'bag_bipolar_features.npz',
+        'bag_uq': 'bag_uq.npz',
+        'bag_bipolar_uq': 'bag_bipolar_uq.npz',
     }
     @dataclass
     class CONFIG:
@@ -248,31 +249,29 @@ class BipolarFeatureBagProbe(Datablock):
 
     def __build__(self):
         prober = FeatureBagProber()
-        
-        if not self.validtopic('bag_labels') or not self.validtopic('bag_polarized_features'):
-            self.log.verbose(f"COMPUTING bipolarized bag features and labels: BEGIN")
-            if self.verbose:
-                bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
-            else:
-                bagitor = self.cfg.featurebagclip.bags
-            bag_labels = []
-            bag_bipolar_features = []
-            bag_agg_bipolar_features = []
-            for featurebag in bagitor:
-                bag_labels.append(featurebag.cfg.tilebag.label)
-                self.log.debug(f"Polarizing features for bag: {featurebag.cfg.tilebag.name}, label: {featurebag.cfg.tilebag.label}")
-                _bipolar_features = prober.polarize_features(featurebag.features)
-                bag_bipolar_features.append(_bipolar_features)
-                _agg_bipolar_features = np.round(_bipolar_features.mean(axis=0)).astype(np.int8)
-                bag_agg_bipolar_features.append(_agg_bipolar_features)
-            self.log.verbose(f"COMPUTING bag bipolarized features and labels: DONE")     
-            write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
-            write_npz(self.path('bag_polarized_features', ensure_dirpath=True), bag_polarized_features=bag_bipolar_features)
-            write_npz(self.path('bag_agg_polarized_features', ensure_dirpath=True), bag_agg_polarized_features=bag_agg_bipolar_features)
+        self.log.verbose(f"COMPUTING bipolarized bag features and labels: BEGIN")
+        if self.verbose:
+            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
         else:
-            bag_labels = self.labels
-            bag_bipolar_features = self.features
-            bag_agg_bipolar_features = self.agg_features
+            bagitor = self.cfg.featurebagclip.bags
+        bag_labels = []
+        bag_uq = []
+        bag_bipolar_features = []
+        bag_bipolar_uq = []
+        for featurebag in bagitor:
+            bag_labels.append(featurebag.cfg.tilebag.label)
+            self.log.debug(f"Polarizing features for bag: {featurebag.cfg.tilebag.name}, label: {featurebag.cfg.tilebag.label}")
+            _bag_uq = featurebag.features.std(axis=0)
+            bag_uq.append(_bag_uq)
+            _bag_bipolar_features = prober.polarize_features(featurebag.features)
+            bag_bipolar_features.append(_bag_bipolar_features)
+            _bag_bipolar_uq = _bag_bipolar_features.std(axis=0)
+            bag_bipolar_uq.append(_bag_bipolar_uq)
+        self.log.verbose(f"COMPUTING bag bipolarized features and labels: DONE")     
+        write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
+        write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
+        write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
+        write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
 
         return self
 
@@ -282,11 +281,35 @@ class BipolarFeatureBagProbe(Datablock):
     
     @functools.cached_property
     def features(self):
-        return self.read('bag_polarized_features')
+        return self.read('bag_features')
     
     @functools.cached_property
-    def agg_features(self):
-        return self.read('bag_agg_polarized_features')
+    def uq(self):
+        return self.read('bag_uq')
+    
+    @functools.cached_property
+    def bipolar_features(self):
+        return self.read('bag_bipolar_features')
+    
+    @functools.cached_property
+    def bipolar_uq(self):
+        return self.read('bag_bipolar_uq')
+    
+    def agg_features(self, bag: int, *, uq_threshold: float = None, bipolar_uq_threshold: float = None):
+        bag_features = self.features[bag]
+        bag_uq = self.uq[bag]
+        bag_agg_features = bag_features.mean(axis=0)
+        if uq_threshold is not None:
+            bag_agg_features[bag_uq > uq_threshold] = 0.0
+        if bipolar_uq_threshold is not None:
+            bag_agg_features[self.bipolar_uq[bag] > bipolar_uq_threshold] = 0.0
+        return bag_agg_features
+
+    def bipolar_agg_features(self, bag: int, *, uq_threshold: float = None, bipolar_uq_threshold: float = None):
+        prober = FeatureBagProber()
+        agg_features = self.agg_features(bag, uq_threshold=uq_threshold, bipolar_uq_threshold=bipolar_uq_threshold)
+        bipolar_agg_features = prober.polarize_features(agg_features)
+        return bipolar_agg_features
     
     def hamming_distances(self, bag1, bag2):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
@@ -312,10 +335,10 @@ class BipolarFeatureBagProbe(Datablock):
     def __read__(self, topic):
         if topic == 'bag_labels':
             result = read_npz(self.path('bag_labels'), 'bag_labels')['bag_labels']
-        elif topic == 'bag_polarized_features':
-            result = read_npz(self.path('bag_polarized_features'), 'bag_polarized_features')['bag_polarized_features']
-        elif topic == 'bag_agg_polarized_features':
-            result = read_npz(self.path('bag_agg_polarized_features'), 'bag_agg_polarized_features')['bag_agg_polarized_features']
+        elif topic == 'bag_polar_features':
+            result = read_npz(self.path('bag_polar_features'), 'bag_polar_features')['bag_polar_features']
+        elif topic == 'bag_features':
+            result = read_npz(self.path('bag_features'), 'bag_polar_features')['bag_polar_features']
         else:
             raise ValueError(f"Unknown topic: {topic}")
         return result
