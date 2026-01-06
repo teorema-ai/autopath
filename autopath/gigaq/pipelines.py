@@ -155,9 +155,11 @@ def gigapath_featureshardset(name) -> torch.utils.data.Dataset:
 # git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_logistic_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).read('evaluation_reports')"
 #
 # git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_logistic_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_9802_TRAIN', n_bins=2, polarize=True).build()"
+#
+# git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_logistic_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_9802_TRAIN', n_bins=2, aggregation='cdf').build()"
 
-def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2, polarize: bool = False) -> LogisticFeatureBagProbe:
-    return LogisticFeatureBagProbe(spec=dict(featurebagclip=gigapath_feature_bag_clip(name), n_bins=n_bins, polarize=polarize))
+def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2, polarize: bool = False, aggregation: str = 'mean') -> LogisticFeatureBagProbe:
+    return LogisticFeatureBagProbe(spec=dict(featurebagclip=gigapath_feature_bag_clip(name), n_bins=n_bins, polarize=polarize, aggregation=aggregation))
     
 
 # git commit -am "gigaq: BipolarFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_bipolar_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
