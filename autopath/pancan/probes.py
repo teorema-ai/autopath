@@ -290,20 +290,9 @@ class BipolarFeatureBagProbe(Datablock):
     def bipolar_uq(self):
         return self.read('bag_bipolar_uq')
     
-    def agg_features(self, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
-        features = self.features
-        bipolar_features = self.bipolar_features
-        uq = self.uq
-        bipolar_uq = self.bipolar_uq
-
-        if aggregate_bipolar:
-            _features = bipolar_features
-        else:
-            _features = features
-        if aggregate_bipolar:
-            _uq = bipolar_uq
-        else:
-            _uq = uq
+    def agg_bipolar_features(self, *, uq_threshold: float = None, bipolarize_aggregate: bool = True):
+        _features = self.bipolar_features
+        _uq = self.bipolar_uq
         _agg_features = _features.mean(axis=0)
         if uq_threshold is not None:
             agg_features[_uq > uq_threshold] = 0.0
