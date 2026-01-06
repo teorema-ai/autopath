@@ -152,6 +152,7 @@ def gigapath_featureshardset(name) -> torch.utils.data.Dataset:
 
 
 # git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_logistic_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).build()"
+# git commit -am "gigaq: LogisticFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_logistic_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_bins=2).read('evaluation_reports')"
 def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2) -> LogisticFeatureBagProbe:
     return LogisticFeatureBagProbe(spec=dict(featurebagclip=gigapath_feature_bag_clip(name), n_bins=n_bins,))
     
