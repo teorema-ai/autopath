@@ -290,22 +290,29 @@ class BipolarFeatureBagProbe(Datablock):
     def bipolar_uq(self):
         return self.read('bag_bipolar_uq')
     
-    def agg_features(self, bag: int, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
+    def agg_features(self, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
+        features = self.features
+        bipolar_features = self.bipolar_features
+        uq = self.uq
+        bipolar_uq = self.bipolar_uq
+
         if aggregate_bipolar:
-            bag_features = self.bipolar_features[bag]
+            _features = bipolar_features
         else:
-            bag_features = self.features[bag]
+            _features = features
         if aggregate_bipolar:
-            bag_uq = self.bipolar_uq[bag]
+            _uq = bipolar_uq
         else:
-            bag_uq = self.uq[bag]
-        bag_agg_features = bag_features.mean(axis=0)
+            _uq = uq
+        _agg_features = _features.mean(axis=0)
         if uq_threshold is not None:
-            bag_agg_features[bag_uq > uq_threshold] = 0.0
+            agg_features[_uq > uq_threshold] = 0.0
         if bipolarize_aggregate:
             prober = FeatureBagProber()
-            bag_agg_features = prober.polarize_features(bag_agg_features)
-        return bag_agg_features
+            agg_features = prober.polarize_features(_agg_features)
+        else:
+            agg_features = _agg_features
+        return agg_features
     
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
