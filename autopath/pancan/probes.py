@@ -336,15 +336,7 @@ class BipolarFeatureBagProbe(Datablock):
         )
     
     def __read__(self, topic):
-        if topic == 'bag_labels':
-            result = read_npz(self.path('bag_labels'), 'bag_labels')['bag_labels']
-        elif topic == 'bag_polar_features':
-            result = read_npz(self.path('bag_polar_features'), 'bag_polar_features')['bag_polar_features']
-        elif topic == 'bag_features':
-            result = read_npz(self.path('bag_features'), 'bag_polar_features')['bag_polar_features']
-        else:
-            raise ValueError(f"Unknown topic: {topic}")
-        return result
+        return  read_npz(self.path(topic), topic)[topic]
     
 
 class FeaturePairwiseDistancesShard(Datablock):
