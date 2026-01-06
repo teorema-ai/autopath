@@ -161,7 +161,6 @@ class LogisticFeatureBagProber(FeatureBagProber):
 class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
     TOPICFILES = {
         'bag_labels': 'bag_labels.npz',
-        'bag_cdf': 'bag_cdf.npy',
         'bag_features': 'bag_features.npy',
         'discretized_bag_features': 'discretized_bag_features.npy',
         'evaluation_reports': 'evaluation_reports.pkl',
@@ -175,7 +174,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         aggregation: str = "mean"
 
     def __post_init__(self):
-        assert self.cfg.aggregation in ["mean"], f"Unknown aggregation: {self.cfg.aggregation}"
+        assert self.cfg.aggregation in ["mean", "cdf"], f"Unknown aggregation: {self.cfg.aggregation}"
         return self
 
     def __build__(self):
@@ -188,25 +187,29 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
             bagitor = self.cfg.featurebagclip.bags
         for featurebag in bagitor:
             bag_labels.append(featurebag.cfg.tilebag.label)
-            bag_feature_list.append(torch.mean(featurebag.features, dim=0))
+            if self.cfg.aggregation == "mean":
+                _bag_features = torch.mean(featurebag.features, dim=0)
+            elif self.cfg.aggregation == "cdf":
+                quantiles = np.arange(0.0, 1.0, 1.0/self.cfg.n_bins)
+                _bag_features = torch.tensor(np.percentile(featurebag.features.numpy(), quantiles, axis=0))
+            bag_feature_list.append(_bag_features)
         bag_features = torch.stack(bag_feature_list)
         assert len(bag_labels) == len(bag_features), f"len(bag_labels) != len(bag_features): {len(bag_labels)} != {len(bag_features)}"
         write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
         write_tensor(bag_features, self.path('bag_features', ensure_dirpath=True))
 
-        # cdf
-        quantiles = np.arange(0.0, 1.0, 1.0/self.cfg.n_bins)
-        bag_cdf = torch.tensor(np.percentile(bag_features.numpy(), quantiles, axis=0))
-        write_tensor(bag_cdf, self.path('bag_cdf', ensure_dirpath=True))
-
         # discretized_features
-        prober = FeatureBagProber()
-        if self.cfg.polarize:
-            assert self.cfg.n_bins == 2, f"Polarizing features with n_bins != 2: {self.cfg.n_bins}"
-            self.log.verbose(f"POLARIZING features")
-            discretized_bag_features = torch.tensor(prober.polarize_features(bag_features.numpy()))
+        if self.cfg.aggregation == "cdf":
+            self.log.verbose(f"Using CDF as discretization")
+            discretized_bag_features = bag_features
         else:
-            discretized_bag_features = torch.Tensor(prober.discretize_features(bag_features.numpy(), self.cfg.n_bins))
+            prober = FeatureBagProber()
+            if self.cfg.polarize:
+                assert self.cfg.n_bins == 2, f"Polarizing features with n_bins != 2: {self.cfg.n_bins}"
+                self.log.verbose(f"POLARIZING features")
+                discretized_bag_features = torch.tensor(prober.polarize_features(bag_features.numpy()))
+            else:
+                discretized_bag_features = torch.Tensor(prober.discretize_features(bag_features.numpy(), self.cfg.n_bins))
         write_tensor(discretized_bag_features, self.path('discretized_bag_features', ensure_dirpath=True))
       
         continuous, discretized = self.evaluate_features2(
@@ -228,8 +231,6 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
             result = read_tensor(self.path('bag_features'))
         elif topic == 'discretized_bag_features':
             result = read_tensor(self.path('discretized_bag_features'))
-        elif topic == 'bag_cdf':
-            result = read_tensor(self.path('bag_cdf'))
         elif topic == 'evaluation_reports':
             result = read_pickle(self.path('evaluation_reports'))
         else:
