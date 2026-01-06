@@ -290,17 +290,24 @@ class BipolarFeatureBagProbe(Datablock):
     def bipolar_uq(self):
         return self.read('bag_bipolar_uq')
     
-    def agg_bipolar_features(self, *, uq_threshold: float = None, bipolarize_aggregate: bool = True):
-        _features = self.bipolar_features
-        _uq = self.bipolar_uq
-        _agg_features = _features.mean(axis=0)
-        if uq_threshold is not None:
-            agg_features[_uq > uq_threshold] = 0.0
+    def agg_bipolar_features(self, bag: int = None, *, uq_threshold: float = None, bipolarize_aggregate: bool = True):
+        if bag is None:
+            bags = range(len(self.bags))
+        else:
+            bags = [bag]
+        agg_feature_list = []
         if bipolarize_aggregate:
             prober = FeatureBagProber()
-            agg_features = prober.polarize_features(_agg_features)
+        for bag in bags:
+            _agg_features = self.bipolar_features[bag].mean(axis=0)
+            if uq_threshold is not None:
+                _agg_features[self.bipolar_uq[bag] > uq_threshold] = 0.0
+            agg_feature_list.append(_agg_features)
+        agg_features = torch.stack(agg_feature_list)
+        if bipolarize_aggregate:
+            agg_features = prober.polarize_features(agg_features)
         else:
-            agg_features = _agg_features
+            agg_features = agg_features
         return agg_features
     
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
