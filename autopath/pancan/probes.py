@@ -290,7 +290,7 @@ class BipolarFeatureBagProbe(Datablock):
     def bipolar_uq(self):
         return self.read('bag_bipolar_uq')
     
-    def agg_bipolar_features(self, bag: int = None, *, uq_threshold: float = None, bipolarize_aggregate: bool = True):
+    def agg_bipolar_features(self, bag: int = None, *, uq_threshold: float = None, bipolarize_aggregate: bool = True, return_unique: bool = False):
         if bag is None:
             bags = range(len(self.cfg.featurebagclip.bags))
         else:
@@ -308,6 +308,8 @@ class BipolarFeatureBagProbe(Datablock):
             agg_features = prober.polarize_features(agg_features)
         else:
             agg_features = agg_features.numpy()
+        if return_unique:
+            agg_features = np.unique(agg_features, axis=0)
         return agg_features
     
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
