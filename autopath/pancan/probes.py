@@ -170,8 +170,8 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
     class CONFIG:
         featurebagclip: FeatureBagClip
         n_bins: int = 2
+        polarize: bool = False
         evaluation_fraction: float = 0.8
-        umap_fraction: float = 0.01
         aggregation: str = "mean"
 
     def __post_init__(self):
@@ -200,10 +200,14 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         write_tensor(bag_cdf, self.path('bag_cdf', ensure_dirpath=True))
 
         # discretized_features
-        discretized_bag_features = torch.Tensor(self.discretize_features(bag_features.numpy(), self.cfg.n_bins))
+        prober = FeatureBagProber()
+        if self.cfg.polarize:
+            assert self.cfg.n_bins == 2, f"Polarizing features with n_bins != 2: {self.cfg.n_bins}"
+            self.log.verbose(f"POLARIZING features")
+            bag_features = torch.tensor(prober.polarize_features(bag_features.numpy()))
+        else:
+            discretized_bag_features = torch.Tensor(prober.discretize_features(bag_features.numpy(), self.cfg.n_bins))
         write_tensor(discretized_bag_features, self.path('discretized_bag_features', ensure_dirpath=True))
-        
-        # evaluation_reports  'label_cdf': 'label_cdf.npy',
       
         continuous, discretized = self.evaluate_features2(
             (bag_features, bag_labels), 
