@@ -285,10 +285,10 @@ class BipolarFeatureBagProbe(Datablock):
         return self.read('bag_bipolar_uq')
 
     def bag_label(self, bag: int):
-        return self.bags[bag].cfg.tilebag.label
+        return self.cfg.featurebagclip.bags[bag].cfg.tilebag.label
     
     def bag_features(self, bag: int):
-        return self.bags[bag].features
+        return self.cfg.featurebagclip.bags[bag].features
     
     def bag_uq(self, bag):
         return self.uq[bag]
