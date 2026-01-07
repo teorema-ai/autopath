@@ -331,7 +331,7 @@ class BipolarFeatureBagProbe(Datablock):
         #
         self.log.verbose(f"BIPOLARIZING tile features: BEGIN")
         m = self.cfg.medianprobe.min
-        M = self.cfg.medianprobe.max + 1
+        M = self.cfg.medianprobe.max
         median = self.cfg.medianprobe.median
         tile_bipolar_feature_columns = []
         if self.verbose:
@@ -339,7 +339,8 @@ class BipolarFeatureBagProbe(Datablock):
         else:
             jitor = range(tile_features.shape[1])
         for j in jitor:
-            tile_bipolar_feature_column = 2.0*np.digitize(tile_features[:, j], [m[j], median[j], M[j]]) - 1
+            _tile_bipolar_feature_column = np.digitize(tile_features[:, j], [m[j], median[j], M[j]+1]) - 1
+            tile_bipolar_feature_column = 2.0*_tile_bipolar_feature_column - 1.0
             tile_bipolar_feature_columns.append(tile_bipolar_feature_column)
         tile_bipolar_features = np.stack(tile_bipolar_feature_columns, axis=-1)
         del tile_bipolar_feature_columns
