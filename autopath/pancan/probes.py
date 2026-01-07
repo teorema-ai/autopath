@@ -252,6 +252,7 @@ class FeatureBagMedianProbe(Datablock):
         self.log.verbose(f"CONCATENATING bag features: BEGIN")
         features = torch.cat(bag_feature_list, dim=0).numpy()
         del bag_feature_list
+        gc.collect()
         self.log.verbose(f"CONCATENATING bag features: END")
         self.log.verbose(f"COMPUTING features median: BEGIN")
         median  = np.median(features, axis=0)
@@ -265,6 +266,10 @@ class FeatureBagMedianProbe(Datablock):
             raise ValueError(f"Unknown topic: {topic}")
         return result
     
+    @functools.cached_property
+    def median(self):
+        return self.read('median')
+    
 
 class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
@@ -276,16 +281,10 @@ class BipolarFeatureBagProbe(Datablock):
     @dataclass
     class CONFIG:
         featurebagclip: FeatureBagClip
-        n_bins: int = 2
-        cdf_sample_fraction: float = 0.2
-        cdf_sample_seed: int = 42
-
-    def __init__(self, *args, use_gpu: bool = False, gpu_batch_size: int = 1024, **kwargs):
-        super().__init__(*args, use_gpu=use_gpu, gpu_batch_size=gpu_batch_size, **kwargs)
+        medianprobe: FeatureBagMedianProbe
 
     def __build__(self):
-        prober = FeatureBagProber()
-        self.log.verbose(f"COMPUTING CDF using n_bins {self.cfg.n_bins}, sample fraction {self.cfg.cdf_sample_fraction}  and seed {self.cfg.cdf_sample_seed}: BEGIN")
+        self.log.verbose(f"DISCRETIZING CDF using n_bins {self.cfg.n_bins}, sample fraction {self.cfg.cdf_sample_fraction}  and seed {self.cfg.cdf_sample_seed}: BEGIN")
         if self.verbose:
             bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
         else:
