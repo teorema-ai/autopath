@@ -142,10 +142,10 @@ class LogisticFeatureBagProber(FeatureBagProber):
                            Xy2,
                            *, 
                            fraction=0.8,
-                           label1="(1)",
-                           label2="(2)",
+                           tags=("(1)","(2)"),
                            log: Logger = Logger(),
     ):
+        label1, label2 = tags
         log.verbose(f"EVALUATING features: {label1}: started at {datetime.datetime.now()}")
         report1 = LogisticFeatureBagProber.evaluate_features(Xy1, fraction=fraction)
         log.verbose(f"EVALUATING features: {label1}: finished at {datetime.datetime.now()}")
@@ -209,8 +209,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
             (bag_features, bag_labels), 
             (discretized_bag_features, bag_labels),
             fraction=self.cfg.evaluation_fraction,
-            label1='continuous',
-            label2='discretized',
+            tags=('(continuous)', '(discretized)',),
             log=self.log,
         )
         evaluation_reports = {'continuous': continuous, 'discretized': discretized}
@@ -396,6 +395,7 @@ class BipolarFeatureBagProbe(Datablock):
         bag_logistic_evaluation_reports = prober.evaluate_features2(
             (bag_features, bag_labels), 
             (bag_bipolar_features, bag_labels),
+            tags=('bag_features', 'bag_bipolar_features',),
         )
         write_pickle(bag_logistic_evaluation_reports, self.path('bag_logistic_evaluation_reports', ensure_dirpath=True))
         self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: END")
