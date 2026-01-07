@@ -290,6 +290,7 @@ class BipolarFeatureBagProbe(Datablock):
         'tile_bipolar_features': 'tile_bipolar_features.npz',
         'bag_labels': 'bag_labels.npz',
         'label_bags': 'label_bags.npz',
+        'bag_features': 'bag_features.npz',
         'bag_bipolar_features': 'bag_bipolar_features.npz',
         'bag_uq': 'bag_uq.npz',
         'bag_bipolar_uq': 'bag_bipolar_uq.npz',
