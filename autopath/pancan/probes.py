@@ -374,7 +374,7 @@ class BipolarFeatureBagProbe(Datablock):
             self.log.verbose(f"BIPOLARIZING tile features: END")   
             write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
             #
-            self.log.verbose(f"AGGREGATING bag eatures: BEGIN")
+            self.log.verbose(f"AGGREGATING bag features: BEGIN")
             bag_feature_lists = []
             bag_bipolar_feature_lists = []
             for i in range(len(bag_bounds)-1):
@@ -456,7 +456,7 @@ class BipolarFeatureBagProbe(Datablock):
         # stats
         self.log.verbose(f"COMPUTING stats: BEGIN")
         self.log.verbose(f"COMPUTING tile features stats: BEGIN")
-        tile_bags = list(itertools.chain.from_iterable([[i]*bag_lens(i) for i in range(len(bag_lens))]))
+        tile_bags = list(itertools.chain.from_iterable([[i]*bag_lens[i] for i in range(len(bag_lens))]))
         tile_features_frame = pd.DataFrame({'tile_features': tile_features, 
                                             'tile_bipolar_features': tile_bipolar_features,
                                             'tile_labels': tile_labels,
