@@ -317,7 +317,7 @@ class BipolarFeatureBagProbe(Datablock):
             tile_labels.extend(featurebag.cfg.tilebag.labels)
             bag_lens_list.append(len(tile_feature_list))
         bag_lens = np.array(bag_lens_list)
-        bag_lens0 = np.concatenate(np.array([0]), bag_lens)
+        bag_lens0 = np.concatenate([np.array([0]), bag_lens])
         bag_bounds = np.cumsum(bag_lens0)
         write_npz(self.path('bag_lens', ensure_dirpath=True), bag_lens=bag_lens)
         write_npz(self.path('bag_bounds', ensure_dirpath=True), bag_bounds=bag_bounds)
