@@ -234,6 +234,8 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
 class FeatureBagMedianProbe(Datablock):
     TOPICFILES = {
         'median': 'median.npz',
+        'min': 'min.npz',
+        'max': 'max.npz',
     }
     @dataclass
     class CONFIG:
@@ -248,15 +250,19 @@ class FeatureBagMedianProbe(Datablock):
             bagitor = self.cfg.featurebagclip.bags
         for featurebag in bagitor:
             bag_feature_list.append(featurebag.features)
-        self.log.verbose(f"READING featurebags: DONE")
+        self.log.verbose(f"READING featurebags: END")
         self.log.verbose(f"CONCATENATING bag features: BEGIN")
         features = torch.cat(bag_feature_list, dim=0).numpy()
         del bag_feature_list
         gc.collect()
         self.log.verbose(f"CONCATENATING bag features: END")
-        self.log.verbose(f"COMPUTING features median: BEGIN")
+        self.log.verbose(f"COMPUTING features median, min, max: BEGIN")
         median  = np.median(features, axis=0)
-        self.log.verbose(f"COMPUTING features median: END")
+        min = np.min(features, axis=0)
+        max = np.max(features, axis=0)
+        self.log.verbose(f"COMPUTING features median, min, max: END")
+        write_npz(self.path('min', ensure_dirpath=True), min=min)
+        write_npz(self.path('max', ensure_dirpath=True), max=max)
         write_npz(self.path('median', ensure_dirpath=True), median=median)
         return self
 
@@ -268,10 +274,22 @@ class FeatureBagMedianProbe(Datablock):
     def median(self):
         return self.read('median')
     
+    @functools.cached_property
+    def min(self):
+        return self.read('min')
+    
+    @functools.cached_property
+    def max(self):
+        return self.read('max')
+    
 
 class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
+        'tile_labels': 'tile_labels.npz',
+        'label_tiles': 'label_tiles.npz',
+        'tile_bipolar_features': 'tile_bipolar_features.npy',
         'bag_labels': 'bag_labels.npz',
+        'label_bags': 'label_bags.npz',
         'bag_bipolar_features': 'bag_bipolar_features.npz',
         'bag_uq': 'bag_uq.npz',
         'bag_bipolar_uq': 'bag_bipolar_uq.npz',
@@ -282,24 +300,40 @@ class BipolarFeatureBagProbe(Datablock):
         medianprobe: FeatureBagMedianProbe
 
     def __build__(self):
-        self.log.verbose(f"DISCRETIZING CDF using n_bins {self.cfg.n_bins}, sample fraction {self.cfg.cdf_sample_fraction}  and seed {self.cfg.cdf_sample_seed}: BEGIN")
+        tile_labels = []
+        bag_labels = []
+        tile_feature_list = []
+        bag_feature_bounds = [0]
+        self.log.verbose(f"READING features and labels from bags: BEGIN")
         if self.verbose:
             bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
         else:
             bagitor = self.cfg.featurebagclip.bags
-        cdf_features = []
-        rng = np.random.default_rng(self.cfg.cdf_sample_seed)
         for featurebag in bagitor:
-            bag_feature_indices = rng.choice(featurebag.features.shape[0], int(featurebag.features.shape[0]*self.cfg.cdf_sample_fraction), replace=False)
-            bag_features = featurebag.features[bag_feature_indices, :]
-            _cdf_features = prober.discretize_features(bag_features, self.cfg.n_bins)
-        self.log.verbose(f"COMPUTING CDF using n_bins {self.cfg.n_bins}, sample fraction {self.cfg.cdf_sample_fraction}  and seed {self.cfg.cdf_sample_seed}: DONE")
+            tile_feature_list.extend(featurebag.features)
+            bag_labels.append(featurebag.cfg.tilebag.label)
+            tile_labels.extend(featurebag.cfg.tilebag.labels)
+            bag_feature_bounds.append(bag_feature_bounds[-1] + len(tile_feature_list))
+        self.log.verbose(f"READING features and labels from bags: END")
+        tile_features = torch.cat(tile_feature_list, dim=0).numpy()
+        self.log.verbose(f"COMPUTING labels tiles and bags: BEGIN")
+        label_tiles = {l: [] for l in set(tile_labels)}
+        label_bags = {l: [] for l in set(bag_labels)}
+        for i, label in enumerate(tile_labels):
+            label_tiles[label].append(i)
+        for i, label in enumerate(bag_labels):
+            label_bags[label].append(i)
+        self.log.verbose(f"COMPUTING labels tiles and bags: END")
+        write_npz(self.path('tile_labels', ensure_dirpath=True), tile_labels=tile_labels)
+        write_npz(self.path('label_tiles', ensure_dirpath=True), label_tiles=label_tiles)
+        write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
+        write_npz(self.path('label_bags', ensure_dirpath=True), label_bags=label_bags)
         #
-        self.log.verbose(f"COMPUTING bipolarized bag features and labels: BEGIN")
-        if self.verbose:
-            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
-        else:
-            bagitor = self.cfg.featurebagclip.bags
+        self.log.verbose(f"BIPOLARIZING tile features: END")
+        tile_bipolar_features = torch.tensor(prober.polarize_features(tile_features))
+        
+        self.log.verbose(f"BIPOLARIZING tile features: BEGIN")
+        
         bag_uq = []
         bag_bipolar_features = []
         bag_bipolar_uq = []
