@@ -253,7 +253,7 @@ class FeatureBagMedianProbe(Datablock):
         features = torch.cat(bag_feature_list, dim=0).numpy()
         median  = np.median(features, axis=0)
         write_npz(self.path('median', ensure_dirpath=True), median=median)
-        self.log.verbose(f"STACKING features and computing median: BEGIN")
+        self.log.verbose(f"STACKING features and computing median: END")
         return self
 
     def __read__(self, topic):
