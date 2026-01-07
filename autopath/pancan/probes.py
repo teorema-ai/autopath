@@ -293,6 +293,8 @@ class BipolarFeatureBagProbe(Datablock):
         'bag_bipolar_features': 'bag_bipolar_features.npz',
         'bag_uq': 'bag_uq.npz',
         'bag_bipolar_uq': 'bag_bipolar_uq.npz',
+        'bag_lens': 'bag_lens.npz',
+        'bag_bounds': 'bag_bounds.npz',
     }
     @dataclass
     class CONFIG:
@@ -303,7 +305,7 @@ class BipolarFeatureBagProbe(Datablock):
         tile_labels = []
         bag_labels = []
         tile_feature_list = []
-        bag_feature_bounds = [0]
+        bag_lens_list = []
         self.log.verbose(f"READING features and labels from bags: BEGIN")
         if self.verbose:
             bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
@@ -313,7 +315,12 @@ class BipolarFeatureBagProbe(Datablock):
             tile_feature_list.extend(featurebag.features)
             bag_labels.append(featurebag.cfg.tilebag.label)
             tile_labels.extend(featurebag.cfg.tilebag.labels)
-            bag_feature_bounds.append(bag_feature_bounds[-1] + len(tile_feature_list))
+            bag_lens_list.append(len(tile_feature_list))
+        bag_lens = np.array(bag_lens_list)
+        bag_lens0 = np.cat(np.array([0]), bag_lens)
+        bag_bounds = np.cumsum(bag_lens0)
+        write_npz(self.path('bag_lens', ensure_dirpath=True), bag_lens=bag_lens)
+        write_npz(self.path('bag_bounds', ensure_dirpath=True), bag_bounds=bag_bounds)
         self.log.verbose(f"READING features and labels from bags: END")
         tile_features = torch.stack(tile_feature_list, dim=0).numpy()
         self.log.verbose(f"COMPUTING labels tiles and bags: BEGIN")
@@ -340,9 +347,11 @@ class BipolarFeatureBagProbe(Datablock):
         #
         self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
         bag_bipolar_feature_lists = []
-        for i in range(len(bag_feature_bounds)-1):
-            bag_bipolar_feature_lists.append(np.round(tile_bipolar_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].mean()).astype(int))
-            bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
+        for i in range(len(bag_bounds)-1):
+            assert bag_bounds[i+1] > bag_bounds[i], f"Nonpositive bag_bounds diff: {i}: {bag_bounds[i+1]} - {bag_bounds[i]}"
+            _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean()
+            bag_bipolar_feature_lists.append(np.round(_bag_bipolar_features).astype(int))
+        bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
         write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
         self.log.verbose(f"AGGREGATING bag bipolar features: END")
 
@@ -361,6 +370,14 @@ class BipolarFeatureBagProbe(Datablock):
     
     def __read__(self, topic):
         return  read_npz(self.path(topic), topic)[topic]
+    
+    @functools.cached_property
+    def bag_lens(self):
+        return self.read('bag_lens')
+    
+    @functools.cached_property
+    def bag_bounds(self):
+        return self.read('bag_bounds')
     
     @functools.cached_property
     def tile_labels(self):
