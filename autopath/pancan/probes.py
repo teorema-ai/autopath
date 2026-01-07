@@ -316,6 +316,7 @@ class BipolarFeatureBagProbe(Datablock):
             bag_feature_bounds.append(bag_feature_bounds[-1] + len(tile_feature_list))
         self.log.verbose(f"READING features and labels from bags: END")
         tile_features = torch.cat(tile_feature_list, dim=0).numpy()
+        self.log.debug(f"------------------> tile_features shape: {tile_features.shape}")
         self.log.verbose(f"COMPUTING labels tiles and bags: BEGIN")
         label_tiles = {l: [] for l in set(tile_labels)}
         label_bags = {l: [] for l in set(bag_labels)}
@@ -346,7 +347,7 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
         bag_bipolar_feature_lists = []
         for i in range(len(bag_feature_bounds)-1):
-            bag_bipolar_feature_lists.append(tile_bipolar_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].mean())
+            bag_bipolar_feature_lists.append(np.round(tile_bipolar_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].mean()).astype(int))
             bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
         write_tensor(bag_bipolar_features, self.path('bag_bipolar_features', ensure_dirpath=True))
         self.log.verbose(f"AGGREGATING bag bipolar features: END")
