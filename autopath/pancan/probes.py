@@ -344,9 +344,9 @@ class BipolarFeatureBagProbe(Datablock):
         tile_bipolar_features = np.stack(tile_bipolar_feature_columns, axis=-1)
         del tile_bipolar_feature_columns
         gc.collect()
-        write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
         self.log.verbose(f"BIPOLARIZING tile features: END")   
-
+        write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
+        #
         self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
         bag_bipolar_feature_lists = []
         for i in range(len(bag_feature_bounds)-1):
