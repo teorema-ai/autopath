@@ -250,7 +250,7 @@ class FeatureBagMedianProbe(Datablock):
             bag_feature_list.append(featurebag.features)
         self.log.verbose(f"READING featurebags: DONE")
         self.log.verbose(f"STACKING features and computing median: BEGIN")
-        features = torch.stack(bag_feature_list).numpy()
+        features = torch.cat(bag_feature_list, dim=0).numpy()
         median  = np.median(features, axis=0)
         write_npz(self.path('median', ensure_dirpath=True), median=median)
         self.log.verbose(f"STACKING features and computing median: BEGIN")
