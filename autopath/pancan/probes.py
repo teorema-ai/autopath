@@ -261,9 +261,7 @@ class FeatureBagMedianProbe(Datablock):
         return self
 
     def __read__(self, topic):
-        if topic == 'median':
-            result = read_npz(self.path(topic), topic)[topic]
-            raise ValueError(f"Unknown topic: {topic}")
+        result = read_npz(self.path(topic), topic)[topic]
         return result
     
     @functools.cached_property
