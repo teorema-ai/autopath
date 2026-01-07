@@ -315,7 +315,7 @@ class BipolarFeatureBagProbe(Datablock):
             tile_feature_list.extend(featurebag.features)
             bag_labels.append(featurebag.cfg.tilebag.label)
             tile_labels.extend(featurebag.cfg.tilebag.labels)
-            bag_lens_list.append(len(tile_feature_list))
+            bag_lens_list.append(len(featurebag.features))
         bag_lens = np.array(bag_lens_list)
         bag_lens0 = np.concatenate([np.array([0]), bag_lens])
         bag_bounds = np.cumsum(bag_lens0)
