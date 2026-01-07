@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import datetime
 import functools
 import gc
+import itertools
 import math
 from typing import Optional, Union, Tuple
 
@@ -296,87 +297,138 @@ class BipolarFeatureBagProbe(Datablock):
         'bag_lens': 'bag_lens.npz',
         'bag_bounds': 'bag_bounds.npz',
         'bag_logistic_evaluation_reports': 'bag_logistic_evaluation_reports.pkl',
+        'stats_distinct_tile_features': 'stats_bag_distinct_tile_features.npz',
+        'stats_distinct_tile_bipolar_features': 'stats_distinct_tile_bipolar_features.npz',
+        'stats_distinct_tile_features_ratio': 'stats_distinct_tile_features_ratio.npz',
+        'stats_label_distinct_tile_features': 'stats_label_distinct_tile_features.npz',
+        'stats_label_distinct_tile_bipolar_features': 'stats_label_distinct_tile_bipolar_features.npz',
+        'stats_label_distinct_tile_features_ratio': 'stats_label_distinct_tile_features_ratio.npz',
+        'stats_bag_distinct_tile_features': 'stats_distinct_tile_features.npz',
+        'stats_bag_distinct_tile_bipolar_features': 'stats_bag_distinct_tile_bipolar_features.npz',
+        'stats_bag_distinct_tile_features_ratio': 'stats_bag_distinct_tile_features_ratio.npz',
     }
     @dataclass
     class CONFIG:
         featurebagclip: FeatureBagClip
         medianprobe: FeatureBagMedianProbe
 
+    @dataclass
+    class Stats:
+        distinct_bag_tile_features: np.array
+        distinct_bag_bipolar_tile_features: np.array
+
     def __build__(self):
-        tile_labels = []
-        bag_labels = []
-        tile_feature_list = []
-        bag_lens_list = []
-        self.log.verbose(f"READING features and labels from bags: BEGIN")
-        if self.verbose:
-            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
+        if not self.validtopics([
+            'tile_labels', 
+            'label_tiles', 
+            'tile_bipolar_features', 
+            'bag_labels', 
+            'label_bags', 
+            'bag_features', 
+            'bag_bipolar_features', 
+            'bag_uq', 
+            'bag_bipolar_uq',
+            'bag_lens', 
+            'bag_bounds', 
+        ]):
+            tile_labels = []
+            bag_labels = []
+            tile_feature_list = []
+            bag_lens_list = []
+            self.log.verbose(f"READING features and labels from bags: BEGIN")
+            if self.verbose:
+                bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
+            else:
+                bagitor = self.cfg.featurebagclip.bags
+            for featurebag in bagitor:
+                tile_feature_list.extend(featurebag.features)
+                bag_labels.append(featurebag.cfg.tilebag.label)
+                tile_labels.extend(featurebag.cfg.tilebag.labels)
+                bag_lens_list.append(len(featurebag.features))
+            bag_lens = np.array(bag_lens_list)
+            bag_lens0 = np.concatenate([np.array([0]), bag_lens])
+            bag_bounds = np.cumsum(bag_lens0)
+            write_npz(self.path('bag_lens', ensure_dirpath=True), bag_lens=bag_lens)
+            write_npz(self.path('bag_bounds', ensure_dirpath=True), bag_bounds=bag_bounds)
+            self.log.verbose(f"READING features and labels from bags: END")
+            tile_features = torch.stack(tile_feature_list, dim=0).numpy()
+            self.log.verbose(f"COMPUTING labels tiles and bags: BEGIN")
+            label_tiles = {l: [] for l in set(tile_labels)}
+            label_bags = {l: [] for l in set(bag_labels)}
+            for i, label in enumerate(tile_labels):
+                label_tiles[label].append(i)
+            for i, label in enumerate(bag_labels):
+                label_bags[label].append(i)
+            self.log.verbose(f"COMPUTING labels tiles and bags: END")
+            write_npz(self.path('tile_labels', ensure_dirpath=True), tile_labels=tile_labels)
+            write_npz(self.path('label_tiles', ensure_dirpath=True), label_tiles=label_tiles)
+            write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
+            write_npz(self.path('label_bags', ensure_dirpath=True), label_bags=label_bags)
+            #
+            self.log.verbose(f"BIPOLARIZING tile features: BEGIN")
+            median = self.cfg.medianprobe.median
+            tile_binary_features = (tile_features >= median).astype(int)
+            tile_bipolar_features = (2.0*tile_binary_features - 1.0).astype(int)
+            del tile_binary_features
+            gc.collect()
+            self.log.verbose(f"BIPOLARIZING tile features: END")   
+            write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
+            #
+            self.log.verbose(f"AGGREGATING bag eatures: BEGIN")
+            bag_feature_lists = []
+            bag_bipolar_feature_lists = []
+            for i in range(len(bag_bounds)-1):
+                bag_bounds_diff = bag_bounds[i+1] - bag_bounds[i]
+                assert bag_bounds_diff > 0, f"Nonpositive bag_bounds_diff: {i}: {bag_bounds_diff}"
+                assert bag_bounds_diff == bag_lens[i], f"bag_bounds_diff != bag_lens[{i}]: {bag_bounds_diff} != {bag_lens[i]}"
+                self.log.detailed(f"COMPUTING feature means of bag {i} with feature bounds {bag_bounds[i]} to {bag_bounds[i+1]} out of {len(tile_bipolar_features)}")
+                _bag_features = tile_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
+                bag_feature_lists.append(_bag_features)
+                _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
+                _bag_bipolar_features_int = np.round(_bag_bipolar_features).astype(int)
+                bag_bipolar_feature_lists.append(_bag_bipolar_features_int)
+                m, M = np.min(_bag_bipolar_features_int), np.max(_bag_bipolar_features_int)
+                if m < -1 or M > 1:
+                    self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: float: {_bag_bipolar_features}")
+                    self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: int: {_bag_bipolar_features_int}")
+            bag_features = np.stack(bag_feature_lists, axis=0)
+            bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
+            del bag_feature_lists
+            del bag_bipolar_feature_lists
+            gc.collect()
+            assert bag_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
+                f"bag_features.shape != (len(bag_bounds)-1, tile_features.shape[1]), "\
+                    f"{bag_features.shape} != {(len(bag_bounds)-1, tile_features.shape[1])}"
+            assert bag_bipolar_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
+                f"bag_bipolar_features.shape != (len(bag_bounds)-1, tile_features.shape[1]), "\
+                    f"{bag_bipolar_features.shape} != {(len(bag_bounds)-1, tile_features.shape[1])}"
+            write_npz(self.path('bag_features', ensure_dirpath=True), bag_features=bag_features)
+            write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
+            self.log.verbose(f"AGGREGATING bag features: END")
         else:
-            bagitor = self.cfg.featurebagclip.bags
-        for featurebag in bagitor:
-            tile_feature_list.extend(featurebag.features)
-            bag_labels.append(featurebag.cfg.tilebag.label)
-            tile_labels.extend(featurebag.cfg.tilebag.labels)
-            bag_lens_list.append(len(featurebag.features))
-        bag_lens = np.array(bag_lens_list)
-        bag_lens0 = np.concatenate([np.array([0]), bag_lens])
-        bag_bounds = np.cumsum(bag_lens0)
-        write_npz(self.path('bag_lens', ensure_dirpath=True), bag_lens=bag_lens)
-        write_npz(self.path('bag_bounds', ensure_dirpath=True), bag_bounds=bag_bounds)
-        self.log.verbose(f"READING features and labels from bags: END")
-        tile_features = torch.stack(tile_feature_list, dim=0).numpy()
-        self.log.verbose(f"COMPUTING labels tiles and bags: BEGIN")
-        label_tiles = {l: [] for l in set(tile_labels)}
-        label_bags = {l: [] for l in set(bag_labels)}
-        for i, label in enumerate(tile_labels):
-            label_tiles[label].append(i)
-        for i, label in enumerate(bag_labels):
-            label_bags[label].append(i)
-        self.log.verbose(f"COMPUTING labels tiles and bags: END")
-        write_npz(self.path('tile_labels', ensure_dirpath=True), tile_labels=tile_labels)
-        write_npz(self.path('label_tiles', ensure_dirpath=True), label_tiles=label_tiles)
-        write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
-        write_npz(self.path('label_bags', ensure_dirpath=True), label_bags=label_bags)
-        #
-        self.log.verbose(f"BIPOLARIZING tile features: BEGIN")
-        median = self.cfg.medianprobe.median
-        tile_binary_features = (tile_features >= median).astype(int)
-        tile_bipolar_features = (2.0*tile_binary_features - 1.0).astype(int)
-        del tile_binary_features
-        gc.collect()
-        self.log.verbose(f"BIPOLARIZING tile features: END")   
-        write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
-        #
-        self.log.verbose(f"AGGREGATING bag eatures: BEGIN")
-        bag_feature_lists = []
-        bag_bipolar_feature_lists = []
-        for i in range(len(bag_bounds)-1):
-            bag_bounds_diff = bag_bounds[i+1] - bag_bounds[i]
-            assert bag_bounds_diff > 0, f"Nonpositive bag_bounds_diff: {i}: {bag_bounds_diff}"
-            assert bag_bounds_diff == bag_lens[i], f"bag_bounds_diff != bag_lens[{i}]: {bag_bounds_diff} != {bag_lens[i]}"
-            self.log.debug(f"COMPUTING feature means of bag {i} with feature bounds {bag_bounds[i]} to {bag_bounds[i+1]} out of {len(tile_bipolar_features)}")
-            _bag_features = tile_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
-            bag_feature_lists.append(_bag_features)
-            _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
-            _bag_bipolar_features_int = np.round(_bag_bipolar_features).astype(int)
-            bag_bipolar_feature_lists.append(_bag_bipolar_features_int)
-            m, M = np.min(_bag_bipolar_features_int), np.max(_bag_bipolar_features_int)
-            if m < -1 or M > 1:
-                self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: float: {_bag_bipolar_features}")
-                self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: int: {_bag_bipolar_features_int}")
-        bag_features = np.stack(bag_feature_lists, axis=0)
-        bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
-        del bag_feature_lists
-        del bag_bipolar_feature_lists
-        gc.collect()
-        assert bag_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
-            f"bag_features.shape != (len(bag_bounds)-1, tile_features.shape[1]), "\
-                f"{bag_features.shape} != {(len(bag_bounds)-1, tile_features.shape[1])}"
-        assert bag_bipolar_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
-            f"bag_bipolar_features.shape != (len(bag_bounds)-1, tile_features.shape[1]), "\
-                f"{bag_bipolar_features.shape} != {(len(bag_bounds)-1, tile_features.shape[1])}"
-        write_npz(self.path('bag_features', ensure_dirpath=True), bag_features=bag_features)
-        write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
-        self.log.verbose(f"AGGREGATING bag features: END")
+            tile_labels = self.tile_labels
+            label_tiles = self.label_tiles
+            bag_labels = self.bag_labels
+            label_bags = self.label_bags
+            tile_bipolar_features = self.tile_bipolar_features
+            bag_features = self.bag_features
+            bag_bipolar_features = self.bag_bipolar_features
+            bag_uq = self.bag_uq
+            bag_bipolar_uq = self.bag_bipolar_uq
+            bag_lens = self.bag_lens
+            bag_bounds = self.bag_bounds
+            tile_feature_list = []
+            self.log.verbose(f"READING tile features from bags: BEGIN")
+            if self.verbose:
+                bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
+            else:
+                bagitor = self.cfg.featurebagclip.bags
+            for featurebag in bagitor:
+                tile_feature_list.extend(featurebag.features)
+            self.log.verbose(f"READING tile features from bags: END")
+            tile_features = torch.stack(tile_feature_list, dim=0).numpy()
+            del tile_feature_list
+            gc.collect()
 
         self.log.verbose(f"COMPUTING bag features UQs: BEGIN")
         bag_uq_list = []
@@ -390,19 +442,71 @@ class BipolarFeatureBagProbe(Datablock):
         write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
         write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
 
-        self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: BEGIN")
-        prober = LogisticFeatureBagProber()
-        bag_logistic_evaluation_reports = prober.evaluate_features2(
-            (bag_features, bag_labels), 
-            (bag_bipolar_features, bag_labels),
-            tags=('bag_features', 'bag_bipolar_features',),
-        )
-        write_pickle(bag_logistic_evaluation_reports, self.path('bag_logistic_evaluation_reports', ensure_dirpath=True))
-        self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: END")
+        if not self.validtopic('bag_logistic_evaluation_reports'):
+            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: BEGIN")
+            prober = LogisticFeatureBagProber()
+            bag_logistic_evaluation_reports = prober.evaluate_features2(
+                (bag_features, bag_labels), 
+                (bag_bipolar_features, bag_labels),
+                tags=('bag_features', 'bag_bipolar_features',),
+            )
+            write_pickle(bag_logistic_evaluation_reports, self.path('bag_logistic_evaluation_reports', ensure_dirpath=True))
+            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: END")
+
+        # stats
+        self.log.verbose(f"COMPUTING stats: BEGIN")
+        self.log.verbose(f"COMPUTING tile features stats: BEGIN")
+        tile_bags = list(itertools.chain.from_iterable([[i]*bag_lens(i) for i in range(len(bag_lens))]))
+        tile_features_frame = pd.DataFrame({'tile_features': tile_features, 
+                                            'tile_bipolar_features': tile_bipolar_features,
+                                            'tile_labels': tile_labels,
+                                            'tile_bags': tile_bags,
+        })
+        stats_distinct_tile_features = np.array([tile_features_frame.tile_features.nunique()])
+        stats_distinct_tile_bipolar_features = np.array([tile_features_frame.tile_bipolar_features.nunique()])
+        stats_distinct_tile_features_ratio = np.array([stats_distinct_tile_features/len(tile_features)])
+        write_npz(self.path('stats_distinct_tile_features', ensure_dirpath=True), stats_distinct_tile_features=stats_distinct_tile_features)
+        write_npz(self.path('stats_distinct_tile_bipolar_features', ensure_dirpath=True), stats_distinct_tile_bipolar_features=stats_distinct_tile_bipolar_features)
+        write_npz(self.path('stats_distinct_tile_features_ratio', ensure_dirpath=True), stats_distinct_tile_features_ratio=stats_distinct_tile_features_ratio)
+        self.log.verbose(f"COMPUTING tile features stats: END")
+        #
+        self.log.verbose(f"COMPUTING label tile features stats: BEGIN")
+        stats_label_distinct_tile_features = np.array([tile_features_frame.groupby('tile_labels').tile_features.nunique()])
+        stats_label_distinct_tile_bipolar_features = np.array([tile_features_frame.groupby('tile_labels').tile_bipolar_features.nunique()])
+        stats_label_distinct_tile_features_ratio = np.array([stats_label_distinct_tile_features/len(tile_features)])
+        write_npz(self.path('stats_label_distinct_tile_features', ensure_dirpath=True), stats_label_distinct_tile_features=stats_label_distinct_tile_features)
+        write_npz(self.path('stats_label_distinct_tile_bipolar_features', ensure_dirpath=True), stats_label_distinct_tile_bipolar_features=stats_label_distinct_tile_bipolar_features)
+        write_npz(self.path('stats_label_distinct_tile_features_ratio', ensure_dirpath=True), stats_label_distinct_tile_features_ratio=stats_label_distinct_tile_features_ratio)    
+        self.log.verbose(f"COMPUTING label tile features stats: END")
+        #
+        self.log.verbose(f"COMPUTING bag tile features stats: BEGIN")
+        stats_bag_distinct_tile_features = np.array([tile_features_frame.groupby('tile_bags').tile_features.nunique()])
+        stats_bag_distinct_tile_bipolar_features = np.array([tile_features_frame.groupby('tile_bags').tile_bipolar_features.nunique()])
+        stats_bag_distinct_tile_features_ratio = np.array([stats_bag_distinct_tile_features/len(tile_features)])
+        write_npz(self.path('stats_bag_distinct_tile_features', ensure_dirpath=True), stats_bag_distinct_tile_features=stats_bag_distinct_tile_features)
+        write_npz(self.path('stats_bag_distinct_tile_bipolar_features', ensure_dirpath=True), stats_bag_distinct_tile_bipolar_features=stats_bag_distinct_tile_bipolar_features)
+        write_npz(self.path('stats_bag_distinct_tile_features_ratio', ensure_dirpath=True), stats_bag_distinct_tile_features_ratio=stats_bag_distinct_tile_features_ratio)
+        self.log.verbose(f"COMPUTING bag tile features stats: END")
+        #
+        self.log.verbose(f"COMPUTING stats: END")
         return self
     
     def __read__(self, topic):
         return  read_npz(self.path(topic), topic)[topic]
+    
+    @functools.cached_property
+    def stats(self):
+        return self.Stats(
+            distinct_tile_features=self.stats_distinct_tile_features.item(),
+            distinct_bipolar_tile_features=self.stats_distinct_tile_bipolar_features.item(),
+            distinct_tile_features_ratio=self.stats_distinct_tile_features_ratio.item(),
+            bag_distinct_tile_features=self.stats_bag_distinct_tile_features,
+            bag_distinct_bipolar_tile_features=self.stats_bag_distinct_tile_bipolar_features,
+            bag_distinct_tile_features_ratio=self.stats_bag_distinct_tile_features_ratio,
+            label_distinct_tile_features=self.stats_label_distinct_tile_features,
+            label_distinct_bipolar_tile_features=self.stats_label_distinct_tile_bipolar_features,
+            label_distinct_tile_features_ratio=self.stats_label_distinct_tile_features_ratio,
+        )
     
     @functools.cached_property
     def bag_lens(self):
