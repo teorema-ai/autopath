@@ -329,87 +329,77 @@ class BipolarFeatureBagProbe(Datablock):
         write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
         write_npz(self.path('label_bags', ensure_dirpath=True), label_bags=label_bags)
         #
-        self.log.verbose(f"BIPOLARIZING tile features: END")
-        tile_bipolar_features = torch.tensor(prober.polarize_features(tile_features))
-        
         self.log.verbose(f"BIPOLARIZING tile features: BEGIN")
-        
-        bag_uq = []
-        bag_bipolar_features = []
-        bag_bipolar_uq = []
-        for featurebag in bagitor:
-            self.log.debug(f"Bipolarizing features for bag: {featurebag.cfg.tilebag.name}, label: {featurebag.cfg.tilebag.label}")
-            _bag_uq = featurebag.features.std(axis=0)
-            bag_uq.append(_bag_uq)
-            _bag_bipolar_features = prober.polarize_features(featurebag.features)
-            bag_bipolar_features.append(_bag_bipolar_features)
-            _bag_bipolar_uq = _bag_bipolar_features.std(axis=0)
-            bag_bipolar_uq.append(_bag_bipolar_uq)
-        self.log.verbose(f"COMPUTING bag bipolarized features and labels: DONE")     
-        write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
+        m = self.cfg.medianprobe.min
+        M = self.cfg.medianprobe.max + 1
+        median = self.cfg.medianprobe.median
+        tile_bipolar_feature_columns = []
+        for j in range(tile_features.shape[1]):
+            tile_bipolar_feature_column = 2.0*np.digitize(tile_features[:, j], [m[j], median[j], M[j]]) - 1
+            tile_bipolar_feature_columns.append(tile_bipolar_feature_column)
+        tile_bipolar_features = np.stack(tile_bipolar_feature_columns, axis=-1)
+        del tile_bipolar_feature_columns
+        gc.collect()
+        write_tensor(tile_bipolar_features, self.path('tile_bipolar_features', ensure_dirpath=True))
+        self.log.verbose(f"BIPOLARIZING tile features: END")   
+
+        self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
+        bag_bipolar_feature_lists = []
+        for i in range(len(bag_feature_bounds)-1):
+            bag_bipolar_feature_lists.append(tile_bipolar_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].mean())
+            bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
+        write_tensor(bag_bipolar_features, self.path('bag_bipolar_features', ensure_dirpath=True))
+        self.log.verbose(f"AGGREGATING bag bipolar features: END")
+
+        self.log.verbose(f"COMPUTING bag features UQs: BEGIN")
+        bag_uq_list = []
+        bag_bipolar_uq_list = []
+        for i in range(len(bag_feature_bounds)-1):
+            bag_uq_list.append(tile_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].std())
+            bag_bipolar_uq_list.append(tile_bipolar_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].std())
+        bag_uq = np.stack(bag_uq_list, axis=0)
+        bag_bipolar_uq = np.stack(bag_bipolar_uq_list, axis=0)
+        self.log.verbose(f"COMPUTING bag features UQs: END")     
         write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
         write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
         return self
     
+    def __read__(self, topic):
+        return  read_npz(self.path(topic), topic)[topic]
+    
     @functools.cached_property
-    def bipolar_features(self):
+    def tile_labels(self):
+        return self.read('tile_labels')
+    
+    @functools.cached_property
+    def label_tiles(self):
+        return self.read('label_tiles')
+    
+    @functools.cached_property
+    def bag_labels(self):
+        return self.read('bag_labels')
+    
+    @functools.cached_property
+    def label_bags(self):
+        return self.read('label_bags')
+    
+    @functools.cached_property
+    def tile_bipolar_features(self):
+        return self.read('tile_bipolar_features')
+    
+    @functools.cached_property
+    def bag_bipolar_features(self):
         return self.read('bag_bipolar_features')
     
     @functools.cached_property
-    def uq(self):
+    def bag_uq(self):
         return self.read('bag_uq')
     
     @functools.cached_property
-    def bipolar_uq(self):
+    def bag_bipolar_uq(self):
         return self.read('bag_bipolar_uq')
-
-    def bag_label(self, bag: int):
-        return self.cfg.featurebagclip.bags[bag].cfg.tilebag.label
     
-    def bag_features(self, bag: int):
-        return self.cfg.featurebagclip.bags[bag].features
-    
-    def bag_uq(self, bag):
-        return self.uq[bag]
-    
-    def bag_bipolar_uq(self, bag):
-        return self.bipolar_uq[bag]
-    
-    def bag_bipolar_features(self, bag: int, *, uq_threshold: float = None, return_unique: bool = False):
-        bag_bipolar_features = self.bipolar_features[bag]
-        if uq_threshold is not None:
-            bag_bipolar_features[self.bag_bipolar_uq(bag) > uq_threshold] = 0.0
-        if return_unique:
-            bag_bipolar_features = np.unique(bag_bipolar_features, axis=0)  
-        return bag_bipolar_features
-    
-    def agg_bipolar_features(self, bag: int = None, *, uq_threshold: float = None, bipolarize_aggregate: bool = True, return_unique: bool = False):
-        if bag is None:
-            bags = range(len(self.cfg.featurebagclip.bags))
-        else:
-            bags = [bag]
-        agg_feature_list = []
-        if bipolarize_aggregate:
-            prober = FeatureBagProber()
-        for bag in bags:
-            _agg_features = self.bipolar_features[bag].mean(axis=0)
-            if uq_threshold is not None:
-                _agg_features[self.bipolar_uq[bag] > uq_threshold] = 0.0
-            agg_feature_list.append(torch.tensor(_agg_features))
-        agg_features = torch.stack(agg_feature_list)
-        if bipolarize_aggregate:
-            agg_features = prober.polarize_features(agg_features)
-        else:
-            agg_features = agg_features.numpy()
-        if return_unique:
-            agg_features = np.unique(agg_features, axis=0)
-        return agg_features
-    
-    def quantiles(self):
-        percentages = np.arange(0.0, 1.0, 1.0/self.cfg.n_bins)
-        quantiles = torch.tensor(np.percentile(featurebag.features.numpy(), percentages, axis=0))
-        return quantiles
-    
+    """
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
         assert fb1.shape == fb2.shape
@@ -430,9 +420,7 @@ class BipolarFeatureBagProbe(Datablock):
             stddist=stddist,
             aggdist=aggdist,
         )
-    
-    def __read__(self, topic):
-        return  read_npz(self.path(topic), topic)[topic]
+    """
     
 
 class FeaturePairwiseDistancesShard(Datablock):
