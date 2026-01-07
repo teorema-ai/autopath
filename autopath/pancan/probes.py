@@ -349,9 +349,9 @@ class BipolarFeatureBagProbe(Datablock):
         bag_bipolar_feature_lists = []
         for i in range(len(bag_bounds)-1):
             assert bag_bounds[i+1] > bag_bounds[i], f"Nonpositive bag_bounds diff: {i}: {bag_bounds[i+1]} - {bag_bounds[i]}"
-            _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean()
-            bag_bipolar_feature_lists.append(torch.tensor(np.round(_bag_bipolar_features).astype(int)))
-        bag_bipolar_features = torch.stack(bag_bipolar_feature_lists, dim=0).numpy()
+            _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
+            bag_bipolar_feature_lists.append(np.round(_bag_bipolar_features).astype(int))
+        bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
         del bag_bipolar_feature_lists
         gc.collect()
         assert bag_bipolar_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
@@ -364,8 +364,8 @@ class BipolarFeatureBagProbe(Datablock):
         bag_uq_list = []
         bag_bipolar_uq_list = []
         for i in range(len(bag_bounds)-1):
-            bag_uq_list.append(tile_features[bag_bounds[i]:bag_bounds[i+1], :].std())
-            bag_bipolar_uq_list.append(tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].std())
+            bag_uq_list.append(tile_features[bag_bounds[i]:bag_bounds[i+1], :].std(axis=0))
+            bag_bipolar_uq_list.append(tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].std(axis=0))
         bag_uq = np.stack(bag_uq_list, axis=0)
         bag_bipolar_uq = np.stack(bag_bipolar_uq_list, axis=0)
         self.log.verbose(f"COMPUTING bag features UQs: END")     
