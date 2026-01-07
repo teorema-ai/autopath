@@ -365,7 +365,7 @@ class BipolarFeatureBagProbe(Datablock):
                 self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: int: {_bag_bipolar_features_int}")
         bag_features = np.stack(bag_feature_lists, axis=0)
         bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
-        def bag_feature_lists
+        del bag_feature_lists
         del bag_bipolar_feature_lists
         gc.collect()
         assert bag_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
