@@ -348,8 +348,8 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
         bag_bipolar_feature_lists = []
         for i in range(len(bag_bounds)-1):
-            bag_bounds_diff = bag_bounds[i+1] > bag_bounds[i]
-            assert bag_bounds_diff, f"Nonpositive bag_bounds_diff: {i}: {bag_bounds_diff}"
+            bag_bounds_diff = bag_bounds[i+1] - bag_bounds[i]
+            assert bag_bounds_diff > 0, f"Nonpositive bag_bounds_diff: {i}: {bag_bounds_diff}"
             assert bag_bounds_diff == bag_lens[i], f"bag_bounds_diff != bag_lens[{i}]: {bag_bounds_diff} != {bag_lens[i]}"
             self.log.debug(f"COMPUTING feature mean of bag {i} with feature bounds {bag_bounds[i]} to {bag_bounds[i+1]} out of {len(tile_bipolar_features)}")
             _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
