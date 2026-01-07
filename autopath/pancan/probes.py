@@ -287,7 +287,7 @@ class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
         'tile_labels': 'tile_labels.npz',
         'label_tiles': 'label_tiles.npz',
-        'tile_bipolar_features': 'tile_bipolar_features.npy',
+        'tile_bipolar_features': 'tile_bipolar_features.npz',
         'bag_labels': 'bag_labels.npz',
         'label_bags': 'label_bags.npz',
         'bag_bipolar_features': 'bag_bipolar_features.npz',
@@ -316,7 +316,6 @@ class BipolarFeatureBagProbe(Datablock):
             bag_feature_bounds.append(bag_feature_bounds[-1] + len(tile_feature_list))
         self.log.verbose(f"READING features and labels from bags: END")
         tile_features = torch.stack(tile_feature_list, dim=0).numpy()
-        #self.log.debug(f"------------------> tile_features shape: {tile_features.shape}")
         self.log.verbose(f"COMPUTING labels tiles and bags: BEGIN")
         label_tiles = {l: [] for l in set(tile_labels)}
         label_bags = {l: [] for l in set(bag_labels)}
@@ -335,13 +334,17 @@ class BipolarFeatureBagProbe(Datablock):
         M = self.cfg.medianprobe.max + 1
         median = self.cfg.medianprobe.median
         tile_bipolar_feature_columns = []
-        for j in range(tile_features.shape[1]):
+        if self.verbose:
+            jitor = tqdm.tqdm(range(tile_features.shape[1]))
+        else:
+            jitor = range(tile_features.shape[1])
+        for j in jitor:
             tile_bipolar_feature_column = 2.0*np.digitize(tile_features[:, j], [m[j], median[j], M[j]]) - 1
             tile_bipolar_feature_columns.append(tile_bipolar_feature_column)
         tile_bipolar_features = np.stack(tile_bipolar_feature_columns, axis=-1)
         del tile_bipolar_feature_columns
         gc.collect()
-        write_tensor(tile_bipolar_features, self.path('tile_bipolar_features', ensure_dirpath=True))
+        write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
         self.log.verbose(f"BIPOLARIZING tile features: END")   
 
         self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
@@ -349,7 +352,7 @@ class BipolarFeatureBagProbe(Datablock):
         for i in range(len(bag_feature_bounds)-1):
             bag_bipolar_feature_lists.append(np.round(tile_bipolar_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].mean()).astype(int))
             bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
-        write_tensor(bag_bipolar_features, self.path('bag_bipolar_features', ensure_dirpath=True))
+        write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
         self.log.verbose(f"AGGREGATING bag bipolar features: END")
 
         self.log.verbose(f"COMPUTING bag features UQs: BEGIN")
