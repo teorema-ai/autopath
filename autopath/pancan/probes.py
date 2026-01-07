@@ -249,11 +249,14 @@ class FeatureBagMedianProbe(Datablock):
         for featurebag in bagitor:
             bag_feature_list.append(featurebag.features)
         self.log.verbose(f"READING featurebags: DONE")
-        self.log.verbose(f"STACKING features and computing median: BEGIN")
+        self.log.verbose(f"CONCATENATING bag features: BEGIN")
         features = torch.cat(bag_feature_list, dim=0).numpy()
+        del bag_feature_list
+        self.log.verbose(f"CONCATENATING bag features: END")
+        self.log.verbose(f"COMPUTING features median: BEGIN")
         median  = np.median(features, axis=0)
+        self.log.verbose(f"COMPUTING features median: END")
         write_npz(self.path('median', ensure_dirpath=True), median=median)
-        self.log.verbose(f"STACKING features and computing median: END")
         return self
 
     def __read__(self, topic):
