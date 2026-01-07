@@ -350,8 +350,13 @@ class BipolarFeatureBagProbe(Datablock):
         for i in range(len(bag_bounds)-1):
             assert bag_bounds[i+1] > bag_bounds[i], f"Nonpositive bag_bounds diff: {i}: {bag_bounds[i+1]} - {bag_bounds[i]}"
             _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean()
-            bag_bipolar_feature_lists.append(np.round(_bag_bipolar_features).astype(int))
-        bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
+            bag_bipolar_feature_lists.append(torch.tensor(np.round(_bag_bipolar_features).astype(int)))
+        bag_bipolar_features = torch.stack(bag_bipolar_feature_lists, dim=0).numpy()
+        del bag_bipolar_feature_lists
+        gc.collect()
+        assert bag_bipolar_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
+            f"bag_bipolar_features.shape != (len(bag_bounds)-1, tile_features.shape[1]), "\
+                f"{bag_bipolar_features.shape} != {(len(bag_bounds)-1, tile_features.shape[1])}"
         write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
         self.log.verbose(f"AGGREGATING bag bipolar features: END")
 
