@@ -25,6 +25,7 @@ from autopath.features import (
 
 from autopath.pancan.probes import (
     LogisticFeatureBagProbe, 
+    FeatureBagMedianProbe,
     BipolarFeatureBagProbe,
     #
     FeaturePairwiseDistances,
@@ -161,6 +162,11 @@ def gigapath_featureshardset(name) -> torch.utils.data.Dataset:
 def gigapath_logistic_feature_bags_probe(name, n_bins: int = 2, polarize: bool = False, aggregation: str = 'mean') -> LogisticFeatureBagProbe:
     return LogisticFeatureBagProbe(spec=dict(featurebagclip=gigapath_feature_bag_clip(name), n_bins=n_bins, polarize=polarize, aggregation=aggregation))
     
+
+# git commit -am "gigaq: FeatureBagMedianProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_feature_bags_median_probe('GIGAPATH_BASELINE_CPTAC_8020_TRAIN').build()"
+def gigapath_feature_bags_median_probe(name) -> FeatureBagMedianProbe:
+    return FeatureBagMedianProbe(spec=dict(featurebagclip=gigapath_feature_bag_clip(name),),)
+
 
 # git commit -am "gigaq: BipolarFeatureBagProbe: BUILD"; dbx.print "autopath.gigaq.pipelines.gigapath_bipolar_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020_TEST').build()"
 def gigapath_bipolar_feature_bags_probe(name, use_gpu: bool = False, gpu_batch_size: int = None) -> BipolarFeatureBagProbe:

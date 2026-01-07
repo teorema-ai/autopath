@@ -174,7 +174,7 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         aggregation: str = "mean"
 
     def __post_init__(self):
-        assert self.cfg.aggregation in ["mean", "cdf"], f"Unknown aggregation: {self.cfg.aggregation}"
+        assert self.cfg.aggregation in ["mean",], f"Unknown aggregation: {self.cfg.aggregation}"
         return self
 
     def __build__(self):
@@ -189,9 +189,6 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
             bag_labels.append(featurebag.cfg.tilebag.label)
             if self.cfg.aggregation == "mean":
                 _bag_features = torch.mean(featurebag.features, dim=0)
-            elif self.cfg.aggregation == "cdf":
-                quantiles = np.arange(0.0, 1.0, 1.0/self.cfg.n_bins)
-                _bag_features = torch.tensor(np.percentile(featurebag.features.numpy(), quantiles, axis=0))
             bag_feature_list.append(_bag_features)
         bag_features = torch.stack(bag_feature_list)
         assert len(bag_labels) == len(bag_features), f"len(bag_labels) != len(bag_features): {len(bag_labels)} != {len(bag_features)}"
@@ -199,17 +196,13 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         write_tensor(bag_features, self.path('bag_features', ensure_dirpath=True))
 
         # discretized_features
-        if self.cfg.aggregation == "cdf":
-            self.log.verbose(f"Using CDF as discretization")
-            discretized_bag_features = bag_features
+        prober = FeatureBagProber()
+        if self.cfg.polarize:
+            assert self.cfg.n_bins == 2, f"Polarizing features with n_bins != 2: {self.cfg.n_bins}"
+            self.log.verbose(f"POLARIZING features")
+            discretized_bag_features = torch.tensor(prober.polarize_features(bag_features.numpy()))
         else:
-            prober = FeatureBagProber()
-            if self.cfg.polarize:
-                assert self.cfg.n_bins == 2, f"Polarizing features with n_bins != 2: {self.cfg.n_bins}"
-                self.log.verbose(f"POLARIZING features")
-                discretized_bag_features = torch.tensor(prober.polarize_features(bag_features.numpy()))
-            else:
-                discretized_bag_features = torch.Tensor(prober.discretize_features(bag_features.numpy(), self.cfg.n_bins))
+            discretized_bag_features = torch.Tensor(prober.discretize_features(bag_features.numpy(), self.cfg.n_bins))
         write_tensor(discretized_bag_features, self.path('discretized_bag_features', ensure_dirpath=True))
       
         continuous, discretized = self.evaluate_features2(
@@ -238,6 +231,38 @@ class LogisticFeatureBagProbe(Datablock, LogisticFeatureBagProber):
         return result
     
 
+class FeatureBagMedianProbe(Datablock):
+    TOPICFILES = {
+        'median': 'median.npz',
+    }
+    @dataclass
+    class CONFIG:
+        featurebagclip: FeatureBagClip
+
+    def __build__(self):
+        bag_feature_list = []
+        self.log.verbose(f"READING featurebags: BEGIN")
+        if self.verbose:
+            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
+        else:
+            bagitor = self.cfg.featurebagclip.bags
+        for featurebag in bagitor:
+            bag_feature_list.append(featurebag.features)
+        self.log.verbose(f"READING featurebags: DONE")
+        self.log.verbose(f"STACKING features and computing median: BEGIN")
+        features = torch.stack(bag_feature_list).numpy()
+        median  = np.median(features, axis=0)
+        write_npz(self.path('median', ensure_dirpath=True), median=median)
+        self.log.verbose(f"STACKING features and computing median: BEGIN")
+        return self
+
+    def __read__(self, topic):
+        if topic == 'median':
+            result = read_npz(self.path(topic), topic)[topic]
+            raise ValueError(f"Unknown topic: {topic}")
+        return result
+    
+
 class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
         'bag_labels': 'bag_labels.npz',
@@ -248,12 +273,28 @@ class BipolarFeatureBagProbe(Datablock):
     @dataclass
     class CONFIG:
         featurebagclip: FeatureBagClip
+        n_bins: int = 2
+        cdf_sample_fraction: float = 0.2
+        cdf_sample_seed: int = 42
 
     def __init__(self, *args, use_gpu: bool = False, gpu_batch_size: int = 1024, **kwargs):
         super().__init__(*args, use_gpu=use_gpu, gpu_batch_size=gpu_batch_size, **kwargs)
 
     def __build__(self):
         prober = FeatureBagProber()
+        self.log.verbose(f"COMPUTING CDF using n_bins {self.cfg.n_bins}, sample fraction {self.cfg.cdf_sample_fraction}  and seed {self.cfg.cdf_sample_seed}: BEGIN")
+        if self.verbose:
+            bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
+        else:
+            bagitor = self.cfg.featurebagclip.bags
+        cdf_features = []
+        rng = np.random.default_rng(self.cfg.cdf_sample_seed)
+        for featurebag in bagitor:
+            bag_feature_indices = rng.choice(featurebag.features.shape[0], int(featurebag.features.shape[0]*self.cfg.cdf_sample_fraction), replace=False)
+            bag_features = featurebag.features[bag_feature_indices, :]
+            _cdf_features = prober.discretize_features(bag_features, self.cfg.n_bins)
+        self.log.verbose(f"COMPUTING CDF using n_bins {self.cfg.n_bins}, sample fraction {self.cfg.cdf_sample_fraction}  and seed {self.cfg.cdf_sample_seed}: DONE")
+        #
         self.log.verbose(f"COMPUTING bipolarized bag features and labels: BEGIN")
         if self.verbose:
             bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
@@ -274,7 +315,6 @@ class BipolarFeatureBagProbe(Datablock):
         write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
         write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
         write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
-
         return self
     
     @functools.cached_property
@@ -330,6 +370,11 @@ class BipolarFeatureBagProbe(Datablock):
         if return_unique:
             agg_features = np.unique(agg_features, axis=0)
         return agg_features
+    
+    def quantiles(self):
+        percentages = np.arange(0.0, 1.0, 1.0/self.cfg.n_bins)
+        quantiles = torch.tensor(np.percentile(featurebag.features.numpy(), percentages, axis=0))
+        return quantiles
     
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
         fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
