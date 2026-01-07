@@ -295,6 +295,7 @@ class BipolarFeatureBagProbe(Datablock):
         'bag_bipolar_uq': 'bag_bipolar_uq.npz',
         'bag_lens': 'bag_lens.npz',
         'bag_bounds': 'bag_bounds.npz',
+        'bag_logistic_evaluation_reports': 'bag_logistic_evaluation_reports.pkl',
     }
     @dataclass
     class CONFIG:
@@ -345,13 +346,16 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"BIPOLARIZING tile features: END")   
         write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
         #
-        self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
+        self.log.verbose(f"AGGREGATING bag eatures: BEGIN")
+        bag_feature_lists = []
         bag_bipolar_feature_lists = []
         for i in range(len(bag_bounds)-1):
             bag_bounds_diff = bag_bounds[i+1] - bag_bounds[i]
             assert bag_bounds_diff > 0, f"Nonpositive bag_bounds_diff: {i}: {bag_bounds_diff}"
             assert bag_bounds_diff == bag_lens[i], f"bag_bounds_diff != bag_lens[{i}]: {bag_bounds_diff} != {bag_lens[i]}"
-            self.log.debug(f"COMPUTING feature mean of bag {i} with feature bounds {bag_bounds[i]} to {bag_bounds[i+1]} out of {len(tile_bipolar_features)}")
+            self.log.debug(f"COMPUTING feature means of bag {i} with feature bounds {bag_bounds[i]} to {bag_bounds[i+1]} out of {len(tile_bipolar_features)}")
+            _bag_features = tile_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
+            bag_feature_lists.append(_bag_features)
             _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
             _bag_bipolar_features_int = np.round(_bag_bipolar_features).astype(int)
             bag_bipolar_feature_lists.append(_bag_bipolar_features_int)
@@ -359,14 +363,20 @@ class BipolarFeatureBagProbe(Datablock):
             if m < -1 or M > 1:
                 self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: float: {_bag_bipolar_features}")
                 self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: int: {_bag_bipolar_features_int}")
+        bag_features = np.stack(bag_feature_lists, axis=0)
         bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
+        def bag_feature_lists
         del bag_bipolar_feature_lists
         gc.collect()
+        assert bag_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
+            f"bag_features.shape != (len(bag_bounds)-1, tile_features.shape[1]), "\
+                f"{bag_features.shape} != {(len(bag_bounds)-1, tile_features.shape[1])}"
         assert bag_bipolar_features.shape == (len(bag_bounds)-1, tile_features.shape[1]), \
             f"bag_bipolar_features.shape != (len(bag_bounds)-1, tile_features.shape[1]), "\
                 f"{bag_bipolar_features.shape} != {(len(bag_bounds)-1, tile_features.shape[1])}"
+        write_npz(self.path('bag_features', ensure_dirpath=True), bag_features=bag_features)
         write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
-        self.log.verbose(f"AGGREGATING bag bipolar features: END")
+        self.log.verbose(f"AGGREGATING bag features: END")
 
         self.log.verbose(f"COMPUTING bag features UQs: BEGIN")
         bag_uq_list = []
@@ -379,6 +389,15 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"COMPUTING bag features UQs: END")     
         write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
         write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
+
+        self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: BEGIN")
+        prober = LogisticFeatureBagProber()
+        bag_logistic_evaluation_reports = prober.evaluate_features2(
+            (bag_features, bag_labels), 
+            (bag_bipolar_features, bag_labels),
+        )
+        write_pickle(bag_logistic_evaluation_reports, self.path('bag_logistic_evaluation_reports', ensure_dirpath=True))
+        self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: END")
         return self
     
     def __read__(self, topic):
@@ -423,6 +442,10 @@ class BipolarFeatureBagProbe(Datablock):
     @functools.cached_property
     def bag_bipolar_uq(self):
         return self.read('bag_bipolar_uq')
+    
+    @functools.cached_property
+    def bag_logistic_evaluation_reports(self):
+        return self.read('bag_logistic_evaluation_reports')
     
     """
     def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
