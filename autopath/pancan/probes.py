@@ -348,9 +348,17 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"AGGREGATING bag bipolar features: BEGIN")
         bag_bipolar_feature_lists = []
         for i in range(len(bag_bounds)-1):
-            assert bag_bounds[i+1] > bag_bounds[i], f"Nonpositive bag_bounds diff: {i}: {bag_bounds[i+1]} - {bag_bounds[i]}"
+            bag_bounds_diff = bag_bounds[i+1] > bag_bounds[i]
+            assert bag_bounds_diff, f"Nonpositive bag_bounds_diff: {i}: {bag_bounds_diff}"
+            assert bag_bounds_diff == bag_lens[i], f"bag_bounds_diff != bag_lens[{i}]: {bag_bounds_diff} != {bag_lens[i]}"
+            self.log.debug(f"COMPUTING feature mean of bag {i} with feature bounds {bag_bounds[i]} to {bag_bounds[i+1]} out of {len(tile_bipolar_features)}")
             _bag_bipolar_features = tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].mean(axis=0)
-            bag_bipolar_feature_lists.append(np.round(_bag_bipolar_features).astype(int))
+            _bag_bipolar_features_int = np.round(_bag_bipolar_features).astype(int)
+            bag_bipolar_feature_lists.append(_bag_bipolar_features_int)
+            m, M = np.min(_bag_bipolar_features_int), np.max(_bag_bipolar_features_int)
+            if m < -1 or M > 1:
+                self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: float: {_bag_bipolar_features}")
+                self.log.warning(f"bag {i}: _bag_bipolar_features out of bounds: int: {_bag_bipolar_features_int}")
         bag_bipolar_features = np.stack(bag_bipolar_feature_lists, axis=0)
         del bag_bipolar_feature_lists
         gc.collect()
