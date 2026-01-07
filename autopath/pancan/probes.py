@@ -358,9 +358,9 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"COMPUTING bag features UQs: BEGIN")
         bag_uq_list = []
         bag_bipolar_uq_list = []
-        for i in range(len(bag_feature_bounds)-1):
-            bag_uq_list.append(tile_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].std())
-            bag_bipolar_uq_list.append(tile_bipolar_features[bag_feature_bounds[i]:bag_feature_bounds[i+1], :].std())
+        for i in range(len(bag_bounds)-1):
+            bag_uq_list.append(tile_features[bag_bounds[i]:bag_bounds[i+1], :].std())
+            bag_bipolar_uq_list.append(tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].std())
         bag_uq = np.stack(bag_uq_list, axis=0)
         bag_bipolar_uq = np.stack(bag_bipolar_uq_list, axis=0)
         self.log.verbose(f"COMPUTING bag features UQs: END")     
