@@ -330,20 +330,10 @@ class BipolarFeatureBagProbe(Datablock):
         write_npz(self.path('label_bags', ensure_dirpath=True), label_bags=label_bags)
         #
         self.log.verbose(f"BIPOLARIZING tile features: BEGIN")
-        m = self.cfg.medianprobe.min
-        M = self.cfg.medianprobe.max
         median = self.cfg.medianprobe.median
-        tile_bipolar_feature_columns = []
-        if self.verbose:
-            jitor = tqdm.tqdm(range(tile_features.shape[1]))
-        else:
-            jitor = range(tile_features.shape[1])
-        for j in jitor:
-            _tile_bipolar_feature_column = np.digitize(tile_features[:, j], [m[j], median[j], M[j]+1]) - 1
-            tile_bipolar_feature_column = 2.0*_tile_bipolar_feature_column - 1.0
-            tile_bipolar_feature_columns.append(tile_bipolar_feature_column)
-        tile_bipolar_features = np.stack(tile_bipolar_feature_columns, axis=-1)
-        del tile_bipolar_feature_columns
+        tile_binary_features = (tile_features >= median).astype(int)
+        tile_bipolar_features = (2.0*tile_binary_features - 1.0).astype(int)
+        del tile_binary_features
         gc.collect()
         self.log.verbose(f"BIPOLARIZING tile features: END")   
         write_npz(self.path('tile_bipolar_features', ensure_dirpath=True), tile_bipolar_features=tile_bipolar_features)
