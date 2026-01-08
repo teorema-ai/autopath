@@ -296,7 +296,9 @@ class BipolarFeatureBagProbe(Datablock):
         'bag_bipolar_uq': 'bag_bipolar_uq.npz',
         'bag_lens': 'bag_lens.npz',
         'bag_bounds': 'bag_bounds.npz',
+        #
         'bag_logistic_evaluation_reports': 'bag_logistic_evaluation_reports.pkl',
+        'tile_logistic_evaluation_reports': 'tile_logistic_evaluation_reports.pkl',
         #
         'stats_tile_features': 'stats_tile_features.npz',
         'stats_distinct_tile_features': 'stats_bag_distinct_tile_features.npz',
@@ -485,8 +487,9 @@ class BipolarFeatureBagProbe(Datablock):
             del tile_feature_list
             gc.collect()
 
+        # logistic eval
         if not self.validtopic('bag_logistic_evaluation_reports'):
-            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: BEGIN")
+            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR BAG features: BEGIN")
             prober = LogisticFeatureBagProber()
             bag_logistic_evaluation_reports = prober.evaluate_features2(
                 (bag_features, bag_labels), 
@@ -494,7 +497,18 @@ class BipolarFeatureBagProbe(Datablock):
                 tags=('bag_features', 'bag_bipolar_features',),
             )
             write_pickle(bag_logistic_evaluation_reports, self.path('bag_logistic_evaluation_reports', ensure_dirpath=True))
-            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: END")
+            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR BAG features: END")
+        
+        if not self.validtopic('tile_logistic_evaluation_reports'):
+            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR TILE features: BEGIN")
+            prober = LogisticFeatureBagProber()
+            tile_logistic_evaluation_reports = prober.evaluate_features2(
+                (tile_features, tile_labels), 
+                (tile_bipolar_features, tile_labels),
+                tags=('tile_features', 'tile_bipolar_features',),
+            )
+            write_pickle(tile_logistic_evaluation_reports, self.path('tile_logistic_evaluation_reports', ensure_dirpath=True))
+            self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR TILE features: END")
 
         # stats
         self.log.verbose(f"COMPUTING stats: BEGIN")
