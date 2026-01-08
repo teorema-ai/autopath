@@ -392,7 +392,7 @@ class BipolarFeatureBagProbe(Datablock):
                 bag_list.append(featurebag.cfg.tilebag.name)
                 label_list.append(featurebag.cfg.tilebag.label)
                 tile_labels_list.extend(featurebag.cfg.tilebag.labels)
-            labels = np.array(set(label_list))
+            labels = np.array(list(set(label_list)))
             bags = np.array(bag_list)
             tile_labels = np.array(tile_labels_list)
             bag_labels = np.array(bag_labels_list)
@@ -512,6 +512,9 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"COMPUTING tile features stats: END")
         #
         self.log.verbose(f"COMPUTING label tile features stats: BEGIN")
+        #DEBUG
+        breakpoint()
+        
         stats_label_tile_features = np.array([(tile_labels == label).sum() for label in labels])
         stats_label_distinct_tile_features = np.array([np.unique(tile_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
         stats_label_distinct_tile_bipolar_features = np.array([np.unique(tile_bipolar_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
@@ -604,6 +607,14 @@ class BipolarFeatureBagProbe(Datablock):
            label_bag_bipolar_feature_nonzeros=self.read('stats_label_bag_bipolar_feature_nonzeros'),
         )
     
+    @functools.cached_property
+    def labels(self):
+        return self.read('labels')
+    
+    @functools.cached_property
+    def bags(self):
+        return self.read('bags')
+
     @functools.cached_property
     def bag_lens(self):
         return self.read('bag_lens')
