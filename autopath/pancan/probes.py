@@ -512,9 +512,7 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"COMPUTING tile features stats: END")
         #
         self.log.verbose(f"COMPUTING label tile features stats: BEGIN")
-        #DEBUG
-        breakpoint()
-        
+
         stats_label_tile_features = np.array([(tile_labels == label).sum() for label in labels])
         stats_label_distinct_tile_features = np.array([np.unique(tile_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
         stats_label_distinct_tile_bipolar_features = np.array([np.unique(tile_bipolar_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
