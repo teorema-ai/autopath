@@ -556,7 +556,10 @@ class BipolarFeatureBagProbe(Datablock):
         write_npz(self.path('stats_bag_bipolar_feature_nonzeros', ensure_dirpath=True), stats_bag_bipolar_feature_nonzeros=stats_bag_bipolar_feature_nonzeros)
         self.log.verbose(f"COMPUTING bag bipolar feature nonzeros: END")  
         self.log.verbose(f"COMPUTING label bag bipolar feature nonzeros: BEGIN")
-        stats_label_bag_bipolar_feature_nonzeros = np.array([(bag_bipolar_features[bag_labels == label, :] != 0).sum() for label in labels])
+        stats_label_bag_bipolar_feature_nonzeros = np.array([
+            (bag_bipolar_features[bag_labels == label, :] != 0).sum()/(bag_bipolar_features[bag_labels == label, :] != 0).shape[0]
+            for label in labels
+        ])
         write_npz(self.path('stats_label_bag_bipolar_feature_nonzeros', ensure_dirpath=True), stats_label_bag_bipolar_feature_nonzeros=stats_label_bag_bipolar_feature_nonzeros)
         self.log.verbose(f"COMPUTING label bag bipolar feature nonzeros: END")
         #                             
