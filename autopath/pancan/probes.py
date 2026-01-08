@@ -287,6 +287,8 @@ class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
         'labels': 'labels.npz',
         'bags': 'bags.npz',
+        'tile_labels': 'tile_labels.npz',
+        'bag_labels': 'bag_labels.npz',
         'tile_bipolar_features': 'tile_bipolar_features.npz',
         'bag_features': 'bag_features.npz',
         'bag_bipolar_features': 'bag_bipolar_features.npz',
