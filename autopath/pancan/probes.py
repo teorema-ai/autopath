@@ -448,6 +448,18 @@ class BipolarFeatureBagProbe(Datablock):
             write_npz(self.path('bag_features', ensure_dirpath=True), bag_features=bag_features)
             write_npz(self.path('bag_bipolar_features', ensure_dirpath=True), bag_bipolar_features=bag_bipolar_features)
             self.log.verbose(f"AGGREGATING bag features: END")
+            #
+            self.log.verbose(f"COMPUTING bag features UQs: BEGIN")
+            bag_uq_list = []
+            bag_bipolar_uq_list = []
+            for i in range(len(bag_bounds)-1):
+                bag_uq_list.append(tile_features[bag_bounds[i]:bag_bounds[i+1], :].std(axis=0))
+                bag_bipolar_uq_list.append(tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].std(axis=0))
+            bag_uq = np.stack(bag_uq_list, axis=0)
+            bag_bipolar_uq = np.stack(bag_bipolar_uq_list, axis=0)
+            self.log.verbose(f"COMPUTING bag features UQs: END")     
+            write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
+            write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
         else:
             labels = self.labels
             bags = self.bags
@@ -472,18 +484,6 @@ class BipolarFeatureBagProbe(Datablock):
             tile_features = torch.stack(tile_feature_list, dim=0).numpy()
             del tile_feature_list
             gc.collect()
-
-        self.log.verbose(f"COMPUTING bag features UQs: BEGIN")
-        bag_uq_list = []
-        bag_bipolar_uq_list = []
-        for i in range(len(bag_bounds)-1):
-            bag_uq_list.append(tile_features[bag_bounds[i]:bag_bounds[i+1], :].std(axis=0))
-            bag_bipolar_uq_list.append(tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :].std(axis=0))
-        bag_uq = np.stack(bag_uq_list, axis=0)
-        bag_bipolar_uq = np.stack(bag_bipolar_uq_list, axis=0)
-        self.log.verbose(f"COMPUTING bag features UQs: END")     
-        write_npz(self.path('bag_uq', ensure_dirpath=True), bag_uq=bag_uq)
-        write_npz(self.path('bag_bipolar_uq', ensure_dirpath=True), bag_bipolar_uq=bag_bipolar_uq)
 
         if not self.validtopic('bag_logistic_evaluation_reports'):
             self.log.verbose(f"EVALUATING CONTINUOUS and BIPOLAR features: BEGIN")
