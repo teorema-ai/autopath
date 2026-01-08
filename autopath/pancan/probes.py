@@ -498,70 +498,99 @@ class BipolarFeatureBagProbe(Datablock):
 
         # stats
         self.log.verbose(f"COMPUTING stats: BEGIN")
-        self.log.verbose(f"COMPUTING tile features stats: BEGIN")
-        stats_tile_features = np.array(len(tile_features))
-        stats_distinct_tile_features = np.array(np.unique(tile_features, axis=0).shape[0])
-        stats_distinct_tile_bipolar_features = np.array(np.unique(tile_bipolar_features, axis=0).shape[0])
-        stats_distinct_tile_features_ratio = np.array([stats_distinct_tile_features/len(tile_features)])
-        stats_distinct_tile_bipolar_features_ratio = np.array([stats_distinct_tile_bipolar_features/len(tile_features)])
-        write_npz(self.path('stats_tile_features', ensure_dirpath=True), stats_tile_features=stats_tile_features)
-        write_npz(self.path('stats_distinct_tile_features', ensure_dirpath=True), stats_distinct_tile_features=stats_distinct_tile_features)
-        write_npz(self.path('stats_distinct_tile_bipolar_features', ensure_dirpath=True), stats_distinct_tile_bipolar_features=stats_distinct_tile_bipolar_features)
-        write_npz(self.path('stats_distinct_tile_features_ratio', ensure_dirpath=True), stats_distinct_tile_features_ratio=stats_distinct_tile_features_ratio)
-        write_npz(self.path('stats_distinct_tile_bipolar_features_ratio', ensure_dirpath=True), stats_distinct_tile_bipolar_features_ratio=stats_distinct_tile_bipolar_features_ratio)
-        self.log.verbose(f"COMPUTING tile features stats: END")
+        if not self.validtopics([
+            'stats_tile_features',
+            'stats_distinct_tile_features',
+            'stats_distinct_tile_bipolar_features',
+            'stats_distinct_tile_features_ratio',
+            'stats_distinct_tile_bipolar_features_ratio',
+            
+        ]):
+            self.log.verbose(f"COMPUTING tile features stats: BEGIN")
+            stats_tile_features = np.array(len(tile_features))
+            stats_distinct_tile_features = np.array(np.unique(tile_features, axis=0).shape[0])
+            stats_distinct_tile_bipolar_features = np.array(np.unique(tile_bipolar_features, axis=0).shape[0])
+            stats_distinct_tile_features_ratio = np.array([stats_distinct_tile_features/len(tile_features)])
+            stats_distinct_tile_bipolar_features_ratio = np.array([stats_distinct_tile_bipolar_features/len(tile_features)])
+            write_npz(self.path('stats_tile_features', ensure_dirpath=True), stats_tile_features=stats_tile_features)
+            write_npz(self.path('stats_distinct_tile_features', ensure_dirpath=True), stats_distinct_tile_features=stats_distinct_tile_features)
+            write_npz(self.path('stats_distinct_tile_bipolar_features', ensure_dirpath=True), stats_distinct_tile_bipolar_features=stats_distinct_tile_bipolar_features)
+            write_npz(self.path('stats_distinct_tile_features_ratio', ensure_dirpath=True), stats_distinct_tile_features_ratio=stats_distinct_tile_features_ratio)
+            write_npz(self.path('stats_distinct_tile_bipolar_features_ratio', ensure_dirpath=True), stats_distinct_tile_bipolar_features_ratio=stats_distinct_tile_bipolar_features_ratio)
+            self.log.verbose(f"COMPUTING tile features stats: END")
         #
-        self.log.verbose(f"COMPUTING label tile features stats: BEGIN")
-
-        stats_label_tile_features = np.array([(tile_labels == label).sum() for label in labels])
-        stats_label_distinct_tile_features = np.array([np.unique(tile_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
-        stats_label_distinct_tile_bipolar_features = np.array([np.unique(tile_bipolar_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
-        stats_label_distinct_tile_features_ratio = stats_label_distinct_tile_features/stats_label_tile_features
-        stats_label_distinct_tile_bipolar_features_ratio = stats_label_distinct_tile_bipolar_features/stats_label_tile_features
-        write_npz(self.path('stats_label_tile_features', ensure_dirpath=True), stats_label_tile_features=stats_label_tile_features)
-        write_npz(self.path('stats_label_distinct_tile_features', ensure_dirpath=True), stats_label_distinct_tile_features=stats_label_distinct_tile_features)
-        write_npz(self.path('stats_label_distinct_tile_bipolar_features', ensure_dirpath=True), stats_label_distinct_tile_bipolar_features=stats_label_distinct_tile_bipolar_features)
-        write_npz(self.path('stats_label_distinct_tile_features_ratio', ensure_dirpath=True), stats_label_distinct_tile_features_ratio=stats_label_distinct_tile_features_ratio)    
-        write_npz(self.path('stats_label_distinct_tile_bipolar_features_ratio', ensure_dirpath=True), stats_label_distinct_tile_bipolar_features_ratio=stats_label_distinct_tile_bipolar_features_ratio)
-        self.log.verbose(f"COMPUTING label tile features stats: END")
+        if not self.validtopics([
+            'stats_label_tile_features',
+            'stats_label_distinct_tile_features',
+            'stats_label_distinct_tile_bipolar_features',
+            'stats_label_distinct_tile_features_ratio',
+            'stats_label_distinct_tile_bipolar_features_ratio',
+        ]):
+            self.log.verbose(f"COMPUTING label tile features stats: BEGIN")
+            stats_label_tile_features = np.array([(tile_labels == label).sum() for label in labels])
+            stats_label_distinct_tile_features = np.array([np.unique(tile_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
+            stats_label_distinct_tile_bipolar_features = np.array([np.unique(tile_bipolar_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
+            stats_label_distinct_tile_features_ratio = stats_label_distinct_tile_features/stats_label_tile_features
+            stats_label_distinct_tile_bipolar_features_ratio = stats_label_distinct_tile_bipolar_features/stats_label_tile_features
+            write_npz(self.path('stats_label_tile_features', ensure_dirpath=True), stats_label_tile_features=stats_label_tile_features)
+            write_npz(self.path('stats_label_distinct_tile_features', ensure_dirpath=True), stats_label_distinct_tile_features=stats_label_distinct_tile_features)
+            write_npz(self.path('stats_label_distinct_tile_bipolar_features', ensure_dirpath=True), stats_label_distinct_tile_bipolar_features=stats_label_distinct_tile_bipolar_features)
+            write_npz(self.path('stats_label_distinct_tile_features_ratio', ensure_dirpath=True), stats_label_distinct_tile_features_ratio=stats_label_distinct_tile_features_ratio)    
+            write_npz(self.path('stats_label_distinct_tile_bipolar_features_ratio', ensure_dirpath=True), stats_label_distinct_tile_bipolar_features_ratio=stats_label_distinct_tile_bipolar_features_ratio)
+            self.log.verbose(f"COMPUTING label tile features stats: END")
         #
-        self.log.verbose(f"COMPUTING label bag features stats: BEGIN")
-        stats_label_bag_features = np.array([(bag_labels == label).sum() for label in labels])
-        stats_label_distinct_bag_features = np.array([np.unique(bag_features[bag_labels == label, :], axis=0).shape[0] for label in labels])
-        stats_label_distinct_bag_bipolar_features = np.array([np.unique(bag_bipolar_features[bag_labels == label, :], axis=0).shape[0] for label in labels])
-        stats_label_distinct_bag_features_ratio = stats_label_distinct_bag_features/stats_label_bag_features
-        stats_label_distinct_bag_bipolar_features_ratio = stats_label_distinct_bag_bipolar_features/stats_label_bag_features
-        write_npz(self.path('stats_label_bag_features', ensure_dirpath=True), stats_label_bag_features=stats_label_bag_features)
-        write_npz(self.path('stats_label_distinct_bag_features', ensure_dirpath=True), stats_label_distinct_bag_features=stats_label_distinct_bag_features)
-        write_npz(self.path('stats_label_distinct_bag_bipolar_features', ensure_dirpath=True), stats_label_distinct_bag_bipolar_features=stats_label_distinct_bag_bipolar_features)
-        write_npz(self.path('stats_label_distinct_bag_features_ratio', ensure_dirpath=True), stats_label_distinct_bag_features_ratio=stats_label_distinct_bag_features_ratio)    
-        write_npz(self.path('stats_label_distinct_bag_bipolar_features_ratio', ensure_dirpath=True), stats_label_distinct_bag_bipolar_features_ratio=stats_label_distinct_bag_bipolar_features_ratio)
-        self.log.verbose(f"COMPUTING label bag features stats: END")
+        if not self.validtopics([
+            'stats_label_bag_features',
+            'stats_label_distinct_bag_features',
+            'stats_label_distinct_bag_bipolar_features',
+            'stats_label_distinct_bag_features_ratio',
+            'stats_label_distinct_bag_bipolar_features_ratio',
+        ]):
+            self.log.verbose(f"COMPUTING label bag features stats: BEGIN")
+            stats_label_bag_features = np.array([(bag_labels == label).sum() for label in labels])
+            stats_label_distinct_bag_features = np.array([np.unique(bag_features[bag_labels == label, :], axis=0).shape[0] for label in labels])
+            stats_label_distinct_bag_bipolar_features = np.array([np.unique(bag_bipolar_features[bag_labels == label, :], axis=0).shape[0] for label in labels])
+            stats_label_distinct_bag_features_ratio = stats_label_distinct_bag_features/stats_label_bag_features
+            stats_label_distinct_bag_bipolar_features_ratio = stats_label_distinct_bag_bipolar_features/stats_label_bag_features
+            write_npz(self.path('stats_label_bag_features', ensure_dirpath=True), stats_label_bag_features=stats_label_bag_features)
+            write_npz(self.path('stats_label_distinct_bag_features', ensure_dirpath=True), stats_label_distinct_bag_features=stats_label_distinct_bag_features)
+            write_npz(self.path('stats_label_distinct_bag_bipolar_features', ensure_dirpath=True), stats_label_distinct_bag_bipolar_features=stats_label_distinct_bag_bipolar_features)
+            write_npz(self.path('stats_label_distinct_bag_features_ratio', ensure_dirpath=True), stats_label_distinct_bag_features_ratio=stats_label_distinct_bag_features_ratio)    
+            write_npz(self.path('stats_label_distinct_bag_bipolar_features_ratio', ensure_dirpath=True), stats_label_distinct_bag_bipolar_features_ratio=stats_label_distinct_bag_bipolar_features_ratio)
+            self.log.verbose(f"COMPUTING label bag features stats: END")
         #
-        self.log.verbose(f"COMPUTING bag tile features stats: BEGIN")
-        stats_bag_tile_features = bag_lens
-        stats_bag_distinct_tile_features = np.array([np.unique(tile_features[bag_bounds[i]:bag_bounds[i+1], :], axis=0).shape[0] for i in range(len(bags))])
-        stats_bag_distinct_tile_bipolar_features = np.array([np.unique(tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :], axis=0).shape[0] for i in range(len(bags))])
-        stats_bag_distinct_tile_features_ratio = np.array([stats_bag_distinct_tile_features/stats_bag_tile_features])
-        stats_bag_distinct_tile_bipolar_features_ratio = np.array([stats_bag_distinct_tile_bipolar_features/stats_bag_tile_features])
-        write_npz(self.path('stats_bag_tile_features', ensure_dirpath=True), stats_bag_tile_features=stats_bag_tile_features)
-        write_npz(self.path('stats_bag_distinct_tile_features', ensure_dirpath=True), stats_bag_distinct_tile_features=stats_bag_distinct_tile_features)
-        write_npz(self.path('stats_bag_distinct_tile_bipolar_features', ensure_dirpath=True), stats_bag_distinct_tile_bipolar_features=stats_bag_distinct_tile_bipolar_features)
-        write_npz(self.path('stats_bag_distinct_tile_features_ratio', ensure_dirpath=True), stats_bag_distinct_tile_features_ratio=stats_bag_distinct_tile_features_ratio)
-        write_npz(self.path('stats_bag_distinct_tile_bipolar_features_ratio', ensure_dirpath=True), stats_bag_distinct_tile_bipolar_features_ratio=stats_bag_distinct_tile_bipolar_features_ratio)
-        self.log.verbose(f"COMPUTING bag tile features stats: END")
+        if not self.validtopics([
+            'stats_bag_tile_features',
+            'stats_bag_distinct_tile_features',
+            'stats_bag_distinct_tile_bipolar_features',
+            'stats_bag_distinct_tile_features_ratio',
+            'stats_bag_distinct_tile_bipolar_features_ratio',
+        ]):
+            self.log.verbose(f"COMPUTING bag tile features stats: BEGIN")
+            stats_bag_tile_features = bag_lens
+            stats_bag_distinct_tile_features = np.array([np.unique(tile_features[bag_bounds[i]:bag_bounds[i+1], :], axis=0).shape[0] for i in range(len(bags))])
+            stats_bag_distinct_tile_bipolar_features = np.array([np.unique(tile_bipolar_features[bag_bounds[i]:bag_bounds[i+1], :], axis=0).shape[0] for i in range(len(bags))])
+            stats_bag_distinct_tile_features_ratio = np.array([stats_bag_distinct_tile_features/stats_bag_tile_features])
+            stats_bag_distinct_tile_bipolar_features_ratio = np.array([stats_bag_distinct_tile_bipolar_features/stats_bag_tile_features])
+            write_npz(self.path('stats_bag_tile_features', ensure_dirpath=True), stats_bag_tile_features=stats_bag_tile_features)
+            write_npz(self.path('stats_bag_distinct_tile_features', ensure_dirpath=True), stats_bag_distinct_tile_features=stats_bag_distinct_tile_features)
+            write_npz(self.path('stats_bag_distinct_tile_bipolar_features', ensure_dirpath=True), stats_bag_distinct_tile_bipolar_features=stats_bag_distinct_tile_bipolar_features)
+            write_npz(self.path('stats_bag_distinct_tile_features_ratio', ensure_dirpath=True), stats_bag_distinct_tile_features_ratio=stats_bag_distinct_tile_features_ratio)
+            write_npz(self.path('stats_bag_distinct_tile_bipolar_features_ratio', ensure_dirpath=True), stats_bag_distinct_tile_bipolar_features_ratio=stats_bag_distinct_tile_bipolar_features_ratio)
+            self.log.verbose(f"COMPUTING bag tile features stats: END")
         #
-        self.log.verbose(f"COMPUTING bag bipolar feature nonzeros: BEGIN")
-        stats_bag_bipolar_feature_nonzeros = (bag_bipolar_features != 0).sum(axis=1)
-        write_npz(self.path('stats_bag_bipolar_feature_nonzeros', ensure_dirpath=True), stats_bag_bipolar_feature_nonzeros=stats_bag_bipolar_feature_nonzeros)
-        self.log.verbose(f"COMPUTING bag bipolar feature nonzeros: END")  
-        self.log.verbose(f"COMPUTING label bag bipolar feature nonzeros: BEGIN")
-        stats_label_bag_bipolar_feature_nonzeros = np.array([
-            (bag_bipolar_features[bag_labels == label, :] != 0).sum()/(bag_bipolar_features[bag_labels == label, :] != 0).shape[0]
-            for label in labels
-        ])
-        write_npz(self.path('stats_label_bag_bipolar_feature_nonzeros', ensure_dirpath=True), stats_label_bag_bipolar_feature_nonzeros=stats_label_bag_bipolar_feature_nonzeros)
-        self.log.verbose(f"COMPUTING label bag bipolar feature nonzeros: END")
+        if not self.validtopic('stats_bag_bipolar_feature_nonzeros'):
+            self.log.verbose(f"COMPUTING bag bipolar feature nonzeros: BEGIN")
+            stats_bag_bipolar_feature_nonzeros = (bag_bipolar_features != 0).sum(axis=1)
+            write_npz(self.path('stats_bag_bipolar_feature_nonzeros', ensure_dirpath=True), stats_bag_bipolar_feature_nonzeros=stats_bag_bipolar_feature_nonzeros)
+            self.log.verbose(f"COMPUTING bag bipolar feature nonzeros: END")  
+            self.log.verbose(f"COMPUTING label bag bipolar feature nonzeros: BEGIN")
+            stats_label_bag_bipolar_feature_nonzeros = np.array([
+                (bag_bipolar_features[bag_labels == label, :] != 0).sum()/(bag_bipolar_features[bag_labels == label, :] != 0).shape[0]
+                for label in labels
+            ])
+            write_npz(self.path('stats_label_bag_bipolar_feature_nonzeros', ensure_dirpath=True), stats_label_bag_bipolar_feature_nonzeros=stats_label_bag_bipolar_feature_nonzeros)
+            self.log.verbose(f"COMPUTING label bag bipolar feature nonzeros: END")
         #                             
         self.log.verbose(f"COMPUTING stats: END")
         return self
