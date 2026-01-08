@@ -42,8 +42,6 @@ from autopath.gigaq.dinov2.backbone import (
 
 
 from autopath.models.vred import (
-    Classifier, 
-    ClassMultiscaleLatentGaussians2D,
     VariationalReEncoderDecoder,
     VariationalReEncoderDecoderEvaluator,
     VariationalReEncoderDecoderLightning,
