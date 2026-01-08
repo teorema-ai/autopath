@@ -378,7 +378,7 @@ class BipolarFeatureBagProbe(Datablock):
             bag_labels_list = []
             bag_lens_list = []
             label_list = []
-            bag_list = {}
+            bag_list = []
             tile_feature_list = []
             self.log.verbose(f"READING features and labels from bags: BEGIN")
             if self.verbose:
