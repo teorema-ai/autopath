@@ -387,7 +387,7 @@ class BipolarFeatureBagProbe(Datablock):
                 bagitor = self.cfg.featurebagclip.bags
             for featurebag in bagitor:
                 tile_feature_list.extend(featurebag.features)
-                bag_labels.append(featurebag.cfg.tilebag.label)
+                bag_labels_list.append(featurebag.cfg.tilebag.label)
                 bag_lens_list.append(len(featurebag.features))
                 bag_list.append(featurebag.cfg.tilebag.name)
                 label_list.append(featurebag.cfg.tilebag.label)
