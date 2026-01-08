@@ -457,8 +457,8 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"COMPUTING stats: BEGIN")
         self.log.verbose(f"COMPUTING tile features stats: BEGIN")
         tile_bags = list(itertools.chain.from_iterable([[i]*bag_lens[i] for i in range(len(bag_lens))]))
-        tile_features_frame = pd.DataFrame({'tile_features': tile_features, 
-                                            'tile_bipolar_features': tile_bipolar_features,
+        tile_features_frame = pd.DataFrame({'tile_features': [tile_features[i] for i in range(tile_features.shape[0])], 
+                                            'tile_bipolar_features': [tile_bipolar_features[i] for i in range(tile_bipolar_features.shape[0])],
                                             'tile_labels': tile_labels,
                                             'tile_bags': tile_bags,
         })
