@@ -114,10 +114,9 @@ class FeatureBagProber:
 
     def pairwise_hamming_distance_stats(self, features: np.ndarray, labels: np.ndarray):
         self.log.verbose(f"COMPUTING pairwise Hamming distances: BEGIN")
-        f1, f2 = tools.align_matrices_pairwise(features, features)
-        assert f1.shape == f2.shape
-        distances = np.sum(np.abs(f1 - f2), axis=-1)*0.5
-        self.log.verbose(f"COMPUTING pairwise Hamming distances: BEGIN")
+        features = torch.tensor(features)
+        distances = 0.5*torch.cdist(features, features, p=1).numpy()
+        self.log.verbose(f"COMPUTING pairwise Hamming distances: END")
         unique_labels = np.unique(labels)
         n = len(unique_labels)
         means = np.zeros((n, n))
@@ -131,6 +130,8 @@ class FeatureBagProber:
         for il1, il2 in ulabels2:
             i1, l1 = il1
             i2, l2 = il2
+            if i1 > i2:
+                continue
             sel1 = (labels == l1)
             sel2 = (labels == l2)
             n1 = sel1.sum()
