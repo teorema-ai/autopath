@@ -37,6 +37,9 @@ from autopath.features import FeatureBagClip
 
 
 class FeatureBagProber:
+    def __init__(self, log = dbx.Logger()):
+        self.log = log
+
     @staticmethod
     def ndarray(X: Union[np.ndarray, list, torch.Tensor, pd.DataFrame]):
         if isinstance(X, list):
@@ -108,6 +111,50 @@ class FeatureBagProber:
         else:
             plt.show()
         return umap_features
+
+    def pairwise_hamming_distance_stats(self, features: np.ndarray, labels: np.ndarray):
+        self.log.verbose(f"COMPUTING pairwise Hamming distances: BEGIN")
+        f1, f2 = tools.align_matrices_pairwise(features, features)
+        assert f1.shape == f2.shape
+        distances = np.sum(np.abs(f1 - f2), axis=-1)*0.5
+        self.log.verbose(f"COMPUTING pairwise Hamming distances: BEGIN")
+        unique_labels = np.unique(labels)
+        n = len(unique_labels)
+        means = np.zeros((n, n))
+        mins = np.zeros((n, n))
+        maxs = np.zeros((n, n))
+        stds = np.zeros((n, n))
+        ulabels2 = itertools.product(enumerate(unique_labels))
+        self.log.verbose(f"COMPUTING statistics of label distances: BEGIN")
+        if self.log.ist('verbose'):
+            ulabels2 = tqdm.tqdm(ulabels2)
+        for il1, il2 in ulabels2:
+            i1, l1 = il1
+            i2, l2 = il2
+            sel1 = (labels == l1)
+            sel2 = (labels == l2)
+            n1 = sel1.sum()
+            n2 = sel2.sum()
+            if n1 == 0 or n2 == 0:
+                continue
+            if i1 == i2:  
+                means[i1, i2] = 2.0*(distances[sel1, sel2].sum())/(n1*(n1-1))
+            else:  
+                means[i1, i2] = distances[sel1, sel2].mean()
+            mins[i1, i2] = distances[sel1, sel2].min()
+            maxs[i1, i2] = distances[sel1, sel2].max()
+            stds[i1, i2] = distances[sel1, sel2].std()
+        self.log.verbose(f"COMPUTING statistics of label distances: BEGIN")          
+
+        return dict(
+            means=means,
+            mins=mins,
+            maxs=maxs,
+            stds=stds,
+            distances=distances,
+            unique_labels=unique_labels,
+        )
+
 
 
 class LogisticFeatureBagProber(FeatureBagProber):
@@ -326,6 +373,8 @@ class BipolarFeatureBagProbe(Datablock):
         #
         'stats_bag_bipolar_feature_nonzeros': 'stats_bag_bipolar_feature_nonzeros.npz',
         'stats_label_bag_bipolar_feature_nonzeros': 'stats_label_bag_bipolar_feature_nonzeros.npz',
+        'stats_hamming_distances': 'stats_hamming_distances.pkl',
+
     }
     @dataclass
     class CONFIG:
@@ -607,10 +656,25 @@ class BipolarFeatureBagProbe(Datablock):
             self.log.verbose(f"COMPUTING label bag bipolar feature nonzeros: END")
         #                             
         self.log.verbose(f"COMPUTING stats: END")
+        #
+        if not self.validtopic('stats_hamming_distances'):
+            self.log.verbose(f"COMPUTING Hamming distance stats: BEGIN")
+            hamming_stats = self.hamming_distance_stats(_bag_bipolar_features, bag_labels)
+            write_pickle(hamming_stats, self.path('stats_hamming_distances', ensure_dirpath=True))
+            self.log.verbose(f"COMPUTING Hamming distance stats: END")
+        #
         return self
     
     def __read__(self, topic):
-        return  read_npz(self.path(topic), topic)[topic]
+        if topic in [
+            'bag_logistic_evaluation_reports',
+            'tile_logistic_evaluation_reports',
+            'stats_hamming_distances',
+        ]:
+            result = read_pickle(self.path(topic), topic)
+        else:
+            result = read_npz(self.path(topic), topic)[topic]
+        return result
     
     @functools.cached_property
     def labels(self):
@@ -650,6 +714,9 @@ class BipolarFeatureBagProbe(Datablock):
            bag_bipolar_feature_nonzeros=self.read('stats_bag_bipolar_feature_nonzeros'),
            label_bag_bipolar_feature_nonzeros=self.read('stats_label_bag_bipolar_feature_nonzeros'),
         )
+    @functools.cached_property
+    def hamming_distance_stats(self):
+        return self.read('hamming_distance_stats')
     
     @functools.cached_property
     def labels(self):
