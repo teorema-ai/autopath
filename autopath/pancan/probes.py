@@ -142,8 +142,8 @@ class FeatureBagProber:
             if i1 == i2:  
                 means[i1, i2] = 2.0*(distances[sel1, sel2].sum())/(n1*(n1-1))
             else:
-                dist12 = distances[sel1, sel2] 
-                mean12 = distances[sel1, sel2].mean()
+                dist12 = distances[sel1, :][:, sel2] 
+                mean12 = dist12.mean()
                 self.log.debug(f"{dist12.shape=}, {mean12.shape=}")
                 means[i1, i2] = mean12
             mins[i1, i2] = distances[sel1, sel2].min()
