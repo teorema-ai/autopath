@@ -144,7 +144,6 @@ class FeatureBagProber:
                 means[i1, i2] = 2.0*(dist12.sum())/(n1*(n1-1))
             else: 
                 mean12 = dist12.mean()
-                self.log.debug(f"{dist12.shape=}, {mean12.shape=}")
                 means[i1, i2] = mean12
             mins[i1, i2] = dist12.min()
             maxs[i1, i2] = dist12.max()
