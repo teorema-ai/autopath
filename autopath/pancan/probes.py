@@ -112,6 +112,15 @@ class FeatureBagProber:
             plt.show()
         return umap_features
 
+    @dataclass
+    class HammingDistanceStats:
+        means: np.ndarray
+        mins: np.ndarray
+        maxs: np.ndarray
+        stds: np.ndarray
+        distances: np.ndarray
+        unique_labels: np.ndarray
+
     def pairwise_hamming_distance_stats(self, features: np.ndarray, labels: np.ndarray):
         self.log.verbose(f"COMPUTING pairwise Hamming distances: BEGIN")
         features = torch.tensor(features).to(torch.float32)
@@ -141,16 +150,21 @@ class FeatureBagProber:
                 continue
             dist12 = distances[sel1, :][:, sel2]
             if i1 == i2:  
-                means[i1, i2] = 2.0*(dist12.sum())/(n1*(n1-1))
+                means[i1, i2] = (dist12.sum())/(n1*(n1-1))
+                means[i2, i1] = means[i1, i2]
             else: 
                 mean12 = dist12.mean()
                 means[i1, i2] = mean12
+                means[i2, i1] = mean12
             mins[i1, i2] = dist12.min()
+            mins[i2, i1] = mins[i1, i2]
             maxs[i1, i2] = dist12.max()
+            maxs[i2, i1] = maxs[i1, i2]
             stds[i1, i2] = dist12.std()
+            stds[i2, i1] = stds[i1, i2]
         self.log.verbose(f"COMPUTING statistics of label distances: BEGIN")          
 
-        return dict(
+        return self.HammingDistanceStats(
             means=means,
             mins=mins,
             maxs=maxs,
