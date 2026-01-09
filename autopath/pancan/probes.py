@@ -114,7 +114,7 @@ class FeatureBagProber:
 
     def pairwise_hamming_distance_stats(self, features: np.ndarray, labels: np.ndarray):
         self.log.verbose(f"COMPUTING pairwise Hamming distances: BEGIN")
-        features = torch.tensor(features)
+        features = torch.tensor(features).to(torch.float32)
         distances = 0.5*torch.cdist(features, features, p=1).numpy()
         self.log.verbose(f"COMPUTING pairwise Hamming distances: END")
         unique_labels = np.unique(labels)
