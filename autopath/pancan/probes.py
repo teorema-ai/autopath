@@ -676,7 +676,7 @@ class BipolarFeatureBagProbe(Datablock):
             'tile_logistic_evaluation_reports',
             'stats_hamming_distances',
         ]:
-            result = read_pickle(self.path(topic), topic)
+            result = read_pickle(self.path(topic))
         else:
             result = read_npz(self.path(topic), topic)[topic]
         return result
