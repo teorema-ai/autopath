@@ -658,8 +658,9 @@ class BipolarFeatureBagProbe(Datablock):
         self.log.verbose(f"COMPUTING stats: END")
         #
         if not self.validtopic('stats_hamming_distances'):
+            prober = FeatureBagProber()
             self.log.verbose(f"COMPUTING Hamming distance stats: BEGIN")
-            hamming_stats = self.hamming_distance_stats(_bag_bipolar_features, bag_labels)
+            hamming_stats = prober.pairwise_hamming_distance_stats(bag_bipolar_features, bag_labels)
             write_pickle(hamming_stats, self.path('stats_hamming_distances', ensure_dirpath=True))
             self.log.verbose(f"COMPUTING Hamming distance stats: END")
         #
@@ -716,7 +717,7 @@ class BipolarFeatureBagProbe(Datablock):
         )
     @functools.cached_property
     def hamming_distance_stats(self):
-        return self.read('hamming_distance_stats')
+        return self.read('stats_hamming_distances')
     
     @functools.cached_property
     def labels(self):
