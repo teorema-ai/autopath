@@ -37,7 +37,7 @@ from autopath.features import FeatureBagClip
 
 
 class FeatureBagProber:
-    def __init__(self, log = dbx.Logger()):
+    def __init__(self, log = Logger()):
         self.log = log
 
     @staticmethod
