@@ -116,6 +116,7 @@ class FeatureBagProber:
         self.log.verbose(f"COMPUTING pairwise Hamming distances: BEGIN")
         features = torch.tensor(features).to(torch.float32)
         distances = 0.5*torch.cdist(features, features, p=1).numpy()
+        self.log.debug(f"distances.shape: {distances.shape}")
         self.log.verbose(f"COMPUTING pairwise Hamming distances: END")
         unique_labels = np.unique(labels)
         n = len(unique_labels)
@@ -123,7 +124,7 @@ class FeatureBagProber:
         mins = np.zeros((n, n))
         maxs = np.zeros((n, n))
         stds = np.zeros((n, n))
-        ulabels2 = itertools.product(enumerate(unique_labels), enumerate(unique_labels))
+        ulabels2 = list(itertools.product(enumerate(unique_labels), enumerate(unique_labels)))
         self.log.verbose(f"COMPUTING statistics of label distances: BEGIN")
         if self.log.ist('verbose'):
             ulabels2 = tqdm.tqdm(ulabels2)
