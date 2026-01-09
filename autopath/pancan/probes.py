@@ -139,16 +139,16 @@ class FeatureBagProber:
             n2 = sel2.sum()
             if n1 == 0 or n2 == 0:
                 continue
+            dist12 = distances[sel1, :][:, sel2]
             if i1 == i2:  
-                means[i1, i2] = 2.0*(distances[sel1, sel2].sum())/(n1*(n1-1))
-            else:
-                dist12 = distances[sel1, :][:, sel2] 
+                means[i1, i2] = 2.0*(dist12.sum())/(n1*(n1-1))
+            else: 
                 mean12 = dist12.mean()
                 self.log.debug(f"{dist12.shape=}, {mean12.shape=}")
                 means[i1, i2] = mean12
-            mins[i1, i2] = distances[sel1, sel2].min()
-            maxs[i1, i2] = distances[sel1, sel2].max()
-            stds[i1, i2] = distances[sel1, sel2].std()
+            mins[i1, i2] = dist12.min()
+            maxs[i1, i2] = dist12.max()
+            stds[i1, i2] = dist12.std()
         self.log.verbose(f"COMPUTING statistics of label distances: BEGIN")          
 
         return dict(
