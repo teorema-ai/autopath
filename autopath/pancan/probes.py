@@ -19,6 +19,9 @@ from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
 
+VERSION = 5
+
+
 from dbx import (
 	Logger,
 	Datablock,
@@ -30,6 +33,7 @@ from dbx import (
     read_pickle,
     TorchMultithreadingDatablocksBuilder,
     TorchMultiprocessingDatablocksBuilder,
+    MultithreadingCallableExecutor,
 )
 
 from autopath import tools
@@ -347,7 +351,7 @@ class FeatureBagMedianProbe(Datablock):
     def max(self):
         return self.read('max')
     
-
+    
 class BipolarFeatureBagProbe(Datablock):
     TOPICFILES = {
         'labels': 'labels.npz',
@@ -399,6 +403,32 @@ class BipolarFeatureBagProbe(Datablock):
         featurebagclip: FeatureBagClip
         medianprobe: FeatureBagMedianProbe
 
+    class BipolarFeaturesSimilarityShardComputer:
+        def __init__(self, rows, *, device: str = 'cuda', gpu_batch_size: int = 1024, log: Logger = Logger()):
+            self.rows = rows
+            self.device = device
+            self.gpu_batch_size = gpu_batch_size
+            self.log = log
+
+        def __call__(self, probe, features, groups, similarities):
+            self.log.detailed(f"Executing BipolarFeaturesSimilarityShardComputer with {len(self.rows)} rows on device {self.device} using batch size {self.gpu_batch_size}: BEGIN")
+            row_blocks = torch.split(torch.tensor(self.rows), self.gpu_batch_size)
+            col_blocks = torch.split(torch.arange(features.shape[0]), self.gpu_batch_size)
+            for row_block_idx, col_block_idx in itertools.product(range(len(row_blocks)), range(len(col_blocks))):
+                self.log.verbose(f"COMPUTING similarities between row block {row_block_idx} and col block {col_block_idx}: BEGIN")
+                row_indices = row_blocks[row_block_idx]
+                col_indices = col_blocks[col_block_idx]
+                f_row = torch.as_tensor(features[row_indices]).to(self.device).float()
+                f_col = torch.as_tensor(features[col_indices]).to(self.device).float()
+                _similarities = (f_row @ f_col.T).cpu()
+                row_groups = groups[row_indices].to('cpu')
+                col_groups = groups[col_indices].to('cpu')
+                target_rows = row_groups.unsqueeze(1).expand(-1, len(col_groups)).reshape(-1)
+                target_cols = col_groups.unsqueeze(0).expand(len(row_groups), -1).reshape(-1)
+                similarities.index_put_((target_rows, target_cols), _similarities.reshape(-1), accumulate=True)
+                self.log.verbose(f"COMPUTING similarities between row block {row_block_idx} and col block {col_block_idx}: END")
+            self.log.detailed(f"Executing BipolarFeaturesSimilarityShardComputer with {len(self.rows)} rows on device {self.device} using batch size {self.gpu_batch_size}: END")
+
     @dataclass
     class Stats:
         tile_features: np.array
@@ -428,6 +458,8 @@ class BipolarFeatureBagProbe(Datablock):
         bag_bipolar_feature_nonzeros: np.array
         label_bag_bipolar_feature_nonzeros: np.array
 
+    def __init__(self, *args, devices=['cuda'], gpu_batch_size: int = 1024, **kwargs):
+        super().__init__(*args, devices=devices, gpu_batch_size=gpu_batch_size, **kwargs)
 
     def __build__(self):
         if not self.validtopics([
@@ -441,7 +473,9 @@ class BipolarFeatureBagProbe(Datablock):
             'bag_uq', 
             'bag_bipolar_uq',
             'bag_lens', 
-            'bag_bounds', 
+            'bag_bounds',
+            'bag_similarities',
+            'label_similarities', 
         ]):
             tile_labels_list = []
             bag_labels_list = []
@@ -682,6 +716,7 @@ class BipolarFeatureBagProbe(Datablock):
             write_pickle(hamming_stats, self.path('stats_hamming_distances', ensure_dirpath=True))
             self.log.verbose(f"COMPUTING Hamming distance stats: END")
         #
+        self.__build_similarities__(tile_bipolar_features=tile_bipolar_features)
         return self
     
     def __read__(self, topic):
@@ -699,9 +734,61 @@ class BipolarFeatureBagProbe(Datablock):
     def labels(self):
         return self.read('labels')
     
+    @property
+    def n_distinct_labels(self):
+        return len(set(self.labels))
+    
     @functools.cached_property
     def bags(self):
         return self.read('bags')
+    
+    @property
+    def n_bags(self):
+        return len(self.bags_lens)
+    
+    @functools.cached_property
+    def bag_lens(self):
+        return self.read('bag_lens')
+    
+    @functools.cached_property
+    def bag_bounds(self):
+        return self.read('bag_bounds')
+    
+    @functools.cached_property
+    def tile_bags(self):
+        return torch.tensor(list(itertools.chain.from_iterable([i]*self.bag_lens[i] for i in range(self.n_bags))))
+            
+    @functools.cached_property
+    def tile_labels(self):
+        return self.read('tile_labels')
+    
+    @functools.cached_property
+    def label_tiles(self):
+        return self.read('label_tiles')
+    
+    @functools.cached_property
+    def bag_labels(self):
+        return self.read('bag_labels')
+    
+    @functools.cached_property
+    def label_bags(self):
+        return self.read('label_bags')
+    
+    @functools.cached_property
+    def tile_bipolar_features(self):
+        return self.read('tile_bipolar_features')
+    
+    @functools.cached_property
+    def bag_features(self):
+        return self.read('bag_features')
+    
+    @functools.cached_property
+    def bag_bipolar_features(self):
+        return self.read('bag_bipolar_features')
+    
+    @functools.cached_property
+    def bag_logistic_evaluation_reports(self):
+        return self.read('bag_logistic_evaluation_reports')
     
     @functools.cached_property
     def stats(self):
@@ -737,88 +824,46 @@ class BipolarFeatureBagProbe(Datablock):
     def hamming_distance_stats(self):
         return self.read('stats_hamming_distances')
     
-    @functools.cached_property
-    def labels(self):
-        return self.read('labels')
+    @functools.cache
+    def bag_similarities(self):
+        return self.read('bag_similarities')
     
-    @functools.cached_property
-    def bags(self):
-        return self.read('bags')
-
-    @functools.cached_property
-    def bag_lens(self):
-        return self.read('bag_lens')
+    @functools.cache
+    def label_similarities(self):
+        return self.read('label_similarities')
     
-    @functools.cached_property
-    def bag_bounds(self):
-        return self.read('bag_bounds')
-    
-    @functools.cached_property
-    def tile_labels(self):
-        return self.read('tile_labels')
-    
-    @functools.cached_property
-    def label_tiles(self):
-        return self.read('label_tiles')
-    
-    @functools.cached_property
-    def bag_labels(self):
-        return self.read('bag_labels')
-    
-    @functools.cached_property
-    def label_bags(self):
-        return self.read('label_bags')
-    
-    @functools.cached_property
-    def tile_bipolar_features(self):
-        return self.read('tile_bipolar_features')
-    
-    @functools.cached_property
-    def bag_features(self):
-        return self.read('bag_features')
-    
-    @functools.cached_property
-    def bag_bipolar_features(self):
-        return self.read('bag_bipolar_features')
-    
-    @functools.cached_property
-    def bag_uq(self):
-        return self.read('bag_uq')
-    
-    @functools.cached_property
-    def bag_bipolar_uq(self):
-        return self.read('bag_bipolar_uq')
-    
-    @functools.cached_property
-    def bag_logistic_evaluation_reports(self):
-        return self.read('bag_logistic_evaluation_reports')
-    
-    """
-    def hamming_distances(self, bag1, bag2, *, uq_threshold: float = None, aggregate_bipolar: bool = False, bipolarize_aggregate: bool = False):
-        fb1, fb2 = tools.align_matrices_pairwise(self.features[bag1], self.features[bag2])
-        assert fb1.shape == fb2.shape
-        distances = np.sum(np.abs(fb1 - fb2), axis=-1)*0.5
-        return distances
-    
-    def hamming_distance_stats(self, bag1, bag2):
-        distances = self.hamming_distances(bag1, bag2)
-        mindist = distances.min()
-        maxdist = distances.max()
-        meandist = distances.mean()
-        stddist = distances.std()
-        aggdist = np.sum(np.abs(self.agg_features[bag1] - self.agg_features[bag2]))*0.5
-        return dict(
-            mindist=mindist,
-            maxdist=maxdist,
-            meandist=meandist,
-            stddist=stddist,
-            aggdist=aggdist,
-        )
-    """
+    def __build_similarities__(self, tile_bipolar_features):
+        if not self.validtopics([
+            'bag_similarities',
+            'label_similarities',
+        ]):
+            bag_similarities = torch.zeros((self.n_bags, self.n_bags))
+            bag_indices = torch.tensor_split(torch.arange(self.n_bags), len(self.devices))
+            bag_similarities_computers = [
+                self.BipolarFeaturesSimilarityShardComputer(bag_indices[i], device=self.devices[i], gpu_batch_size=self.gpu_batch_size, log=self.log)
+                for i in range(len(self.devices))
+            ]
+            self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
+            bag_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
+            bag_executor.execute(bag_similarities_computers, self, tile_bipolar_features, self.tile_bags, bag_similarities)
+            write_tensor(bag_similarities, self.path('bag_similarities', ensure_dirpath=True))
+            self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")
+            
+            label_similarities = torch.zeros((self.n_distinct_labels, self.n_distinct_labels))
+            label_indices = torch.tensor_split(torch.arange(self.n_distinct_labels), len(self.devices))
+            label_similarities_computers = [
+                self.BipolarFeaturesSimilarityShardComputer(label_indices[i], device=self.devices[i], gpu_batch_size=self.gpu_batch_size, log=self.log)
+                for i in range(len(self.devices))
+            ]
+            self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
+            label_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
+            label_executor.execute(label_similarities_computers, self, tile_bipolar_features, torch.tensor(self.tile_labels), label_similarities)
+            write_tensor(label_similarities, self.path('label_similarities', ensure_dirpath=True))
+            self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")   
     
 
 class FeaturePairwiseDistancesShard(Datablock):
-    VERSION = 1
+    VERSION = globals()['VERSION']
     TOPICFILES = {
         'rows': 'rows.npz',
         'cols': 'cols.npz',
@@ -883,7 +928,7 @@ class FeaturePairwiseDistancesShard(Datablock):
     
 
 class FeaturePairwiseDistances(Datablock):
-    VERSION = 1
+    VERSION = globals()['VERSION'] 
     TOPICFILES = {
         "features_shape": "features_shape.npy",
     }
@@ -970,7 +1015,7 @@ class FeaturePairwiseDistances(Datablock):
 
 
 class FeatureSortedDistancesShard(Datablock):
-    VERSION = 4
+    VERSION = globals()['VERSION']
     TOPICFILES = {
         "sorted_distances": "sorted_distances.npy",
         "original_order_indices": "original_order_indices.npy",
@@ -1021,7 +1066,7 @@ class FeatureSortedDistancesShard(Datablock):
         
 
 class FeatureSortedDistances(Datablock):
-    VERSION = 4
+    VERSION = globals()['VERSION']
     TOPICFILE = "breadcrumbs"
 
     @dataclass
