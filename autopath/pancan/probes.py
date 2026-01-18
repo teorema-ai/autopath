@@ -396,7 +396,9 @@ class BipolarFeatureBagProbe(Datablock):
         'stats_bag_bipolar_feature_nonzeros': 'stats_bag_bipolar_feature_nonzeros.npz',
         'stats_label_bag_bipolar_feature_nonzeros': 'stats_label_bag_bipolar_feature_nonzeros.npz',
         'stats_hamming_distances': 'stats_hamming_distances.pkl',
-
+        #
+        'bag_similarities': 'bag_similarities.npz',
+        'label_similarities': 'label_similarities.npz',
     }
     @dataclass
     class CONFIG:
