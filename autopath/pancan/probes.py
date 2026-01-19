@@ -746,7 +746,7 @@ class BipolarFeatureBagProbe(Datablock):
     
     @property
     def n_bags(self):
-        return len(self.bags_lens)
+        return len(self.bag_lens)
     
     @functools.cached_property
     def bag_lens(self):
