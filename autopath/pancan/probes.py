@@ -350,6 +350,7 @@ class FeatureBagMedianProbe(Datablock):
     
     
 class BipolarFeatureBagProbe(Datablock):
+    VERSION = 1
     TOPICFILES = {
         'labels': 'labels.npz',
         'bags': 'bags.npz',
