@@ -357,7 +357,11 @@ class BipolarFeatureBagProbe(Datablock):
         'labels': 'labels.npz',
         'bags': 'bags.npz',
         'tile_labels': 'tile_labels.npz',
+        'tile_bags': 'tile_bags.npz',
         'bag_labels': 'bag_labels.npz',
+        'tile_label_indices': 'tile_label_indices.npz',
+        'tile_bag_indices': 'tile_bag_indices.npz',
+        'bag_label_indices': 'bag_label_indices.npz',
         'tile_bipolar_features': 'tile_bipolar_features.npz',
         'bag_features': 'bag_features.npz',
         'bag_bipolar_features': 'bag_bipolar_features.npz',
@@ -468,16 +472,24 @@ class BipolarFeatureBagProbe(Datablock):
             'labels',
             'bags',
             'tile_labels',
+            'tile_bags',
             'bag_labels',
+            'tile_label_indices',
+            'tile_bag_indices',
+            'bag_label_indices',
             'tile_bipolar_features',  
             'bag_features', 
             'bag_bipolar_features', 
-            'bag_uq', 
-            'bag_bipolar_uq',
             'bag_lens', 
             'bag_bounds',
+            'bag_uq', 
+            'bag_bipolar_uq',
         ]):
+            def strings_to_indices(string_list, string_set):
+                return np.array([string_set.index(s) for s in string_list])
+                            
             tile_labels_list = []
+            tile_bags_list = []
             bag_labels_list = []
             bag_lens_list = []
             label_list = []
@@ -495,11 +507,16 @@ class BipolarFeatureBagProbe(Datablock):
                 bag_list.append(featurebag.cfg.tilebag.name)
                 label_list.append(featurebag.cfg.tilebag.label)
                 tile_labels_list.extend(featurebag.cfg.tilebag.labels)
+                tile_bags_list.extend([featurebag.cfg.tilebag.name]*len(featurebag.cfg.tilebag.labels))
             labels = np.array(list(set(label_list)))
             bags = np.array(bag_list)
             tile_labels = np.array(tile_labels_list)
+            tile_bags = np.array(tile_bags_list)
             bag_labels = np.array(bag_labels_list)
             bag_lens = np.array(bag_lens_list)
+            tile_label_indices = strings_to_indices(tile_labels, labels)
+            tile_bag_indices = strings_to_indices(tile_bags, bags)
+            bag_label_indices = strings_to_indices(bag_labels, labels)
             write_npz(self.path('labels', ensure_dirpath=True), labels=labels)
             write_npz(self.path('bags', ensure_dirpath=True), bags=bags)
             bag_lens0 = np.concatenate([np.array([0]), bag_lens])
@@ -507,6 +524,10 @@ class BipolarFeatureBagProbe(Datablock):
             write_npz(self.path('bag_lens', ensure_dirpath=True), bag_lens=bag_lens)
             write_npz(self.path('bag_bounds', ensure_dirpath=True), bag_bounds=bag_bounds)
             write_npz(self.path('tile_labels', ensure_dirpath=True), tile_labels=tile_labels)
+            write_npz(self.path('tile_label_indices', ensure_dirpath=True), tile_label_indices=tile_label_indices)
+            write_npz(self.path('tile_bag_indices', ensure_dirpath=True), tile_bag_indices=tile_bag_indices)
+            write_npz(self.path('bag_label_indices', ensure_dirpath=True), bag_label_indices=bag_label_indices)
+            write_npz(self.path('tile_bags', ensure_dirpath=True), tile_bags=tile_bags)
             write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
             self.log.verbose(f"READING features and labels from bags: END")
             #
@@ -567,12 +588,11 @@ class BipolarFeatureBagProbe(Datablock):
             labels = self.labels
             bags = self.bags
             tile_labels = self.tile_labels
+            tile_bags = self.tile_bags
             bag_labels = self.bag_labels
             tile_bipolar_features = self.tile_bipolar_features
             bag_features = self.bag_features
             bag_bipolar_features = self.bag_bipolar_features
-            bag_uq = self.bag_uq
-            bag_bipolar_uq = self.bag_bipolar_uq
             bag_lens = self.bag_lens
             bag_bounds = self.bag_bounds
             tile_feature_list = []
@@ -587,6 +607,9 @@ class BipolarFeatureBagProbe(Datablock):
             tile_features = torch.stack(tile_feature_list, dim=0).numpy()
             del tile_feature_list
             gc.collect()
+            #
+            bag_uq = self.bag_uq
+            bag_bipolar_uq = self.bag_bipolar_uq
 
         # logistic eval
         if not self.validtopic('bag_logistic_evaluation_reports'):
@@ -763,6 +786,22 @@ class BipolarFeatureBagProbe(Datablock):
         return self.read('tile_labels')
     
     @functools.cached_property
+    def tile_bags(self):
+        return self.read('tile_bags')
+    
+    @functools.cached_property
+    def tile_label_indices(self):
+        return self.read('tile_label_indices')
+    
+    @functools.cached_property
+    def tile_bag_indices(self):
+        return self.read('tile_bag_indices')
+    
+    @functools.cached_property
+    def bag_label_indices(self):
+        return self.read('bag_label_indices')
+    
+    @functools.cached_property
     def label_tiles(self):
         return self.read('label_tiles')
     
@@ -845,30 +884,32 @@ class BipolarFeatureBagProbe(Datablock):
             'bag_similarities',
             'label_similarities',
         ]):
-            bag_similarities = torch.zeros((self.n_bags, self.n_bags))
-            bag_indices = torch.tensor_split(torch.arange(self.n_bags), len(self.devices))
-            bag_similarities_computers = [
-                self.BipolarFeaturesSimilarityShardComputer(bag_indices[i], device=self.devices[i], gpu_batch_size=self.gpu_batch_size, log=self.log)
-                for i in range(len(self.devices))
-            ]
-            self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
-            bag_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
-            bag_executor.execute(bag_similarities_computers, self, tile_bipolar_features, self.tile_bags, bag_similarities)
-            write_tensor(bag_similarities, self.path('bag_similarities', ensure_dirpath=True))
-            self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")
-            
-            label_similarities = torch.zeros((self.n_distinct_labels, self.n_distinct_labels))
-            label_indices = torch.tensor_split(torch.arange(self.n_distinct_labels), len(self.devices))
-            label_similarities_computers = [
-                self.BipolarFeaturesSimilarityShardComputer(label_indices[i], device=self.devices[i], gpu_batch_size=self.gpu_batch_size, log=self.log)
-                for i in range(len(self.devices))
-            ]
-            self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
-            label_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
-            label_executor.execute(label_similarities_computers, self, tile_bipolar_features, torch.tensor(self.tile_labels), label_similarities)
-            write_tensor(label_similarities, self.path('label_similarities', ensure_dirpath=True))
-            self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")   
-    
+            if not self.validtopic('bag_similarities'):
+                bag_similarities = torch.zeros((self.n_bags, self.n_bags))
+                bag_indices = torch.tensor_split(torch.arange(self.n_bags), len(self.devices))
+                bag_similarities_computers = [
+                    self.BipolarFeaturesSimilarityShardComputer(bag_indices[i], device=self.devices[i], gpu_batch_size=self.gpu_batch_size, log=self.log)
+                    for i in range(len(self.devices))
+                ]
+                self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
+                bag_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
+                bag_executor.execute(bag_similarities_computers, self, tile_bipolar_features, torch.tensor(self.tile_bag_indices), bag_similarities)
+                write_tensor(bag_similarities, self.path('bag_similarities', ensure_dirpath=True))
+                self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")
+
+            if not self.validtopic('label_similarities'):  
+                label_similarities = torch.zeros((self.n_distinct_labels, self.n_distinct_labels))
+                label_indices = torch.tensor_split(torch.arange(self.n_distinct_labels), len(self.devices))
+                label_similarities_computers = [
+                    self.BipolarFeaturesSimilarityShardComputer(label_indices[i], device=self.devices[i], gpu_batch_size=self.gpu_batch_size, log=self.log)
+                    for i in range(len(self.devices))
+                ]
+                self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
+                label_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
+                label_executor.execute(label_similarities_computers, self, tile_bipolar_features, torch.tensor(self.tile_label_indices), label_similarities)
+                write_tensor(label_similarities, self.path('label_similarities', ensure_dirpath=True))
+                self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")   
+        
 
 class FeaturePairwiseDistancesShard(Datablock):
     VERSION = globals()['VERSION']
