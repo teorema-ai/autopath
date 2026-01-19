@@ -482,7 +482,7 @@ class BipolarFeatureBagProbe(Datablock):
             'bag_bounds',
             'bag_uq', 
             'bag_bipolar_uq',
-        ]):
+        ], reduce=True):
             def strings_to_indices(string_list, string_set):
                 string_set = list(string_set)
                 return np.array([string_set.index(s) for s in string_list])
@@ -642,7 +642,7 @@ class BipolarFeatureBagProbe(Datablock):
             'stats_distinct_tile_features_ratio',
             'stats_distinct_tile_bipolar_features_ratio',
             
-        ]):
+        ], reduce=True):
             self.log.verbose(f"COMPUTING tile features stats: BEGIN")
             stats_tile_features = np.array(len(tile_features))
             stats_distinct_tile_features = np.array(np.unique(tile_features, axis=0).shape[0])
@@ -662,7 +662,7 @@ class BipolarFeatureBagProbe(Datablock):
             'stats_label_distinct_tile_bipolar_features',
             'stats_label_distinct_tile_features_ratio',
             'stats_label_distinct_tile_bipolar_features_ratio',
-        ]):
+        ], reduce=True):
             self.log.verbose(f"COMPUTING label tile features stats: BEGIN")
             stats_label_tile_features = np.array([(tile_labels == label).sum() for label in labels])
             stats_label_distinct_tile_features = np.array([np.unique(tile_features[tile_labels == label, :], axis=0).shape[0] for label in labels])
@@ -682,7 +682,7 @@ class BipolarFeatureBagProbe(Datablock):
             'stats_label_distinct_bag_bipolar_features',
             'stats_label_distinct_bag_features_ratio',
             'stats_label_distinct_bag_bipolar_features_ratio',
-        ]):
+        ], reduce=True):
             self.log.verbose(f"COMPUTING label bag features stats: BEGIN")
             stats_label_bag_features = np.array([(bag_labels == label).sum() for label in labels])
             stats_label_distinct_bag_features = np.array([np.unique(bag_features[bag_labels == label, :], axis=0).shape[0] for label in labels])
@@ -702,7 +702,7 @@ class BipolarFeatureBagProbe(Datablock):
             'stats_bag_distinct_tile_bipolar_features',
             'stats_bag_distinct_tile_features_ratio',
             'stats_bag_distinct_tile_bipolar_features_ratio',
-        ]):
+        ], reduce=True):
             self.log.verbose(f"COMPUTING bag tile features stats: BEGIN")
             stats_bag_tile_features = bag_lens
             stats_bag_distinct_tile_features = np.array([np.unique(tile_features[bag_bounds[i]:bag_bounds[i+1], :], axis=0).shape[0] for i in range(len(bags))])
@@ -882,7 +882,7 @@ class BipolarFeatureBagProbe(Datablock):
         if not self.validtopics([
             'bag_similarities',
             'label_similarities',
-        ]):
+        ], reduce=True):
             if not self.validtopic('bag_similarities'):
                 bag_similarities = torch.zeros((self.n_bags, self.n_bags))
                 bag_indices = torch.tensor_split(torch.arange(self.n_bags), len(self.devices))
