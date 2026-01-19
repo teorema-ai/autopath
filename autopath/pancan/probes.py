@@ -787,6 +787,14 @@ class BipolarFeatureBagProbe(Datablock):
         return self.read('bag_bipolar_features')
     
     @functools.cached_property
+    def bag_uq(self):
+        return self.read('bag_uq')
+    
+    @functools.cached_property
+    def bag_bipolar_uq(self):
+        return self.read('bag_bipolar_uq')
+    
+    @functools.cached_property
     def bag_logistic_evaluation_reports(self):
         return self.read('bag_logistic_evaluation_reports')
     
