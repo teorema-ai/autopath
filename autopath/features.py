@@ -179,10 +179,10 @@ class FeatureBagClip(Clip):
 
     def __build__(self):
         bags = self.bags
-        self.log.debug(f"Formed {len(bags)} FeatureBags.  Looking for missing bags.")
+        self.log.verbose(f"Formed {len(bags)} FeatureBags.  Looking for missing bags.")
         missing_bags = [bag for bag in bags if not bag.valid()]
-        self.log.debug(f"Found {len(missing_bags)} missing bags")
-        self.log.debug(f"Building all missing features bags using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
+        self.log.verbose(f"Found {len(missing_bags)} missing bags")
+        self.log.verbose(f"Building all missing features bags using devices {self.devices} and gpu_batch_size {self.gpu_batch_size}")
         built_bags = dbx.TorchMultithreadingDatablocksBuilder(devices=self.devices, log=self.log).build_blocks(missing_bags, self.cfg.extractor)
         self.log.verbose(f"Built all missing features shards: {len(built_bags)}")
         self.log.verbose(f"Building bag_lens: BEGIN")
