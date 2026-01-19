@@ -258,12 +258,11 @@ class FeatureBagClip(Clip):
     
     @functools.cached_property
     def bags(self):
-        self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: BEGIN ")
+        self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip} with revision {self.revision}: BEGIN ")
         if self.verbose:
             tilebagitor = tqdm.tqdm(self.cfg.tilebagclip.shards)
         else:
             tilebagitor = self.cfg.tilebagclip.shards
-        self.log.debug(f"PASSING DOWN bag revision {self.revision}")
         bags = [
             FeatureBag(
                 root=self._root_, 
@@ -273,7 +272,7 @@ class FeatureBagClip(Clip):
             )
             for tilebag in tilebagitor
         ]
-        self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: END")
+        self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip} with revision {self.revision}: END")
         return bags
     
     @property
