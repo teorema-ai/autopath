@@ -365,10 +365,11 @@ class BipolarFeatureBagProbe(Datablock):
         'tile_bipolar_features': 'tile_bipolar_features.npz',
         'bag_features': 'bag_features.npz',
         'bag_bipolar_features': 'bag_bipolar_features.npz',
-        'bag_uq': 'bag_uq.npz',
-        'bag_bipolar_uq': 'bag_bipolar_uq.npz',
         'bag_lens': 'bag_lens.npz',
         'bag_bounds': 'bag_bounds.npz',
+        #
+        'bag_uq': 'bag_uq.npz',
+        'bag_bipolar_uq': 'bag_bipolar_uq.npz',
         #
         'bag_logistic_evaluation_reports': 'bag_logistic_evaluation_reports.pkl',
         'tile_logistic_evaluation_reports': 'tile_logistic_evaluation_reports.pkl',
@@ -895,7 +896,7 @@ class BipolarFeatureBagProbe(Datablock):
                 self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
                 bag_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
                 bag_executor.execute(bag_similarities_computers, self, tile_bipolar_features, torch.tensor(self.tile_bag_indices), bag_similarities)
-                write_tensor(bag_similarities, self.path('bag_similarities', ensure_dirpath=True))
+                write_npz(self.path('bag_similarities', ensure_dirpath=True), bag_similarities=bag_similarities)
                 self.log.verbose(f"COMPUTING bag similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")
 
             if not self.validtopic('label_similarities'):  
@@ -908,7 +909,7 @@ class BipolarFeatureBagProbe(Datablock):
                 self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: BEGIN")
                 label_executor = MultithreadingCallableExecutor(n_threads=len(self.devices), log=self.log)
                 label_executor.execute(label_similarities_computers, self, tile_bipolar_features, torch.tensor(self.tile_label_indices), label_similarities)
-                write_tensor(label_similarities, self.path('label_similarities', ensure_dirpath=True))
+                write_npz(self.path('label_similarities', ensure_dirpath=True), label_similarities=label_similarities)
                 self.log.verbose(f"COMPUTING label similarities using {len(self.devices)} devices with gpu_batch_size {self.gpu_batch_size}: END")   
         
 
