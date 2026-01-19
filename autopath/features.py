@@ -261,7 +261,7 @@ class FeatureBagClip(Clip):
         self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: BEGIN ")
         bags = [
             FeatureBag(
-                root=self.root, 
+                root=self._root_, 
                 spec=dict(tilebag=dbx.quote(tilebag), extractor=self.spec['extractor'],), 
                 gpu_batch_size=self.gpu_batch_size,
                 revision=self.revision,
