@@ -497,7 +497,7 @@ class BipolarFeatureBagProbe(Datablock):
             label_list = []
             bag_list = []
             tile_feature_list = []
-            self.log.verbose(f"READING features and labels from bags: BEGIN")
+            self.log.verbose(f"READING tile features and labels from bags: BEGIN")
             if self.verbose:
                 bagitor = tqdm.tqdm(self.cfg.featurebagclip.bags)
             else:
@@ -531,7 +531,7 @@ class BipolarFeatureBagProbe(Datablock):
             write_npz(self.path('bag_label_indices', ensure_dirpath=True), bag_label_indices=bag_label_indices)
             write_npz(self.path('tile_bags', ensure_dirpath=True), tile_bags=tile_bags)
             write_npz(self.path('bag_labels', ensure_dirpath=True), bag_labels=bag_labels)
-            self.log.verbose(f"READING features and labels from bags: END")
+            self.log.verbose(f"READING tile features and labels from bags: END")
             #
             tile_features = torch.stack(tile_feature_list, dim=0).numpy()
             self.log.verbose(f"BIPOLARIZING tile features: BEGIN")
