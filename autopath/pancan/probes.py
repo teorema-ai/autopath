@@ -486,6 +486,7 @@ class BipolarFeatureBagProbe(Datablock):
             'bag_bipolar_uq',
         ]):
             def strings_to_indices(string_list, string_set):
+                string_set = list(string_set)
                 return np.array([string_set.index(s) for s in string_list])
                             
             tile_labels_list = []
