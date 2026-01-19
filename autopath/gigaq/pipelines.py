@@ -79,7 +79,7 @@ def gigapath_feature_bag(name: str = None, *, root: str = None) -> FeatureBag:
         return FeatureBag
     elif name == "GIGAPATH_BASELINE_CPTAC_SAMPLE":
         return FeatureBag(
-            root,
+            root=root,
             spec=dict(
                 tilebag=dbx.quote(pancan_tile_bag, 'CPTAC_SAMPLE'),
                 extractor=quote_extractor('GIGAPATH_BASELINE_BACKBONE_EVALUATOR'),

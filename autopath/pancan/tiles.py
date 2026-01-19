@@ -151,6 +151,7 @@ class PancanTileBagClip(Clip):
 			PancanTileBag(
 				root=self._root_,
 				spec=dict(source=bagpath,),
+				revision=self.revision,
 				verbose=self.verbose,
 				debug=self.debug,
 			)

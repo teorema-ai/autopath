@@ -258,12 +258,17 @@ class FeatureBagClip(Clip):
     
     @functools.cached_property
     def bags(self):
-        self.log.debug(f"Forming FeatureBags from tilebagclip {self.cfg.tilebagclip} ... ")
+        self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: BEGIN ")
         bags = [
-            FeatureBag(self.root, spec=dict(tilebag=dbx.quote(tilebag.set(revision=self.revision)), extractor=self.spec['extractor'],), gpu_batch_size=self.gpu_batch_size).set(revision=self.revision)
+            FeatureBag(
+                root=self.root, 
+                spec=dict(tilebag=dbx.quote(tilebag), extractor=self.spec['extractor'],), 
+                gpu_batch_size=self.gpu_batch_size,
+                revision=self.revision,
+            )
             for tilebag in self.cfg.tilebagclip.shards
         ]
-        self.log.debug(f"Forming FeatureBags from tilebagclip {self.cfg.tilebagclip} ... DONE")
+        self.log.debug(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: END")
         return bags
     
     @property
