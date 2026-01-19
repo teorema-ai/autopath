@@ -173,8 +173,8 @@ class FeatureBagClip(Clip):
         def __repr__(self):
             return f"FeatureBagLengthComputer({self.featurebag})"
     
-    def __init__(self, n_threads: int = 1, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
-        super().__init__(n_threads=n_threads, devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
+    def __init__(self, devices: list[str] = ["cuda"], gpu_batch_size: int = 16, skip_unreadable: bool = True, **kwargs):
+        super().__init__(devices=devices, gpu_batch_size=gpu_batch_size, skip_unreadable=skip_unreadable, **kwargs)
         self.log.debug(f"devices={self.devices}, gpu_batch_size={self.gpu_batch_size}, skip_unreadable={self.skip_unreadable}")
 
     def __build__(self):
@@ -187,7 +187,7 @@ class FeatureBagClip(Clip):
         self.log.verbose(f"Built all missing features shards: {len(built_bags)}")
         self.log.verbose(f"Building bag_lens: BEGIN")
         self.log.detailed(f"Building bag_lens for bags with hashe paths {[bag.hashpath() for bag in bags]}")
-        executor = MultithreadingCallableExecutor(n_threads=self.n_threads)
+        executor = MultithreadingCallableExecutor(n_threads=len(self.devices))
         executables = [FeatureBagClip.FeatureBagLengthComputer(bag) for bag in bags]
         bag_lens_lists = executor.exec_callables(executables)
         bag_lens = torch.tensor(list(itertools.chain.from_iterable(bag_lens_lists)))

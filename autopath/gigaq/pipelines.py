@@ -92,7 +92,7 @@ def gigapath_feature_bag(name: str = None, *, root: str = None) -> FeatureBag:
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.pprint "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_9802_TRAIN', n_threads=16).build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.pprint "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TEST', n_threads=16).build()"
 # git commit -am "gigaq: FeatureBagClip: BUILD"; dbx.pprint "autopath.gigaq.pipelines.gigapath_feature_bag_clip('GIGAPATH_BASELINE_CPTAC_8020_TRAIN', n_threads=16).build()"
-def gigapath_feature_bag_clip(name:str = None, *, root:str = None, n_devices: int = 1, n_threads: int = 1) -> FeatureBagClip:
+def gigapath_feature_bag_clip(name:str = None, *, root:str = None, n_devices: int = 1, gpu_batch_size: int = None) -> FeatureBagClip:
     devices = [f'cuda:{i}' for i in range(n_devices)]
     if name is None:
         return FeatureBagClip
@@ -116,7 +116,12 @@ def gigapath_feature_bag_clip(name:str = None, *, root:str = None, n_devices: in
         tilebagclip = dbx.quote(pancan_tile_bag_fold, 'CPTAC_8020_TEST')
     else:
         raise ValueError(f"Unknown gigapath_feature_clip: {repr(name)}")
-    return FeatureBagClip(root=root, spec=dict(extractor=extractor, tilebagclip=tilebagclip), devices=devices, n_threads=n_threads)
+    return FeatureBagClip(
+        root=root, 
+        spec=dict(extractor=extractor, tilebagclip=tilebagclip), 
+        devices=devices, 
+        gpu_batch_size=gpu_batch_size,
+    )
 
 
 # git commit -am "gigaq: Featurebagset: TEST"; dbx.pprint "autopath.gigaq.pipelines.gigapath_featurebagset('GIGAPATH_BASELINE_CPTAC')[0]"
@@ -167,10 +172,12 @@ def gigapath_feature_bags_median_probe(name) -> FeatureBagMedianProbe:
 
 
 # git commit -am "gigaq: BipolarFeatureBagProbe: BUILD"; dbx.pprint "autopath.gigaq.pipelines.gigapath_bipolar_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020').build()"
-# git commit -am "gigaq: BipolarFeatureBagProbe: BUILD"; dbx.pprint "autopath.gigaq.pipelines.gigapath_bipolar_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020', n_devices=2).build()"
-def gigapath_bipolar_feature_bags_probe(name, *, n_devices: int = 1) -> BipolarFeatureBagProbe:
+# git commit -am "gigaq: BipolarFeatureBagProbe: BUILD"; dbx.pprint "autopath.gigaq.pipelines.gigapath_bipolar_feature_bags_probe('GIGAPATH_BASELINE_CPTAC_8020', n_devices=2, gpu_batch_size=1024).build()"
+def gigapath_bipolar_feature_bags_probe(name, *, n_devices: int = 1, gpu_batch_size: int = 16) -> BipolarFeatureBagProbe:
     return BipolarFeatureBagProbe(
-        spec=dict(featurebagclip=gigapath_feature_bag_clip(f"{name}_TEST"), medianprobe=gigapath_feature_bags_median_probe(f"{name}_TRAIN"),),
+        spec=dict(featurebagclip=gigapath_feature_bag_clip(f"{name}_TEST", n_devices=n_devices, gpu_batch_size=gpu_batch_size), 
+                  medianprobe=gigapath_feature_bags_median_probe(f"{name}_TRAIN"),
+        ),
         devices=[f'cuda:{i}' for i in range(n_devices)],
     )
  
