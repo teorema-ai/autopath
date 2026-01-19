@@ -259,6 +259,10 @@ class FeatureBagClip(Clip):
     @functools.cached_property
     def bags(self):
         self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: BEGIN ")
+        if self.verbose:
+            tilebagitor = tqdm.tqdm(self.cfg.tilebagclip.shards)
+        else:
+            tilebagitor = self.cfg.tilebagclip.shards
         bags = [
             FeatureBag(
                 root=self._root_, 
@@ -266,9 +270,9 @@ class FeatureBagClip(Clip):
                 gpu_batch_size=self.gpu_batch_size,
                 revision=self.revision,
             )
-            for tilebag in self.cfg.tilebagclip.shards
+            for tilebag in tilebagitor
         ]
-        self.log.debug(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: END")
+        self.log.verbose(f"FORMING FeatureBags from tilebagclip {self.cfg.tilebagclip}: END")
         return bags
     
     @property
