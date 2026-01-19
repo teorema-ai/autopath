@@ -26,7 +26,6 @@ from autopath.databits import ClipDataLoaderBuilder
 
 from .layers import UpLayer
 
-VERSION = 4
 
 def vector_to_image(vector,):
     N = vector.shape[-1]
@@ -579,7 +578,7 @@ class VariationalReEncoderDecoderEvaluator(Datablock):
 
 
 class VariationalReEncoderDecoderLightning(Datablock):
-    VERSION = globals().get('VERSION', None)
+    VERSION = 4
     @dataclass
     class CONFIG:
         vred: VariationalReEncoderDecoder
@@ -716,7 +715,7 @@ class VariationalReEncoderDecoderLightning(Datablock):
     
 
 class VariationalReEncoderDecoderStill(Datablock):
-    VERSION = globals().get('VERSION', None)
+    VERSION = 4
     TOPICFILES = {'logs': None,
                   'ckpts': None,
     }
