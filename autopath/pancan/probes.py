@@ -464,7 +464,7 @@ class BipolarFeatureBagProbe(Datablock):
         bag_bipolar_feature_nonzeros: np.array
         label_bag_bipolar_feature_nonzeros: np.array
 
-    def __init__(self, *args, devices=['cuda'], gpu_batch_size: int = 1024, **kwargs):
+    def __init__(self, *args, devices=['cuda:0'], gpu_batch_size: int = 1024, **kwargs):
         super().__init__(*args, devices=devices, gpu_batch_size=gpu_batch_size, **kwargs)
 
     def __build__(self):
