@@ -6,7 +6,7 @@ import itertools
 import math
 from typing import Callable
 
-
+import tqdm
 import numpy as np
 
 
@@ -263,6 +263,7 @@ class FeatureBagClip(Clip):
             tilebagitor = tqdm.tqdm(self.cfg.tilebagclip.shards)
         else:
             tilebagitor = self.cfg.tilebagclip.shards
+        self.log.debug(f"PASSING DOWN bag revision {self.revision}")
         bags = [
             FeatureBag(
                 root=self._root_, 
