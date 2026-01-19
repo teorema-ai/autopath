@@ -19,9 +19,6 @@ from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
 
-VERSION = 5
-
-
 from dbx import (
 	Logger,
 	Datablock,
@@ -914,7 +911,7 @@ class BipolarFeatureBagProbe(Datablock):
         
 
 class FeaturePairwiseDistancesShard(Datablock):
-    VERSION = globals()['VERSION']
+    VERSION = 5
     TOPICFILES = {
         'rows': 'rows.npz',
         'cols': 'cols.npz',
@@ -979,7 +976,7 @@ class FeaturePairwiseDistancesShard(Datablock):
     
 
 class FeaturePairwiseDistances(Datablock):
-    VERSION = globals()['VERSION'] 
+    VERSION = 5 
     TOPICFILES = {
         "features_shape": "features_shape.npy",
     }
@@ -1066,7 +1063,7 @@ class FeaturePairwiseDistances(Datablock):
 
 
 class FeatureSortedDistancesShard(Datablock):
-    VERSION = globals()['VERSION']
+    VERSION = 5
     TOPICFILES = {
         "sorted_distances": "sorted_distances.npy",
         "original_order_indices": "original_order_indices.npy",
@@ -1117,7 +1114,7 @@ class FeatureSortedDistancesShard(Datablock):
         
 
 class FeatureSortedDistances(Datablock):
-    VERSION = globals()['VERSION']
+    VERSION = 5
     TOPICFILE = "breadcrumbs"
 
     @dataclass
