@@ -476,8 +476,6 @@ class BipolarFeatureBagProbe(Datablock):
             'bag_bipolar_uq',
             'bag_lens', 
             'bag_bounds',
-            'bag_similarities',
-            'label_similarities', 
         ]):
             tile_labels_list = []
             bag_labels_list = []
