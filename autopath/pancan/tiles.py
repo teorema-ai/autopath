@@ -149,12 +149,7 @@ class PancanTileBagClip(Clip):
 	def bags(self):
 		return [
 			PancanTileBag(
-				spec=dict(source=bagpath,),
-				verbose=self.verbose,
-				debug=self.debug,
-			) if self.autoroot else 
-			PancanTileBag(
-				self.root,
+				root=self._root_,
 				spec=dict(source=bagpath,),
 				verbose=self.verbose,
 				debug=self.debug,
