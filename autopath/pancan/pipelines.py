@@ -15,8 +15,9 @@ PANCAN_CPTAC_SAMPLE = os.path.join(PANCAN_CPTAC, "HNSCC/tfrecords/256px_256um/C3
 PANCAN_CPTAC_RESOLUTION = os.environ.get("PANCAN_CPTAC_RESOLUTION", "256px_256um")
 
 
-# git commit -am "gigaq: PancanTileBag: READ"; git commit -am "gigaq: PancanTileBag: READ"; dbx "autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE').read('tiles')"
-# git commit -am "gigaq: PancanTileBag: READ"; dbx "autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE').read('labels')"
+# git commit -am "gigaq: PancanTileBag: READ"; git commit -am "gigaq: PancanTileBag: READ"; dbx.pprint "autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE').valid()"
+# git commit -am "gigaq: PancanTileBag: READ"; git commit -am "gigaq: PancanTileBag: READ"; dbx.pprint "autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE').read('tiles')"
+# git commit -am "gigaq: PancanTileBag: READ"; dbx.pprint "autopath.pancan.pipelines.pancan_tile_bag('CPTAC_SAMPLE').read('labels')"
 def pancan_tile_bag(name=None) -> PancanTileBag:
     if name is None:
         return PancanTileBag
